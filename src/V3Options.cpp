@@ -225,6 +225,11 @@ void V3Options::addVFile(const string& filename) {
     // in a specific order and multiple of them.
     m_vFiles.push_back(filename);
 }
+void V3Options::addVHDLFile(const string& filename) {
+    // We use a list for v files, because it's legal to have includes
+    // in a specific order and multiple of them.
+    m_vhdFiles.push_back(filename);
+}
 void V3Options::addForceInc(const string& filename) {
     m_forceIncs.push_back(filename);
 }
@@ -557,13 +562,15 @@ void V3Options::parseOpts(FileLine* fl, int argc, char** argv) {
     // Default certain options and error check
     // Detailed error, since this is what we often get when run with minimal arguments
     const V3StringList& vFilesList = vFiles();
-    if (vFilesList.empty()) {
-	v3fatal("verilator: No Input Verilog file specified on command line, see verilator --help for more information\n");
+    const V3StringList& vhdFilesList = vhdFiles();
+    if (vFilesList.empty() && vhdFilesList.empty()) {
+	v3fatal("verilator: No Input Verilog or VHDL source file specified on command line, see verilator --help for more information\n");
     }
 
     // Default prefix to the filename
     if (prefix()=="" && topModule()!="") m_prefix = string("V")+topModule();
     if (prefix()=="" && vFilesList.size()>=1) m_prefix = string("V")+V3Os::filenameNonExt(*(vFilesList.begin()));
+    if (prefix()=="" && vhdFilesList.size()>=1) m_prefix = string("V")+V3Os::filenameNonExt(*(vhdFilesList.begin()));
     if (modPrefix()=="") m_modPrefix = prefix();
 
     // Find files in makedir
@@ -1086,6 +1093,10 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
 		     || suffixed(filename, ".so")) {
 		V3Options::addLdLibs(filename);
 	    }
+      else if (suffixed(filename, ".vhd")
+      || suffixed(filename, ".vhdl")) {
+    V3Options::addVHDLFile(filename);
+      }
 	    else {
 		V3Options::addVFile(filename);
 	    }

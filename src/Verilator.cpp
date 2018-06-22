@@ -92,9 +92,8 @@
 #include "V3Undriven.h"
 #include "V3Unknown.h"
 #include "V3Unroll.h"
+#include "V4VhdlFrontend.h"
 #include "V3Width.h"
-
-#include "tiny-process-library/process.hpp"
 
 #include <ctime>
 #include <sys/stat.h>
@@ -132,6 +131,10 @@ void V3Global::readFiles() {
 	parser.parseFile(new FileLine("COMMAND_LINE",0), filename, false,
 			 "Cannot find file containing module: ");
     }
+
+    V4VhdlFrontend vhdFrontend;
+    // Read top VHDL module
+	vhdFrontend.parseFiles();
 
     // Read libraries
     // To be compatible with other simulators,
