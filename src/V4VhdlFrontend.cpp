@@ -5,14 +5,9 @@
 #include <cstdio>
 
 using namespace std;
+using namespace TinyProcessLib;
 
-V4VhdlFrontend::V4VhdlFrontend() {
-  cout << "Creating parser" << endl;
-}
-
-void V4VhdlFrontend::parseFile(const string& filename) {
-  cout << "Parsing " << filename << endl;
-}
+V4VhdlFrontend::V4VhdlFrontend() {}
 
 void V4VhdlFrontend::allocateTemp() {
   tempFilename = string(tmpnam(NULL));
@@ -33,9 +28,25 @@ void V4VhdlFrontend::parseFiles() {
   oss << "nvc -a ";
   for (V3StringList::const_iterator it = vhdFiles.begin(); it != vhdFiles.end(); ++it) {
     string filename = *it;
-    oss << filename << " " << getTempName();
-    parseFile(*it);
+    oss << filename << " ";
   }
-  oss << " --dump-json ";
-  cout << oss.str() << endl;
+  oss << "--dump-json " << getTempName();
+  string command = oss.str();
+  const char *cmd = command.c_str();
+
+  //cout << string(cmd) << endl;
+  Process nvc_process(cmd, "", [](const char *bytes, size_t n) {
+    cout << string(bytes, n);
+  }, [](const char *bytes, size_t n) {
+    cout << string(bytes, n);
+  });
+  cout << endl;
+
+  // Check for missing sim or parse error
+  if (nvc_process.get_exit_status() == 127) {
+    v3error("nvc VHDL simulator is not properly installed or not in your $PATH");
+  }
+  else if (nvc_process.get_exit_status() != 0) {
+    v3error("nvc failed to parse one of your input files");
+  }
 }

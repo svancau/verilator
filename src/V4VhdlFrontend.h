@@ -12,7 +12,6 @@ public:
   void parseFiles();
 private:
   string tempFilename;
-  void parseFile(const string& filename);
   void allocateTemp();
   string getTempName();
 };
