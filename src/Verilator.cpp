@@ -94,6 +94,8 @@
 #include "V3Unroll.h"
 #include "V3Width.h"
 
+#include "tiny-process-library/process.hpp"
+
 #include <ctime>
 #include <sys/stat.h>
 

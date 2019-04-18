@@ -90,7 +90,7 @@ endif
 
 # -lfl not needed as Flex invoked with %nowrap option
 # -lstdc++ needed for clang, believed harmless with gcc
-LIBS = -lm -lstdc++
+LIBS = -lm -lstdc++ -lpthread
 
 CPPFLAGS += -MMD
 CPPFLAGS += -I. -I$(bldsrc) -I$(srcdir) -I$(incdir) -I../../include
@@ -242,6 +242,10 @@ RAW_OBJS = \
 	V3Width.o \
 	V3WidthSel.o \
 
+PROCESS_OBJS += \
+	process.o \
+	process_unix.o \
+
 # Non-concatable
 NC_OBJS += \
 	V3ParseImp.o \
@@ -257,7 +261,7 @@ VLCOV_OBJS = \
 
 ifeq ($(VL_VLCOV),)
 PREDEP_H = V3Ast__gen_classes.h
-OBJS += $(RAW_OBJS) $(NC_OBJS)
+OBJS += $(RAW_OBJS) $(NC_OBJS) $(PROCESS_OBJS)
 else
 PREDEP_H =
 OBJS += $(VLCOV_OBJS)
@@ -279,8 +283,12 @@ V3Number_test: V3Number_test.o
 %__gen.cpp:	%.cpp $(ASTGEN) V3Ast.h V3AstNodes.h
 	$(PERL) $(ASTGEN) -I$(srcdir) $*.cpp
 
-%.o:	%.cpp
+%.o:	%.cpp 
 	$(OBJCACHE) ${CXX} ${CPPFLAGSWALL} -c $<
+
+%.o:	tiny-process-library/%.cpp
+	$(OBJCACHE) ${CXX} ${CPPFLAGSWALL} -c $<
+
 %.o:	%.c
 	$(OBJCACHE) ${CC}  ${CPPFLAGSWALL} -c $<
 

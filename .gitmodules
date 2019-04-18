@@ -1,0 +1,6 @@
+[submodule "src/tiny-process-library"]
+	path = src/tiny-process-library
+	url = https://gitlab.com/eidheim/tiny-process-library.git
+[submodule "src/rapidjson"]
+	path = src/rapidjson
+	url = https://github.com/Tencent/rapidjson.git
