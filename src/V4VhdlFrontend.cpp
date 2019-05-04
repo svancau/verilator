@@ -1,5 +1,6 @@
 #include "V3Global.h"
 #include "V4VhdlFrontend.h"
+#include "V4VhdlTranslate.h"
 #include <iostream>
 #include <sstream>
 #include <cstdio>
@@ -49,4 +50,9 @@ void V4VhdlFrontend::parseFiles() {
   else if (nvc_process.get_exit_status() != 0) {
     v3error("nvc failed to parse one of your input files");
   }
+
+  V4VhdlTranslate xlate;
+  xlate.translate(getTempName());
+
+  //unlink(getTempName().c_str());
 }
