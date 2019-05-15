@@ -7,6 +7,7 @@
 #include <string>
 #include <fstream>
 #include <map>
+#include <vector>
 #include "rapidjson/include/rapidjson/document.h"
 #include "rapidjson/include/rapidjson/istreamwrapper.h"
 
@@ -20,6 +21,7 @@ private:
     unsigned long pinnum;
     void iterateArray(Value::ConstArray arr, void(*add)(AstNode *newp));
     AstNode *translateObject(Value::ConstObject item);
+    AstNode *translateFcall(Value::ConstObject item);
     map<string, AstNode*> m_entities;
     AstAlways *current_process;
 public:

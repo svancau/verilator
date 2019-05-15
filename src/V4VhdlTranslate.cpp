@@ -12,6 +12,23 @@ V4VhdlTranslate::~V4VhdlTranslate()
 
 }
 
+AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
+    string fname = item["name"].GetString();
+    FileLine *fl = new FileLine("", 0);
+    vector<AstNode*> params;
+    Value::ConstArray stmts = item["params"].GetArray();
+    for (Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
+        AstNode *res = translateObject(m->GetObject()["value"].GetObject());
+        params.push_back(res);
+    }
+
+    if (fname == "IEEE.STD_LOGIC_1164.\"and\"")
+        return new AstAnd(fl, params[0], params[1]);
+    else if (fname == "IEEE.STD_LOGIC_1164.\"or\"")
+        return new AstOr(fl, params[0], params[1]);
+    return NULL;
+}
+
 AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     auto obj = item;
     if (obj["cls"] == "entity") {
@@ -88,14 +105,20 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "sigassign") {
         FileLine *fl = new FileLine("", 0);
         AstNode * lhsp = translateObject(obj["target"].GetObject());
-        //AstAssign * assign = new AstAssign(fl, lhsp, NULL);
-        return NULL;
+        AstNode * rhsp = translateObject(obj["lhs"].GetObject()); // FIX this
+        AstAssign * assign = new AstAssign(fl, lhsp, rhsp);
+        return assign;
 
     } else if (obj["cls"] == "ref") {
         FileLine *fl = new FileLine("", 0);
         AstVarRef *varrefp = new AstVarRef(fl, obj["name"].GetString(), false);
         return varrefp;
-       
+    
+    } else if (obj["cls"] == "fcall") {
+        FileLine *fl = new FileLine("", 0);
+        cout << "fcall" << endl;
+        return translateFcall(obj);
+
     } else {
         cout << "Unknown" << endl;
     }
