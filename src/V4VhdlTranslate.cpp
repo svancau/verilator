@@ -12,6 +12,10 @@ V4VhdlTranslate::~V4VhdlTranslate()
 
 }
 
+AstBasicDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
+    return nullptr;
+}
+
 AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     string fname = item["name"].GetString();
     FileLine *fl = new FileLine("", 0);
@@ -26,7 +30,22 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
         return new AstAnd(fl, params[0], params[1]);
     else if (fname == "IEEE.STD_LOGIC_1164.\"or\"")
         return new AstOr(fl, params[0], params[1]);
-    return NULL;
+    else if (fname == "IEEE.STD_LOGIC_1164.\"not\"")
+        return new AstNot(fl, params[0]);
+    else if (fname == "IEEE.STD_LOGIC_1164.\"nand\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstNot(fl, new AstAnd(fl, params[0], params[1]));
+    } else if (fname == "IEEE.STD_LOGIC_1164.\"nor\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstNot(fl, new AstOr(fl, params[0], params[1]));
+    } else if (fname == "IEEE.STD_LOGIC_1164.\"xor\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstXor(fl, params[0], params[1]);
+    } else if (fname == "IEEE.STD_LOGIC_1164.\"xnor\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstNot(fl, new AstXor(fl, params[0], params[1]));
+    }
+    return nullptr;
 }
 
 AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
@@ -116,7 +135,6 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     
     } else if (obj["cls"] == "fcall") {
         FileLine *fl = new FileLine("", 0);
-        cout << "fcall" << endl;
         return translateFcall(obj);
 
     } else {

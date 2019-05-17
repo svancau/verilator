@@ -20,6 +20,7 @@ private:
     /* data */
     unsigned long pinnum;
     void iterateArray(Value::ConstArray arr, void(*add)(AstNode *newp));
+    AstBasicDType *translateType(Value::ConstObject item);
     AstNode *translateObject(Value::ConstObject item);
     AstNode *translateFcall(Value::ConstObject item);
     map<string, AstNode*> m_entities;
