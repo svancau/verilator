@@ -8,7 +8,9 @@
 using namespace std;
 using namespace TinyProcessLib;
 
-V4VhdlFrontend::V4VhdlFrontend() {}
+V4VhdlFrontend::V4VhdlFrontend(V3ParseSym &symtable) : symt(symtable) {
+
+}
 
 void V4VhdlFrontend::allocateTemp() {
   tempFilename = string(tmpnam(NULL));
@@ -51,7 +53,7 @@ void V4VhdlFrontend::parseFiles() {
     v3error("nvc failed to parse one of your input files");
   }
 
-  V4VhdlTranslate xlate;
+  V4VhdlTranslate xlate(symt);
   xlate.translate(getTempName());
 
   //unlink(getTempName().c_str());

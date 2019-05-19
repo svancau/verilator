@@ -132,7 +132,7 @@ void V3Global::readFiles() {
 			 "Cannot find file containing module: ");
     }
 
-    V4VhdlFrontend vhdFrontend;
+    V4VhdlFrontend vhdFrontend(parseSyms);
     // Read top VHDL module
 	vhdFrontend.parseFiles();
 

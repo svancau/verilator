@@ -2,7 +2,7 @@
 #include "V3FileLine.h"
 #include "V4VhdlTranslate.h"
 
-V4VhdlTranslate::V4VhdlTranslate(/* args */)
+V4VhdlTranslate::V4VhdlTranslate(V3ParseSym &symtable) : symt(symtable)
 {
 
 }
@@ -12,7 +12,7 @@ V4VhdlTranslate::~V4VhdlTranslate()
 
 }
 
-AstBasicDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
+AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
     return nullptr;
 }
 
@@ -63,12 +63,14 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             AstPort *port = new AstPort(fl, pinnum++, port_obj["name"].GetString());
             mod->addStmtp(port);
             FileLine *fl2 = new FileLine("", 0);
-            AstBasicDType *dtypep = new AstBasicDType(fl2, AstBasicDTypeKwd::LOGIC_IMPLICIT);
+            AstBasicDType *dtypep = new AstBasicDType(fl2, AstBasicDTypeKwd::BIT);
+            cout << dtypep << endl;
             FileLine *fl3 = new FileLine("", 0);
             AstVar* var = new AstVar(fl3, AstVarType::PORT, port_obj["name"].GetString(), dtypep);
             mod->addStmtp(var);
         }
         v3Global.rootp()->addModulep(mod);
+        symt.pushNew(mod);
         m_entities.insert(pair<string,AstNode*>(obj["name"].GetString(), mod));
 
 
@@ -140,7 +142,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else {
         cout << "Unknown" << endl;
     }
-    return NULL;
+    return nullptr;
 }
 
 void V4VhdlTranslate::translate(string filename)

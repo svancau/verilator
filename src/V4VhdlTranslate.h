@@ -3,6 +3,7 @@
 
 #include "V3Global.h"
 #include "V3Ast.h"
+#include "V3ParseSym.h"
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -20,16 +21,16 @@ private:
     /* data */
     unsigned long pinnum;
     void iterateArray(Value::ConstArray arr, void(*add)(AstNode *newp));
-    AstBasicDType *translateType(Value::ConstObject item);
+    AstNodeDType *translateType(Value::ConstObject item);
     AstNode *translateObject(Value::ConstObject item);
     AstNode *translateFcall(Value::ConstObject item);
     map<string, AstNode*> m_entities;
     AstAlways *current_process;
+    V3ParseSym &symt;
 public:
-    V4VhdlTranslate(/* args */);
+    V4VhdlTranslate(V3ParseSym &symtable);
     ~V4VhdlTranslate();
     void translate(string filename);
 };
-
 
 #endif
