@@ -279,6 +279,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         AstAssignDly * assign = new AstAssignDly(fl, lhsp, rhsp);
         return assign;
 
+    } else if (obj["cls"] == "varassign") {
+        FileLine *fl = new FileLine("", 0);
+        AstNode * lhsp = translateObject(obj["target"].GetObject());
+        AstNode * rhsp = translateObject(obj["lhs"].GetObject());
+        AstAssign *assign = new AstAssign(fl, lhsp, rhsp);
+        return assign;
+
     } else if (obj["cls"] == "ref") {
         FileLine *fl = new FileLine("", 0);
         AstVarRef *varrefp = new AstVarRef(fl, obj["name"].GetString(), false);
@@ -292,7 +299,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine("", 0);
         return new AstConst(fl, AstConst::Unsized32(), obj["value"].GetUint());
 
-    } else if (obj["cls"] == "sigdecl") {
+    } else if (obj["cls"] == "sigdecl" or obj["cls"] == "vardecl") {
         VARRESET();
         VARDECL(VAR);
         FileLine *fl = new FileLine("", 0);
