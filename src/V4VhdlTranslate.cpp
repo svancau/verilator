@@ -128,7 +128,6 @@ AstNode* V4VhdlTranslate::createSupplyExpr(FileLine* fileline, string name, int 
 AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
     FileLine *fl2 = new FileLine("", 0);
     string type_name = item["name"].GetString();
-    cout << type_name << endl;
     if (type_name == "STD_LOGIC%s") {
         return new AstBasicDType(fl2, AstBasicDTypeKwd::LOGIC_IMPLICIT);
     } else if (type_name == "STD_LOGIC_VECTOR%s" or type_name == "UNSIGNED%s" or type_name == "SIGNED%s") {
@@ -231,7 +230,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
             for (Value::ConstValueIterator m = decls.Begin(); m != decls.End(); ++m) {
                 AstNode * res = translateObject(m->GetObject());
-                 if(res) ((AstModule*)(entity_mod->second))->addStmtp(res);
+                if(res) ((AstModule*)(entity_mod->second))->addStmtp(res);
             }
             
             Value::ConstArray stmts = obj["stmts"].GetArray();
@@ -277,7 +276,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine("", 0);
         AstNode * lhsp = translateObject(obj["target"].GetObject());
         AstNode * rhsp = translateObject(obj["lhs"].GetObject());
-        AstAssign * assign = new AstAssign(fl, lhsp, rhsp);
+        AstAssignDly * assign = new AstAssignDly(fl, lhsp, rhsp);
         return assign;
 
     } else if (obj["cls"] == "ref") {
@@ -292,6 +291,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "int") {
         FileLine *fl = new FileLine("", 0);
         return new AstConst(fl, AstConst::Unsized32(), obj["value"].GetUint());
+
+    } else if (obj["cls"] == "sigdecl") {
+        VARRESET();
+        VARDECL(VAR);
+        FileLine *fl = new FileLine("", 0);
+        VARDTYPE(translateType(obj["type"].GetObject()));
+        return createVariable(fl, obj["name"].GetString(), NULL, NULL);
 
     } else {
         cout << "Unknown" << endl;
