@@ -138,7 +138,7 @@ AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
         return createArray(base_type, range, true);
 
     } else {
-        cout << "Unknown type" << endl;
+        v3error("Failed to translate type " + type_name);
         return nullptr;
     }
 
@@ -182,6 +182,7 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
         FileLine *fl2 = new FileLine("", 0);
         return new AstMul(fl, params[0], params[1]);
     }
+    v3error("Failed to translate function " + fname);
     return nullptr;
 }
 
@@ -307,7 +308,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return createVariable(fl, obj["name"].GetString(), NULL, NULL);
 
     } else {
-        cout << "Unknown" << endl;
+        v3error("Failed to translate object");
     }
     return nullptr;
 }
