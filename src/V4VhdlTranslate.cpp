@@ -181,6 +181,16 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     } else if (fname == "IEEE.NUMERIC_STD.\"*\"") {
         FileLine *fl2 = new FileLine("", 0);
         return new AstMul(fl, params[0], params[1]);
+    } else if (fname == "IEEE.STD_LOGIC_1164.RISING_EDGE") {
+        FileLine *fl2 = new FileLine("", 0);
+        m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_POSEDGE));
+        // Return True, if removed by constify pass
+        return new AstConst(fl2, AstConst::LogicTrue());
+    } else if (fname == "IEEE.STD_LOGIC_1164.FALLING_EDGE") {
+        FileLine *fl2 = new FileLine("", 0);
+        m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_NEGEDGE));
+        // Return True, if removed by constify pass
+        return new AstConst(fl2, AstConst::LogicTrue());
     }
     v3error("Failed to translate function " + fname);
     return nullptr;
@@ -191,7 +201,7 @@ string convertName(string inName) { // TODO: clean this hack
 }
 
 AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
-    auto obj = item;
+    Value::ConstObject obj = item;
     if (obj["cls"] == "entity") {
         FileLine *fl = new FileLine("", 0);
         string module_name = convertName(obj["name"].GetString());
@@ -260,16 +270,23 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             AstNode * res = translateObject(m->GetObject());
             if(res) process->addStmtp(res);
         }
+
         current_process = NULL;
+        m_sig_edges.clear();
         return process;
 
     } else if (obj["cls"] == "wait") {
         
         Value::ConstArray on = obj["on"].GetArray();
         for (Value::ConstValueIterator m = on.Begin(); m != on.End(); ++m) {
-            AstNode * ref = translateObject(m->GetObject());
+            AstNode *ref = translateObject(m->GetObject());
             FileLine *fl2 = new FileLine("", 0);
-            AstSenItem *si = new AstSenItem(fl2, AstEdgeType::ET_ANYEDGE, ref);
+            string item_name = m->GetObject()["name"].GetString();
+            AstEdgeType edge_type = AstEdgeType::ET_BOTHEDGE;
+            if (m_sig_edges[item_name])
+                edge_type = m_sig_edges[item_name];
+
+            AstSenItem *si = new AstSenItem(fl2, edge_type, ref);
             if(ref) current_process->sensesp()->addSensesp(si);
         }
 
@@ -299,6 +316,23 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "int") {
         FileLine *fl = new FileLine("", 0);
         return new AstConst(fl, AstConst::Unsized32(), obj["value"].GetUint());
+
+    } else if (obj["cls"] == "if") {
+        FileLine *fl = new FileLine("", 0);
+        AstIf *ifn = new AstIf(fl, translateObject(obj["cond"].GetObject()), NULL, NULL);
+
+        Value::ConstArray thens = obj["then"].GetArray();
+        for (Value::ConstValueIterator m = thens.Begin(); m != thens.End(); ++m) {
+            AstNode *res = translateObject(m->GetObject());
+            if(res) ifn->addIfsp(res);
+        }
+
+        Value::ConstArray elses = obj["else"].GetArray();
+        for (Value::ConstValueIterator m = elses.Begin(); m != elses.End(); ++m) {
+            AstNode *res = translateObject(m->GetObject());
+            if(res) ifn->addElsesp(res);
+        }
+        return ifn;
 
     } else if (obj["cls"] == "sigdecl" or obj["cls"] == "vardecl") {
         VARRESET();
