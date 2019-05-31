@@ -149,6 +149,15 @@ most GNU tools support:
 Then after installing you will need to add /opt/verilator-VERSION/bin to
 PATH.
 
+=item 5.
+If you plan to use VHDL support, you will need to install nvc simulator.
+Nvc is used as a VHDL frontend for Verilator.
+
+   git clone https://github.com/svancau/nvc.git # Clone nvc
+
+Follow nvc's readme file to install it and ensure nvc is in your $PATH.   
+Currently, you'll need to use the dump_json branch.
+
 =back
 
 =item
