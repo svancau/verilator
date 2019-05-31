@@ -77,11 +77,11 @@ public:
         fstWriterClose(m_fst);
         m_fst = NULL;
     }
-    // void set_time_unit(const char* unitp);  ///< Set time units (s/ms, defaults to ns)
-    // void set_time_unit(const std::string& unit) { set_time_unit(unit.c_str()); }
+    void set_time_unit(const char* unitp) { fstWriterSetTimescaleFromString(m_fst, unitp); }
+    void set_time_unit(const std::string& unit) { set_time_unit(unit.c_str()); }
 
-    // void set_time_resolution(const char* unitp);  ///< Set time resolution (s/ms, defaults to ns)
-    // void set_time_resolution(const std::string& unit) { set_time_resolution(unit.c_str()); }
+    void set_time_resolution(const char* unitp) { if (unitp) {} }
+    void set_time_resolution(const std::string& unit) { set_time_resolution(unit.c_str()); }
 
     // double timescaleToDouble(const char* unitp);
     // std::string doubleToTimescale(double value);
@@ -157,12 +157,18 @@ public:
         fstWriterEmitValueChange(m_fst, m_code2symbol[code], array2Str(newval, bits));
     }
 
-    void fullBit(vluint32_t code, const vluint32_t newval) { chgBit(code, newval); }
-    void fullBus(vluint32_t code, const vluint32_t newval, int bits) { chgBus(code, newval, bits); }
-    void fullDouble(vluint32_t code, const double newval) { chgDouble(code, newval); }
-    void fullFloat(vluint32_t code, const float newval) { chgFloat(code, newval); }
-    void fullQuad(vluint32_t code, const vluint64_t newval, int bits) { chgQuad(code, newval, bits); }
-    void fullArray(vluint32_t code, const vluint32_t* newval, int bits) { chgArray(code, newval, bits); }
+    void fullBit(vluint32_t code, const vluint32_t newval) {
+        chgBit(code, newval); }
+    void fullBus(vluint32_t code, const vluint32_t newval, int bits) {
+        chgBus(code, newval, bits); }
+    void fullDouble(vluint32_t code, const double newval) {
+        chgDouble(code, newval); }
+    void fullFloat(vluint32_t code, const float newval) {
+        chgFloat(code, newval); }
+    void fullQuad(vluint32_t code, const vluint64_t newval, int bits) {
+        chgQuad(code, newval, bits); }
+    void fullArray(vluint32_t code, const vluint32_t* newval, int bits) {
+        chgArray(code, newval, bits); }
 
     void declTriBit   (vluint32_t code, const char* name, int arraynum);
     void declTriBus   (vluint32_t code, const char* name, int arraynum, int msb, int lsb);
@@ -216,11 +222,11 @@ public:
     void dump(int timestamp) { dump(static_cast<vluint64_t>(timestamp)); }
     /// Set time units (s/ms, defaults to ns)
     /// See also VL_TIME_PRECISION, and VL_TIME_MULTIPLIER in verilated.h
-    void set_time_unit(const char* unit) { /* TODO */ }
+    void set_time_unit(const char* unitp) { m_sptrace.set_time_unit(unitp); }
     void set_time_unit(const std::string& unit) { set_time_unit(unit.c_str()); }
     /// Set time resolution (s/ms, defaults to ns)
     /// See also VL_TIME_PRECISION, and VL_TIME_MULTIPLIER in verilated.h
-    void set_time_resolution(const char* unit) { /* TODO */ }
+    void set_time_resolution(const char* unitp) { m_sptrace.set_time_resolution(unitp); }
     void set_time_resolution(const std::string& unit) { set_time_resolution(unit.c_str()); }
 
     /// Internal class access

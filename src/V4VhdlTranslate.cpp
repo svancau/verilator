@@ -115,14 +115,9 @@ AstVar* V4VhdlTranslate::createVariable(FileLine* fileline, string name, AstNode
 }
 
 AstNode* V4VhdlTranslate::createSupplyExpr(FileLine* fileline, string name, int value) {
-    FileLine* newfl = new FileLine(fileline);
-    newfl->warnOff(V3ErrorCode::WIDTH, true);
-    AstNode* nodep = new AstConst(newfl, V3Number(newfl));
-    // Adding a NOT is less work than figuring out how wide to make it
-    if (value) nodep = new AstNot(newfl, nodep);
-    nodep = new AstAssignW(newfl, new AstVarRef(fileline, name, true),
-			   nodep);
-    return nodep;
+    return new AstAssignW(fileline, new AstVarRef(fileline, name, true),
+                          new AstConst(fileline, AstConst::StringToParse(),
+				       (value ? "'1" : "'0")));
 }
 
 AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {

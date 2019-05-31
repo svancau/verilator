@@ -19,9 +19,9 @@ execute(
     check_finished => 1,
     );
 
-file_grep     ("$Self->{obj_dir}/simx.vcd", qr/ PARAM /);
+file_grep    ("$Self->{obj_dir}/simx.vcd", qr/ PARAM /);
 
-vcd_identical("$Self->{obj_dir}/simx.vcd", "t/$Self->{name}.out");
+vcd_identical("$Self->{obj_dir}/simx.vcd", $Self->{golden_filename});
 
 ok(1);
 1;

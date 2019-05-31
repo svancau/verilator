@@ -2,15 +2,56 @@ Revision history for Verilator
 
 The contributors that suggested a given feature are shown in []. Thanks!
 
-* Verilator 4.013 devel
+* Verilator 4.015 devel
+
+***   Add --quiet-exit, bug1436. [Todd Strader]
+
+****  Error continuation lines no longer have %Error prefix.
+
+****  Support VerilatedFstC set_time_unit, bug1433. [Pieter Kapsenberg]
+
+****  Support deferred assertions, bug1449. [Charles Eddleston]
+
+****  Mark infrequently called functions with GCC cold attribute.
+
+****  Fix sign-compare warning in verilated.cpp, bug1437. [Sergey Kvachonok]
+
+****  Fix fault on $realtime with %t, bug1443. [Julien Margetts]
+
+****  Fix $display with string without %s, bug1441. [Denis Rystsov]
+
+****  Fix parameter function string returns, bug1441. [Denis Rystsov]
+
+****  Fix real parameter assignment, bug1427. [Todd Strader]
+
+****  Fix invalid XML output due to special chars, bug1444. [Kanad Kanhere]
+
+
+* Verilator 4.014 2019-05-08
+
+***   Add --trace-fst-thread.
 
 ****  Support '#' comments in $readmem, bug1411. [Frederick Requin]
+
+****  Support "'dx" constants, bug1423. [Udi Finkelstein]
+
+****  For FST tracing use LZ4 compression. [Tony Bybell]
+
+****  Add error when use parameters without value, bug1424. [Peter Gerst]
+
+****  Auto-extend and WIDTH warn on unsized X/Zs, bug1423. [Udi Finkelstein]
 
 ****  Fix missing VL_SHIFTL_ errors, bug1412, bug1415. [Larry Lee]
 
 ****  Fix MinGW GCC 6 printf formats, bug1413. [Sergey Kvachonok]
 
 ****  Fix test problems when missing fst2vcd, bug1417. [Todd Strader]
+
+****  Fix GTKWave register warning, bug1421. [Pieter Kapsenberg]
+
+****  Fix FST enums not displaying, bug1426. [Danilo Ramos]
+
+****  Fix table compile error with multiinterfaces, bug1431. [Bogdan Vukobratovic]
 
 
 * Verilator 4.012 2019-3-23

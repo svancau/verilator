@@ -49,7 +49,7 @@ extern void yyerrorf(const char* format, ...);
 #define FL { yylval.fl = CRELINE(); }
 
 #define RETURN_BBOX_SYS_OR_MSG(msg,yytext) {	\
-	if (!v3Global.opt.bboxSys()) yyerrorf(msg,yytext); \
+	if (!v3Global.opt.bboxSys()) yyerrorf(msg, yytext); \
 	return yaD_IGNORE; }
 
 void V3ParseImp::ppline (const char* textp) {
@@ -124,8 +124,10 @@ void yyerror(const char* errmsg) {
 	&& PARSEP->curBisonVal().token == yP_COLONCOLON) {
 	static int warned = false;
 	if (!warned++) {
-	    PARSEP->fileline()->v3error("Perhaps '"+*PARSEP->prevBisonVal().strp
-					+"' is a package which needs to be predeclared? (IEEE 2017 26.3)");
+	    std::cerr<<PARSEP->fileline()->warnMore()
+		     <<("... Perhaps '"+*PARSEP->prevBisonVal().strp
+			+"' is a package which needs to be predeclared? (IEEE 2017 26.3)")
+		     <<std::endl;
 	}
     }
 }
@@ -1127,4 +1129,3 @@ int V3ParseImp::lexToBison() {
     }
     return yylval.token;
 }
-

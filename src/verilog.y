@@ -199,8 +199,13 @@ int V3ParseGrammar::s_modTypeImpNum = 0;
 
 static void ERRSVKWD(FileLine* fileline, const string& tokname) {
     static int toldonce = 0;
-    fileline->v3error(string("Unexpected \"")+tokname+"\": \""+tokname+"\" is a SystemVerilog keyword misused as an identifier.");
-    if (!toldonce++) fileline->v3error("Modify the Verilog-2001 code to avoid SV keywords, or use `begin_keywords or --language.");
+    fileline->v3error(string("Unexpected \"")+tokname+"\": \""+tokname
+                      +"\" is a SystemVerilog keyword misused as an identifier."
+                      +(!toldonce++
+                        ? "\n"+V3Error::warnMore()
+                          +"... Modify the Verilog-2001 code to avoid SV keywords,"
+                          +" or use `begin_keywords or --language."
+                        : ""));
 }
 
 //======================================================================
@@ -1770,7 +1775,7 @@ module_common_item<nodep>:	// ==IEEE: module_common_item
 	//			// + IEEE: program_instantiation
 	//			// + module_instantiation from module_or_generate_item
 	|	etcInst 				{ $$ = $1; }
-	|	concurrent_assertion_item		{ $$ = $1; }
+	|	assertion_item				{ $$ = $1; }
 	|	bind_directive				{ $$ = $1; }
 	|	continuous_assign			{ $$ = $1; }
 	//			// IEEE: net_alias
@@ -1936,10 +1941,10 @@ genvar_iteration<nodep>:	// ==IEEE: genvar_iteration
 	|	varRefBase yP_SSRIGHTEQ	expr		{ $$ = new AstAssign($2,$1,new AstShiftRS($2,$1->cloneTree(true),$3)); }
 	//			// inc_or_dec_operator
 	// When support ++ as a real AST type, maybe AstWhile::precondsp() becomes generic AstNodeMathStmt?
-	|	yP_PLUSPLUS   varRefBase		{ $$ = new AstAssign($1,$2,new AstAdd    ($1,$2->cloneTree(true),new AstConst($1,V3Number($1,"'b1")))); }
-	|	yP_MINUSMINUS varRefBase		{ $$ = new AstAssign($1,$2,new AstSub    ($1,$2->cloneTree(true),new AstConst($1,V3Number($1,"'b1")))); }
-	|	varRefBase yP_PLUSPLUS			{ $$ = new AstAssign($2,$1,new AstAdd    ($2,$1->cloneTree(true),new AstConst($2,V3Number($2,"'b1")))); }
-	|	varRefBase yP_MINUSMINUS		{ $$ = new AstAssign($2,$1,new AstSub    ($2,$1->cloneTree(true),new AstConst($2,V3Number($2,"'b1")))); }
+	|	yP_PLUSPLUS   varRefBase		{ $$ = new AstAssign($1,$2,new AstAdd    ($1,$2->cloneTree(true), new AstConst($1, AstConst::StringToParse(), "'b1"))); }
+	|	yP_MINUSMINUS varRefBase		{ $$ = new AstAssign($1,$2,new AstSub    ($1,$2->cloneTree(true), new AstConst($1, AstConst::StringToParse(), "'b1"))); }
+	|	varRefBase yP_PLUSPLUS			{ $$ = new AstAssign($2,$1,new AstAdd    ($2,$1->cloneTree(true), new AstConst($2, AstConst::StringToParse(), "'b1"))); }
+	|	varRefBase yP_MINUSMINUS		{ $$ = new AstAssign($2,$1,new AstSub    ($2,$1->cloneTree(true), new AstConst($2, AstConst::StringToParse(), "'b1"))); }
 	;
 
 case_generate_itemListE<nodep>:	// IEEE: [{ case_generate_itemList }]
@@ -2085,7 +2090,9 @@ param_assignment<varp>:		// ==IEEE: param_assignment
 		id/*new-parameter*/ variable_dimensionListE sigAttrListE '=' exprOrDataType
 	/**/		{ $$ = VARDONEA($<fl>1,*$1, $2, $3); $$->valuep($5); }
 	|	id/*new-parameter*/ variable_dimensionListE sigAttrListE
-	/**/		{ $$ = VARDONEA($<fl>1,*$1, $2, $3); }
+	/**/		{ $$ = VARDONEA($<fl>1,*$1, $2, $3);
+		          if ($<fl>1->language() < V3LangCode::L1800_2009) {
+			     $<fl>1->v3error("Parameter requires default value, or use IEEE 1800-2009 or later."); } }
 	;
 
 list_of_param_assignments<varp>:	// ==IEEE: list_of_param_assignments
@@ -2329,10 +2336,9 @@ stmtList<nodep>:
 	;
 
 stmt<nodep>:			// IEEE: statement_or_null == function_statement_or_null
-		statement_item				{ }
-	//UNSUP: Labeling any statement
-	|	labeledStmt				{ $$ = $1; }
-	|	id ':' labeledStmt			{ $$ = new AstBegin($2, *$1, $3); }  /*S05 block creation rule*/
+		statement_item				{ $$ = $1; }
+	//			// S05 block creation rule
+	|	id/*block_identifier*/ ':' statement_item	{ $$ = new AstBegin($2, *$1, $3); }
 	//			// from _or_null
 	|	';'					{ $$ = NULL; }
 	;
@@ -2460,11 +2466,7 @@ statement_item<nodep>:		// IEEE: statement_item
 	//UNSUP	yWAIT_ORDER '(' hierarchical_identifierList ')' action_block	{ UNSUP }
 	//
 	//			// IEEE: procedural_assertion_statement
-	//			// Verilator: Label included instead
-	|	concurrent_assertion_item		{ $$ = $1; }
-	//			// concurrent_assertion_statement { $$ = $1; }
-	//			// Verilator: Part of labeledStmt instead
-	//			// immediate_assert_statement	{ UNSUP }
+	|	procedural_assertion_statement		{ $$ = $1; }
 	//
 	//			// IEEE: clocking_drive ';'
 	//			// Pattern w/o cycle_delay handled by nonblocking_assign above
@@ -2518,10 +2520,10 @@ foperator_assignment<nodep>:	// IEEE: operator_assignment (for first part of exp
 
 finc_or_dec_expression<nodep>:	// ==IEEE: inc_or_dec_expression
 	//UNSUP: Generic scopes in incrementes
-		fexprLvalue yP_PLUSPLUS			{ $$ = new AstAssign($2,$1,new AstAdd    ($2,$1->cloneTree(true),new AstConst($2,V3Number($2,"'b1")))); }
-	|	fexprLvalue yP_MINUSMINUS		{ $$ = new AstAssign($2,$1,new AstSub    ($2,$1->cloneTree(true),new AstConst($2,V3Number($2,"'b1")))); }
-	|	yP_PLUSPLUS   fexprLvalue		{ $$ = new AstAssign($1,$2,new AstAdd    ($1,$2->cloneTree(true),new AstConst($1,V3Number($1,"'b1")))); }
-	|	yP_MINUSMINUS fexprLvalue		{ $$ = new AstAssign($1,$2,new AstSub    ($1,$2->cloneTree(true),new AstConst($1,V3Number($1,"'b1")))); }
+		fexprLvalue yP_PLUSPLUS			{ $$ = new AstAssign($2,$1,new AstAdd    ($2,$1->cloneTree(true),new AstConst($2, AstConst::StringToParse(), "'b1"))); }
+	|	fexprLvalue yP_MINUSMINUS		{ $$ = new AstAssign($2,$1,new AstSub    ($2,$1->cloneTree(true),new AstConst($2, AstConst::StringToParse(), "'b1"))); }
+	|	yP_PLUSPLUS   fexprLvalue		{ $$ = new AstAssign($1,$2,new AstAdd    ($1,$2->cloneTree(true),new AstConst($1, AstConst::StringToParse(), "'b1"))); }
+	|	yP_MINUSMINUS fexprLvalue		{ $$ = new AstAssign($1,$2,new AstSub    ($1,$2->cloneTree(true),new AstConst($1, AstConst::StringToParse(), "'b1"))); }
 	;
 
 //************************************************
@@ -2796,8 +2798,8 @@ system_t_call<nodep>:		// IEEE: system_tf_call (as task)
 	;
 
 system_f_call<nodep>:		// IEEE: system_tf_call (as func)
-		yaD_IGNORE parenE			{ $$ = new AstConst($<fl>1,V3Number($<fl>1,"'b0")); } // Unsized 0
-	|	yaD_IGNORE '(' exprList ')'		{ $$ = new AstConst($2,V3Number($2,"'b0")); } // Unsized 0
+		yaD_IGNORE parenE			{ $$ = new AstConst($<fl>1, AstConst::StringToParse(), "'b0"); } // Unsized 0
+	|	yaD_IGNORE '(' exprList ')'		{ $$ = new AstConst($2, AstConst::StringToParse(), "'b0"); } // Unsized 0
 	//
 	|	yaD_DPI parenE				{ $$ = new AstFuncRef($<fl>1,*$1,NULL); }
 	|	yaD_DPI '(' exprList ')'		{ $$ = new AstFuncRef($2,*$1,$3); GRAMMARP->argWrapList(VN_CAST($$, FuncRef)); }
@@ -3779,7 +3781,7 @@ str<strp>:			// yaSTRING but with \{escapes} need decoded
 	;
 
 strAsInt<nodep>:
-		yaSTRING				{ $$ = new AstConst($<fl>1,V3Number(V3Number::VerilogStringLiteral(),$<fl>1,GRAMMARP->deQuote($<fl>1,*$1)));}
+		yaSTRING				{ $$ = new AstConst($<fl>1, AstConst::VerilogStringLiteral(), GRAMMARP->deQuote($<fl>1, *$1));}
 	;
 
 strAsIntIgnore<nodep>:		// strAsInt, but never matches for when expr shouldn't parse strings
@@ -3808,9 +3810,61 @@ clocking_declaration<nodep>:		// IEEE: clocking_declaration  (INCOMPLETE)
 //************************************************
 // Asserts
 
-labeledStmt<nodep>:
-		immediate_assert_statement		{ $$ = $1; }
-	|	immediate_assume_statement		{ $$ = $1; }
+assertion_item<nodep>:		// ==IEEE: assertion_item
+		concurrent_assertion_item		{ $$ = $1; }
+	|	deferred_immediate_assertion_item	{ $$ = $1; }
+	;
+
+deferred_immediate_assertion_item<nodep>:	// ==IEEE: deferred_immediate_assertion_item
+		deferred_immediate_assertion_statement	{ $$ = $1; }
+	|	id/*block_identifier*/ ':' deferred_immediate_assertion_statement
+			{ $$ = new AstBegin($2, *$1, $3); }
+	;
+
+procedural_assertion_statement<nodep>:	// ==IEEE: procedural_assertion_statement
+		concurrent_assertion_statement		{ $$ = $1; }
+	|	immediate_assertion_statement		{ $$ = $1; }
+	//			// IEEE: checker_instantiation
+	//			// Unlike modules, checkers are the only "id id (...)" form in statements.
+	//UNSUP	checker_instantiation			{ }
+	;
+
+immediate_assertion_statement<nodep>:	// ==IEEE: immediate_assertion_statement
+		simple_immediate_assertion_statement	{ $$ = $1; }
+	|	deferred_immediate_assertion_statement	{ $$ = $1; }
+	;
+
+simple_immediate_assertion_statement<nodep>:	// ==IEEE: simple_immediate_assertion_statement
+	//				// action_block expanded here, for compatibility with AstVAssert
+		yASSERT '(' expr ')' stmtBlock %prec prLOWER_THAN_ELSE	{ $$ = new AstVAssert($1,$3,$5, GRAMMARP->createDisplayError($1)); }
+	|	yASSERT '(' expr ')'           yELSE stmtBlock		{ $$ = new AstVAssert($1,$3,NULL,$6); }
+	|	yASSERT '(' expr ')' stmtBlock yELSE stmtBlock		{ $$ = new AstVAssert($1,$3,$5,$7);   }
+	//				// action_block expanded here, for compatibility with AstVAssert
+	|	yASSUME '(' expr ')' stmtBlock %prec prLOWER_THAN_ELSE	{ $$ = new AstVAssert($1,$3,$5, GRAMMARP->createDisplayError($1)); }
+	|	yASSUME '(' expr ')'           yELSE stmtBlock		{ $$ = new AstVAssert($1,$3,NULL,$6); }
+	|	yASSUME '(' expr ')' stmtBlock yELSE stmtBlock		{ $$ = new AstVAssert($1,$3,$5,$7);   }
+	//			// IEEE: simple_immediate_cover_statement
+	|	yCOVER '(' expr ')' stmt 		{ $<fl>1->v3error("Unsupported: immediate cover"); $$=NULL; }
+	;
+
+final_zero:			// IEEE: part of deferred_immediate_assertion_statement
+		'#' yaINTNUM
+			{ if ($2->isNeqZero()) { $<fl>2->v3error("Deferred assertions must use '#0' (IEEE 2017 16.4)"); } }
+	//			// 1800-2012:
+	|	yFINAL							{ }
+	;
+
+deferred_immediate_assertion_statement<nodep>:	// ==IEEE: deferred_immediate_assertion_statement
+	//			// IEEE: deferred_immediate_assert_statement
+		yASSERT final_zero '(' expr ')' stmtBlock %prec prLOWER_THAN_ELSE	{ $$ = new AstVAssert($1,$4,$6, GRAMMARP->createDisplayError($1)); }
+	|	yASSERT final_zero '(' expr ')'           yELSE stmtBlock		{ $$ = new AstVAssert($1,$4,NULL,$7); }
+	|	yASSERT final_zero '(' expr ')' stmtBlock yELSE stmtBlock		{ $$ = new AstVAssert($1,$4,$6,$8);   }
+	//			// IEEE: deferred_immediate_assume_statement
+	|	yASSUME final_zero '(' expr ')' stmtBlock %prec prLOWER_THAN_ELSE	{ $$ = new AstVAssert($1,$4,$6, GRAMMARP->createDisplayError($1)); }
+	|	yASSUME final_zero '(' expr ')'           yELSE stmtBlock		{ $$ = new AstVAssert($1,$4,NULL,$7); }
+	|	yASSUME final_zero '(' expr ')' stmtBlock yELSE stmtBlock		{ $$ = new AstVAssert($1,$4,$6,$8);   }
+	//			// IEEE: deferred_immediate_cover_statement
+	|	yCOVER final_zero '(' expr ')' stmt	{ $<fl>1->v3error("Unsupported: immediate cover"); $$=NULL; }
 	;
 
 concurrent_assertion_item<nodep>:	// IEEE: concurrent_assertion_item
@@ -3821,8 +3875,9 @@ concurrent_assertion_item<nodep>:	// IEEE: concurrent_assertion_item
 	;
 
 concurrent_assertion_statement<nodep>:	// ==IEEE: concurrent_assertion_statement
+	//			// IEEE: assert_property_statement
 		yASSERT yPROPERTY '(' property_spec ')' elseStmtBlock	{ $$ = new AstPslAssert($1,$4,$6); }
-	//				// IEEE: cover_property_statement
+	//			// IEEE: cover_property_statement
 	|	yCOVER yPROPERTY '(' property_spec ')' stmtBlock	{ $$ = new AstPslCover($1,$4,$6); }
 	//			// IEEE: restrict_property_statement
 	|	yRESTRICT yPROPERTY '(' property_spec ')' ';'		{ $$ = new AstPslRestrict($1,$4); }
@@ -3840,20 +3895,6 @@ property_spec<nodep>:			// IEEE: property_spec
 	|	'@' '(' senitemEdge ')' expr		{ $$ = new AstPslClocked($1,$3,NULL,$5); }
 	|	yDISABLE yIFF '(' expr ')' expr	 	{ $$ = new AstPslClocked($4->fileline(),NULL,$4,$6); }
 	|	expr	 				{ $$ = new AstPslClocked($1->fileline(),NULL,NULL,$1); }
-	;
-
-immediate_assert_statement<nodep>:	// ==IEEE: immediate_assert_statement
-	//				// action_block expanded here, for compatibility with AstVAssert
-		yASSERT '(' expr ')' stmtBlock %prec prLOWER_THAN_ELSE	{ $$ = new AstVAssert($1,$3,$5, GRAMMARP->createDisplayError($1)); }
-	|	yASSERT '(' expr ')'           yELSE stmtBlock		{ $$ = new AstVAssert($1,$3,NULL,$6); }
-	|	yASSERT '(' expr ')' stmtBlock yELSE stmtBlock		{ $$ = new AstVAssert($1,$3,$5,$7);   }
-	;
-
-immediate_assume_statement<nodep>:	// ==IEEE: immediate_assume_statement
-	//				// action_block expanded here, for compatibility with AstVAssert
-		yASSUME '(' expr ')' stmtBlock %prec prLOWER_THAN_ELSE	{ $$ = new AstVAssert($1,$3,$5, GRAMMARP->createDisplayError($1)); }
-	|	yASSUME '(' expr ')'           yELSE stmtBlock		{ $$ = new AstVAssert($1,$3,NULL,$6); }
-	|	yASSUME '(' expr ')' stmtBlock yELSE stmtBlock		{ $$ = new AstVAssert($1,$3,$5,$7);   }
 	;
 
 //************************************************
@@ -3985,14 +4026,9 @@ void V3ParseGrammar::argWrapList(AstNodeFTaskRef* nodep) {
 }
 
 AstNode* V3ParseGrammar::createSupplyExpr(FileLine* fileline, string name, int value) {
-    FileLine* newfl = new FileLine(fileline);
-    newfl->warnOff(V3ErrorCode::WIDTH, true);
-    AstNode* nodep = new AstConst(newfl, V3Number(newfl));
-    // Adding a NOT is less work than figuring out how wide to make it
-    if (value) nodep = new AstNot(newfl, nodep);
-    nodep = new AstAssignW(newfl, new AstVarRef(fileline, name, true),
-			   nodep);
-    return nodep;
+    return new AstAssignW(fileline, new AstVarRef(fileline, name, true),
+                          new AstConst(fileline, AstConst::StringToParse(),
+				       (value ? "'1" : "'0")));
 }
 
 AstRange* V3ParseGrammar::scrubRange(AstNodeRange* nrangep) {
@@ -4100,7 +4136,7 @@ AstVar* V3ParseGrammar::createVariable(FileLine* fileline, string name, AstNodeR
 
 string V3ParseGrammar::deQuote(FileLine* fileline, string text) {
     // Fix up the quoted strings the user put in, for example "\"" becomes "
-    // Reverse is V3Number::quoteNameControls(...)
+    // Reverse is V3OutFormatter::quoteNameControls(...)
     bool quoted = false;
     string newtext;
     unsigned char octal_val = 0;

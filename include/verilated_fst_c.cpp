@@ -24,6 +24,12 @@
 #include "verilated.h"
 #include "verilated_fst_c.h"
 
+// GTKWave configuration
+#ifdef VL_TRACE_THREADED
+# define HAVE_LIBPTHREAD
+# define FST_WRITER_PARALLEL
+#endif
+
 // Include the GTKWave implementation directly
 #include "gtkwave/fastlz.c"
 #include "gtkwave/fstapi.c"
@@ -72,6 +78,10 @@ VerilatedFst::VerilatedFst(void* fst)
 void VerilatedFst::open(const char* filename) VL_MT_UNSAFE {
     m_assertOne.check();
     m_fst = fstWriterCreate(filename, 1);
+    fstWriterSetPackType(m_fst, FST_WR_PT_LZ4);
+#ifdef VL_TRACE_THREADED
+    fstWriterSetParallelMode(m_fst, 1);
+#endif
     m_curScope.clear();
 
     for (vluint32_t ent = 0; ent< m_callbacks.size(); ++ent) {
@@ -164,7 +174,8 @@ void VerilatedFst::addCallback(
     VerilatedFstCallback_t changecb, void* userthis) VL_MT_UNSAFE_ONE {
     m_assertOne.check();
     if (VL_UNLIKELY(isOpen())) {
-        std::string msg = std::string("Internal: ")+__FILE__+"::"+__FUNCTION__+" called with already open file";
+        std::string msg = (std::string("Internal: ")+__FILE__+"::"+__FUNCTION__
+                           +" called with already open file");
         VL_FATAL_MT(__FILE__,__LINE__,"",msg.c_str());
     }
     VerilatedFstCallInfo* vci = new VerilatedFstCallInfo(initcb, fullcb, changecb, userthis, 1);
