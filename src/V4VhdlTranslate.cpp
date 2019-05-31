@@ -181,6 +181,21 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     } else if (fname == "IEEE.NUMERIC_STD.\"*\"") {
         FileLine *fl2 = new FileLine("", 0);
         return new AstMul(fl, params[0], params[1]);
+    } else if (fname == "IEEE.NUMERIC_STD.\"<\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstLt(fl, params[0], params[1]);
+    } else if (fname == "IEEE.NUMERIC_STD.\"<=\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstLte(fl, params[0], params[1]);
+    } else if (fname == "IEEE.NUMERIC_STD.\">\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstGt(fl, params[0], params[1]);
+    } else if (fname == "IEEE.NUMERIC_STD.\">=\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstGte(fl, params[0], params[1]);
+    } else if (fname == "IEEE.NUMERIC_STD.\"=\"") {
+        FileLine *fl2 = new FileLine("", 0);
+        return new AstEq(fl, params[0], params[1]);
     } else if (fname == "IEEE.STD_LOGIC_1164.RISING_EDGE") {
         FileLine *fl2 = new FileLine("", 0);
         m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_POSEDGE));
@@ -306,8 +321,15 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
     } else if (obj["cls"] == "ref") {
         FileLine *fl = new FileLine("", 0);
-        AstVarRef *varrefp = new AstVarRef(fl, obj["name"].GetString(), false);
-        return varrefp;
+        string refname = obj["name"].GetString();
+        if (refname[0] == '\'') {
+            if (refname[1] == '0')
+                return new AstConst(fl, AstConst::LogicFalse());
+            else if (refname[1] == '1')
+                return new AstConst(fl, AstConst::LogicTrue());
+        }
+        else
+            return new AstVarRef(fl, refname, false);
     
     } else if (obj["cls"] == "fcall") {
         FileLine *fl = new FileLine("", 0);
