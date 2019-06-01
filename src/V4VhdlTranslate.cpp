@@ -358,6 +358,19 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         VARDTYPE(translateType(obj["type"].GetObject()));
         return createVariable(fl, obj["name"].GetString(), NULL, NULL);
 
+    } else if (obj["cls"] == "aref") {
+        FileLine *fl = new FileLine("", 0);
+        Value::ConstArray params = obj["params"].GetArray();
+        if (params[0]["name"].IsNull()) {
+            return new AstSelBit(fl, translateObject(obj["of"].GetObject()), translateObject(params[0]["value"].GetObject()));    
+        }
+        return NULL; // TODO fix this
+
+    } else if (obj["cls"] == "aslice") {
+        FileLine *fl = new FileLine("", 0);
+        Value::ConstObject rng = obj["range"].GetObject();
+        return new AstSelExtract(fl, translateObject(obj["of"].GetObject()), translateObject(rng["l"].GetObject()), translateObject(rng["r"].GetObject()));
+
     } else {
         v3error("Failed to translate object");
     }
