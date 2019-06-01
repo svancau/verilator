@@ -292,7 +292,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             AstNode *ref = translateObject(m->GetObject());
             FileLine *fl2 = new FileLine("", 0);
             string item_name = m->GetObject()["name"].GetString();
-            AstEdgeType edge_type = AstEdgeType::ET_BOTHEDGE;
+            AstEdgeType edge_type = AstEdgeType::ET_ANYEDGE;
             if (m_sig_edges[item_name])
                 edge_type = m_sig_edges[item_name];
 
