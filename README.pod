@@ -150,6 +150,7 @@ Then after installing you will need to add /opt/verilator-VERSION/bin to
 PATH.
 
 =item 5.
+
 If you plan to use VHDL support, you will need to install nvc simulator.
 Nvc is used as a VHDL frontend for Verilator.
 
