@@ -371,6 +371,15 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         Value::ConstObject rng = obj["range"].GetObject();
         return new AstSelExtract(fl, translateObject(obj["of"].GetObject()), translateObject(rng["l"].GetObject()), translateObject(rng["r"].GetObject()));
 
+    } else if (obj["cls"] == "concat") {
+        FileLine *fl = new FileLine("", 0);
+        Value::ConstArray items = obj["items"].GetArray();
+        AstNode *last_concat = new AstConcat(fl, translateObject(items[0].GetObject()), translateObject(items[1].GetObject()));
+        for (int i = 2; i < items.Size(); ++i) {
+            last_concat = new AstConcat(fl, last_concat, translateObject(items[i].GetObject()));
+        }
+        return last_concat;
+
     } else {
         v3error("Failed to translate object");
     }
