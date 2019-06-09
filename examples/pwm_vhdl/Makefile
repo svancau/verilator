@@ -42,7 +42,7 @@ VERILATOR_FLAGS += -O2 -x-assign 0
 # Warn abount lint issues; may not want this on less solid designs
 #VERILATOR_FLAGS += Wall
 # Make waveforms
-VERILATOR_FLAGS += --trace
+VERILATOR_FLAGS += --trace --trace-fst
 # Check SystemVerilog assertions
 #VERILATOR_FLAGS += --assert
 # Generate coverage analysis
@@ -81,7 +81,7 @@ run:
 
 	@echo
 	@echo "-- DONE --------------------"
-	@echo "To see waveforms, open pwm.vcd in a waveform viewer"
+	@echo "To see waveforms, open pwm.fst in a waveform viewer"
 	@echo
 
 

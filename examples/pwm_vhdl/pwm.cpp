@@ -1,18 +1,18 @@
 #include "Vpwm.h"
 #include "verilated.h"
-#include "verilated_vcd_c.h"
+#include "verilated_fst_c.h"
 
 int main(int argc, char** argv, char** env) {
   vluint64_t main_time = 0;
   Verilated::commandArgs(argc, argv);
   Vpwm *top = new Vpwm;
-  VerilatedVcdC* tfp = new VerilatedVcdC;
+  VerilatedFstC* tfp = new VerilatedFstC;
   Verilated::traceEverOn(true);
   top->trace(tfp, 99);  // Trace 99 levels of hierarchy
-  tfp->open("obj_dir/pwm.vcd");
+  tfp->open("obj_dir/pwm.fst");
   top->CLK = 0;
   top->DUTY = 0;
-  for(long cycles = 0; cycles < 1000000; cycles++) {
+  for(long cycles = 0; cycles < 10000000; cycles++) {
     top->CLK = 0;
     if (cycles % 65536 == 0)
         top->DUTY += 10;
