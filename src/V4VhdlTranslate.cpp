@@ -16,11 +16,20 @@
 V4VhdlTranslate::V4VhdlTranslate(V3ParseSym &symtable) : symt(symtable)
 {
     currentFilename = "";
+    currentLevel = 0;
 }
 
 V4VhdlTranslate::~V4VhdlTranslate()
 {
 
+}
+
+string V4VhdlTranslate::indentString() {
+    stringstream ss;
+    for (int i = 0; i < currentLevel; ++i) {
+        ss << "  ";
+    }
+    return ss.str();
 }
 
 AstNodeDType* V4VhdlTranslate::createArray(AstNodeDType* basep, AstNodeRange* nrangep, bool isPacked) {
@@ -123,6 +132,8 @@ AstNode* V4VhdlTranslate::createSupplyExpr(FileLine* fileline, string name, int 
 AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
     FileLine *fl2 = new FileLine(currentFilename, 0);
     string type_name = item["name"].GetString();
+    UINFO(9, indentString() << "Type " << type_name << endl);
+
     if (type_name == "STD_LOGIC%s") {
         return new AstBasicDType(fl2, AstBasicDTypeKwd::LOGIC_IMPLICIT);
     } else if (type_name == "STD_LOGIC_VECTOR%s" or type_name == "UNSIGNED%s" or type_name == "SIGNED%s") {
@@ -141,6 +152,7 @@ AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
 
 AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     string fname = item["name"].GetString();
+    UINFO(9, indentString() << "FCall " << fname << endl);
     FileLine *fl = new FileLine(currentFilename, 0);
     vector<AstNode*> params;
     Value::ConstArray stmts = item["params"].GetArray();
@@ -212,6 +224,14 @@ string convertName(string inName) { // TODO: clean this hack
 
 AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     Value::ConstObject obj = item;
+    string object_name = "";
+
+    if(obj.HasMember("name") and obj["name"].IsString())
+        object_name = obj["name"].GetString();
+
+    UINFO(9, indentString() << "Object " << obj["cls"].GetString() << " " << object_name << endl);
+    currentLevel++;
+
     if (obj["cls"] == "entity") {
         string module_name = convertName(obj["name"].GetString());
         currentFilename = obj["filename"].GetString();
@@ -243,6 +263,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
         v3Global.rootp()->addModulep(mod);
         symt.pushNew(mod);
+        currentLevel--;
         m_entities.insert(pair<string,AstNode*>(module_name, mod));
 
     } else if (obj["cls"] == "architecture") {
@@ -262,6 +283,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
                 if(res) ((AstModule*)(entity_mod->second))->addStmtp(res);
             }
         }
+        currentLevel--;
 
     } else if (obj["cls"] == "process") {
         FileLine *fl_st = new FileLine(currentFilename, 0);
@@ -285,6 +307,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
         current_process = NULL;
         m_sig_edges.clear();
+        currentLevel--;
         return process;
 
     } else if (obj["cls"] == "wait") {
@@ -301,12 +324,14 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             AstSenItem *si = new AstSenItem(fl2, edge_type, ref);
             if(ref) current_process->sensesp()->addSensesp(si);
         }
+        currentLevel--;
 
     } else if (obj["cls"] == "sigassign") {
         FileLine *fl = new FileLine(currentFilename, 0);
         AstNode * lhsp = translateObject(obj["target"].GetObject());
         AstNode * rhsp = translateObject(obj["lhs"].GetObject());
         AstAssignDly * assign = new AstAssignDly(fl, lhsp, rhsp);
+        currentLevel--;
         return assign;
 
     } else if (obj["cls"] == "varassign") {
@@ -314,11 +339,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         AstNode * lhsp = translateObject(obj["target"].GetObject());
         AstNode * rhsp = translateObject(obj["lhs"].GetObject());
         AstAssign *assign = new AstAssign(fl, lhsp, rhsp);
+        currentLevel--;
         return assign;
 
     } else if (obj["cls"] == "ref") {
         FileLine *fl = new FileLine(currentFilename, 0);
         string refname = obj["name"].GetString();
+        currentLevel--;
         if (refname[0] == '\'') {
             if (refname[1] == '0')
                 return new AstConst(fl, AstConst::LogicFalse());
@@ -330,14 +357,17 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     
     } else if (obj["cls"] == "fcall") {
         FileLine *fl = new FileLine(currentFilename, 0);
+        currentLevel--;
         return translateFcall(obj);
 
     } else if (obj["cls"] == "int") {
         FileLine *fl = new FileLine(currentFilename, 0);
+        currentLevel--;
         return new AstConst(fl, AstConst::Unsized32(), obj["value"].GetUint());
 
     } else if (obj["cls"] == "if") {
         FileLine *fl = new FileLine(currentFilename, 0);
+        currentLevel--;
         AstIf *ifn = new AstIf(fl, translateObject(obj["cond"].GetObject()), NULL, NULL);
 
         Value::ConstArray thens = obj["then"].GetArray();
@@ -351,6 +381,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             AstNode *res = translateObject(m->GetObject());
             if(res) ifn->addElsesp(res);
         }
+        currentLevel--;
         return ifn;
 
     } else if (obj["cls"] == "sigdecl" or obj["cls"] == "vardecl") {
@@ -358,6 +389,15 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         VARDECL(VAR);
         FileLine *fl = new FileLine(currentFilename, 0);
         VARDTYPE(translateType(obj["type"].GetObject()));
+        currentLevel--;
+        return createVariable(fl, obj["name"].GetString(), NULL, NULL);
+
+    } else if (obj["cls"] == "constdecl") {
+        VARRESET();
+        VARDECL(LPARAM);
+        FileLine *fl = new FileLine(currentFilename, 0);
+        VARDTYPE(translateType(obj["type"].GetObject()));
+        currentLevel--;
         return createVariable(fl, obj["name"].GetString(), NULL, NULL);
 
     } else if (obj["cls"] == "aref") {
@@ -366,11 +406,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         if (params[0]["name"].IsNull()) {
             return new AstSelBit(fl, translateObject(obj["of"].GetObject()), translateObject(params[0]["value"].GetObject()));    
         }
+        currentLevel--;
         return NULL; // TODO fix this
 
     } else if (obj["cls"] == "aslice") {
         FileLine *fl = new FileLine(currentFilename, 0);
         Value::ConstObject rng = obj["range"].GetObject();
+        currentLevel--;
         return new AstSelExtract(fl, translateObject(obj["of"].GetObject()), translateObject(rng["l"].GetObject()), translateObject(rng["r"].GetObject()));
 
     } else if (obj["cls"] == "concat") {
@@ -380,9 +422,11 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         for (int i = 2; i < items.Size(); ++i) {
             last_concat = new AstConcat(fl, last_concat, translateObject(items[i].GetObject()));
         }
+        currentLevel--;
         return last_concat;
 
     } else if (obj["cls"] == "component") {
+        currentLevel--;
         return nullptr;
 
     } else if (obj["cls"] == "next") {
@@ -391,6 +435,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         if(!obj["when"].IsNull()) {
             next = new AstIf(fl, translateObject(obj["when"].GetObject()), next);
         }
+        currentLevel--;
         return next;
 
     } else if (obj["cls"] == "exit") {
@@ -399,12 +444,18 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         if(!obj["when"].IsNull()) {
             exit = new AstIf(fl, translateObject(obj["when"].GetObject()), exit);
         }
+        currentLevel--;
         return exit;
 
     } else if (obj["cls"] == "while") {
         FileLine *fl = new FileLine(currentFilename, 0);
         AstNode *whle = new AstWhile(fl, translateObject(obj["cond"].GetObject()), translateObject(obj["stmts"].GetObject()));
+        currentLevel--;
         return whle;
+
+    } else if (obj["cls"] == "typeconv") {
+        currentLevel--;
+        return translateObject(obj["expr"].GetObject());
 
     } else {
         v3error("Failed to translate object");

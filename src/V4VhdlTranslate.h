@@ -27,6 +27,7 @@ private:
     VDirection  m_varIO;        // Direction for next signal declaration (reg/wire/etc)
     AstVar*	m_varAttrp;	// Current variable for attribute adding
     string currentFilename; // current filename being translated
+    unsigned int currentLevel;
     bool allTracingOn(FileLine* fl) {
 	return v3Global.opt.trace() && fl->tracingOn();
     }
@@ -40,6 +41,7 @@ private:
     map<string, AstEdgeType> m_sig_edges;
     AstAlways *current_process;
     V3ParseSym &symt;
+    string indentString();
 public:
     V4VhdlTranslate(V3ParseSym &symtable);
     ~V4VhdlTranslate();
