@@ -203,6 +203,12 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     } else if (fname == "IEEE.NUMERIC_STD.\"=\"" or fname == "\"=\"") {
         FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstEq(fl, params[0], params[1]);
+    } else if (fname == "IEEE.MATH_REAL.CEIL") {
+        FileLine *fl2 = new FileLine(currentFilename, 0);
+        return new AstCeilD(fl2, params[0]);
+    } else if (fname == "IEEE.MATH_REAL.LOG2") {
+        FileLine *fl2 = new FileLine(currentFilename, 0);
+        return new AstDivD(fl2, new AstLog10D(fl2, params[0]), new AstLog10D(fl2, new AstConst(fl2, 2)));
     } else if (fname == "IEEE.STD_LOGIC_1164.RISING_EDGE") {
         FileLine *fl2 = new FileLine(currentFilename, 0);
         m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_POSEDGE));
