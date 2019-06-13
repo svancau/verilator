@@ -142,7 +142,8 @@ AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
         Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
         AstRange *range = new AstRange(fl3, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
         return createArray(base_type, range, true);
-
+    } else if (type_name == "INTEGER%s") {
+        return new AstBasicDType(fl2, AstBasicDTypeKwd::INT);
     } else {
         v3error("Failed to translate type " + type_name);
         return nullptr;
