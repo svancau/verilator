@@ -244,6 +244,15 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, 0);
         AstModule *mod = new AstModule(fl, module_name);
 
+        auto gen_array = obj["generic"].GetArray();
+        for(Value::ConstValueIterator m = gen_array.Begin(); m != gen_array.End(); ++m) {
+            auto gen_obj = m->GetObject();
+            FileLine *fl = new FileLine(currentFilename, 0);
+            VARRESET();
+            VARDECL(GPARAM);
+            VARDTYPE(translateType(gen_obj["type"].GetObject()));
+            mod->addStmtp(createVariable(fl, gen_obj["name"].GetString(), NULL, NULL));
+        }
         // Handle Ports
         pinnum = 1;
         auto port_array = obj["port"].GetArray();
