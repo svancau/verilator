@@ -142,7 +142,7 @@ AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
         Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
         AstRange *range = new AstRange(fl3, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
         return createArray(base_type, range, true);
-    } else if (type_name == "INTEGER%s") {
+    } else if (type_name == "INTEGER%s" or type_name == "NATURAL%s" or type_name == "POSITIVE%s") {
         return new AstBasicDType(fl2, AstBasicDTypeKwd::INT);
     } else {
         v3error("Failed to translate type " + type_name);
@@ -204,6 +204,8 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     } else if (fname == "IEEE.NUMERIC_STD.\"=\"" or fname == "\"=\"") {
         FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstEq(fl, params[0], params[1]);
+    } else if (fname == "IEEE.NUMERIC_STD.TO_INTEGER") {
+        return params[0];
     } else if (fname == "IEEE.MATH_REAL.CEIL") {
         FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstCeilD(fl2, params[0]);
