@@ -9,25 +9,25 @@ module t (/*AUTOARG*/
    );
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
-   input		clk;			// To sub1 of sub1.v, ...
-   input		d;			// To sub1 of sub1.v, ...
-   input		rst_async_l;		// To sub2 of sub2.v
-   input		rst_both_l;		// To sub1 of sub1.v, ...
-   input		rst_sync_l;		// To sub1 of sub1.v
+   input                clk;                    // To sub1 of sub1.v, ...
+   input                d;                      // To sub1 of sub1.v, ...
+   input                rst_async_l;            // To sub2 of sub2.v
+   input                rst_both_l;             // To sub1 of sub1.v, ...
+   input                rst_sync_l;             // To sub1 of sub1.v
    // End of automatics
 
    sub1 sub1 (/*AUTOINST*/
-	      // Inputs
-	      .clk			(clk),
-	      .rst_both_l		(rst_both_l),
-	      .rst_sync_l		(rst_sync_l),
-	      .d			(d));
+              // Inputs
+              .clk                      (clk),
+              .rst_both_l               (rst_both_l),
+              .rst_sync_l               (rst_sync_l),
+              .d                        (d));
    sub2 sub2 (/*AUTOINST*/
-	      // Inputs
-	      .clk			(clk),
-	      .rst_both_l		(rst_both_l),
-	      .rst_async_l		(rst_async_l),
-	      .d			(d));
+              // Inputs
+              .clk                      (clk),
+              .rst_both_l               (rst_both_l),
+              .rst_async_l              (rst_async_l),
+              .d                        (d));
 endmodule
 
 module sub1 (/*AUTOARG*/
@@ -45,12 +45,12 @@ module sub1 (/*AUTOARG*/
 
    always @(posedge clk) begin
       if (~rst_sync_l) begin
-	 /*AUTORESET*/
-	 // Beginning of autoreset for uninitialized flops
-	 q1 <= 1'h0;
-	 // End of automatics
+         /*AUTORESET*/
+         // Beginning of autoreset for uninitialized flops
+         q1 <= 1'h0;
+         // End of automatics
       end else begin
-	 q1 <= d;
+         q1 <= d;
       end
    end
 
@@ -71,18 +71,18 @@ module sub2 (/*AUTOARG*/
    //input rst_sync_l;
    input rst_async_l;
    input d;
-   reg 	 q1;
-   reg 	 q2;
-   reg 	 q3;
+   reg   q1;
+   reg   q2;
+   reg   q3;
 
    always @(posedge clk or negedge rst_async_l) begin
       if (~rst_async_l) begin
-	 /*AUTORESET*/
-	 // Beginning of autoreset for uninitialized flops
-	 q1 <= 1'h0;
-	 // End of automatics
+         /*AUTORESET*/
+         // Beginning of autoreset for uninitialized flops
+         q1 <= 1'h0;
+         // End of automatics
       end else begin
-	 q1 <= d;
+         q1 <= d;
       end
    end
 

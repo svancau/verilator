@@ -587,6 +587,7 @@ class AstSenTree;
 
 %token<fl>		yP_PAR__STRENGTH "(-for-strength"
 
+%token<fl>		yP_LTMINUSGT	"<->"
 %token<fl>		yP_PLUSCOLON	"+:"
 %token<fl>		yP_MINUSCOLON	"-:"
 %token<fl>		yP_MINUSGT	"->"
@@ -621,8 +622,6 @@ class AstSenTree;
 %token<fl>		yP_SRIGHTEQ	">>="
 %token<fl>		yP_SSRIGHTEQ	">>>="
 
-%token<fl>	 	yP_LOGIFF
-
 // [* is not a operator, as "[ * ]" is legal
 // [= and [-> could be repitition operators, but to match [* we don't add them.
 // '( is not a operator, as "' (" is legal
@@ -632,10 +631,10 @@ class AstSenTree;
 %left		yP_ANDANDAND
 
 // PSL op precedence
-%right	 	yP_MINUSGT  yP_LOGIFF
-%right		yP_ORMINUSGT  yP_OREQGT
+%right		yP_ORMINUSGT yP_OREQGT
 
 // Verilog op precedence
+%right		yP_MINUSGT yP_LTMINUSGT
 %right		'?' ':'
 %left		yP_OROR
 %left		yP_ANDAND
@@ -1631,7 +1630,7 @@ enumDecl<dtypep>:
 	;
 
 enum_base_typeE<dtypep>:	// IEEE: enum_base_type
-		/* empty */				{ $$ = new AstBasicDType(CRELINE(),AstBasicDTypeKwd::INT); }
+		/* empty */				{ $$ = new AstBasicDType(CRELINE(), AstBasicDTypeKwd::INT); }
 	//			// Not in spec, but obviously "enum [1:0]" should work
 	//			// implicit_type expanded, without empty
 	//			// Note enum base types are always packed data types
@@ -1812,6 +1811,7 @@ module_common_item<nodep>:	// ==IEEE: module_common_item
 	|	yALWAYS_FF    event_controlE stmtBlock	{ $$ = new AstAlways($1,VAlwaysKwd::ALWAYS_FF, $2,$3); }
 	|	yALWAYS_LATCH event_controlE stmtBlock	{ $$ = new AstAlways($1,VAlwaysKwd::ALWAYS_LATCH, $2,$3); }
 	|	yALWAYS_COMB  stmtBlock			{ $$ = new AstAlways($1,VAlwaysKwd::ALWAYS_COMB, NULL, $2); }
+	//
 	|	loop_generate_construct			{ $$ = $1; }
 	|	conditional_generate_construct		{ $$ = $1; }
 	|	elaboration_system_task			{ $$ = $1; }
@@ -1820,8 +1820,7 @@ module_common_item<nodep>:	// ==IEEE: module_common_item
 	;
 
 continuous_assign<nodep>:	// IEEE: continuous_assign
-		yASSIGN delayE assignList ';'		{ $$ = $3; }
-	//UNSUP: strengthSpecE not in above assign
+		yASSIGN strengthSpecE delayE assignList ';'	{ $$ = $4; }
 	;
 
 initial_construct<nodep>:	// IEEE: initial_construct
@@ -1837,6 +1836,7 @@ module_or_generate_item_declaration<nodep>:	// ==IEEE: module_or_generate_item_d
 	| 	genvar_declaration			{ $$ = $1; }
 	|	clocking_declaration			{ $$ = $1; }
 	|	yDEFAULT yCLOCKING idAny/*new-clocking_identifier*/ ';'	{ $$ = NULL; BBUNSUP($1, "Unsupported: default clocking identifier"); }
+	//UNSUP	yDEFAULT yDISABLE yIFF expr/*expression_or_dist*/ ';'	{ }
 	;
 
 aliasEqList:			// IEEE: part of net_alias
@@ -2223,7 +2223,7 @@ cellpinItList<pinp>:		// IEEE: list_of_port_connections
 
 cellparamItemE<pinp>:		// IEEE: named_parameter_assignment + empty
 				// Note empty can match either () or (,); V3LinkCells cleans up ()
-		/* empty: ',,' is legal */		{ $$ = new AstPin(CRELINE(),PINNUMINC(),"",NULL); }
+		/* empty: ',,' is legal */		{ $$ = new AstPin(CRELINE(), PINNUMINC(), "", NULL); }
 	|	yP_DOTSTAR				{ $$ = new AstPin($1,PINNUMINC(),".*",NULL); }
 	|	'.' idSVKwd				{ $$ = new AstPin($1,PINNUMINC(),*$2,new AstParseRef($1,AstParseRefExp::PX_TEXT,*$2,NULL,NULL)); $$->svImplicit(true);}
 	|	'.' idAny				{ $$ = new AstPin($1,PINNUMINC(),*$2,new AstParseRef($1,AstParseRefExp::PX_TEXT,*$2,NULL,NULL)); $$->svImplicit(true);}
@@ -2244,7 +2244,7 @@ cellparamItemE<pinp>:		// IEEE: named_parameter_assignment + empty
 
 cellpinItemE<pinp>:		// IEEE: named_port_connection + empty
 				// Note empty can match either () or (,); V3LinkCells cleans up ()
-		/* empty: ',,' is legal */		{ $$ = new AstPin(CRELINE(),PINNUMINC(),"",NULL); }
+		/* empty: ',,' is legal */		{ $$ = new AstPin(CRELINE(), PINNUMINC(), "", NULL); }
 	|	yP_DOTSTAR				{ $$ = new AstPin($1,PINNUMINC(),".*",NULL); }
 	|	'.' idSVKwd				{ $$ = new AstPin($1,PINNUMINC(),*$2,new AstParseRef($1,AstParseRefExp::PX_TEXT,*$2,NULL,NULL)); $$->svImplicit(true);}
 	|	'.' idAny				{ $$ = new AstPin($1,PINNUMINC(),*$2,new AstParseRef($1,AstParseRefExp::PX_TEXT,*$2,NULL,NULL)); $$->svImplicit(true);}
@@ -3009,23 +3009,23 @@ funcId<ftaskp>:			// IEEE: function_data_type_or_implicit + part of function_bod
 	//			// IEEE: function_data_type_or_implicit must be expanded here to prevent conflict
 	//			// function_data_type expanded here to prevent conflicts with implicit_type:empty vs data_type:ID
 		/**/			tfIdScoped
-			{ $$ = new AstFunc ($<fl>1,*$<strp>1,NULL,
-					    new AstBasicDType($<fl>1, LOGIC_IMPLICIT));
+			{ $$ = new AstFunc($<fl>1,*$<strp>1,NULL,
+					   new AstBasicDType($<fl>1, LOGIC_IMPLICIT));
 			  SYMP->pushNewUnder($$, NULL); }
 	|	signingE rangeList	tfIdScoped
-			{ $$ = new AstFunc ($<fl>3,*$<strp>3,NULL,
-					    GRAMMARP->addRange(new AstBasicDType($<fl>3, LOGIC_IMPLICIT, $1), $2,true));
+			{ $$ = new AstFunc($<fl>3,*$<strp>3,NULL,
+					   GRAMMARP->addRange(new AstBasicDType($<fl>3, LOGIC_IMPLICIT, $1), $2,true));
 			  SYMP->pushNewUnder($$, NULL); }
 	|	signing			tfIdScoped
-			{ $$ = new AstFunc ($<fl>2,*$<strp>2,NULL,
-					    new AstBasicDType($<fl>2, LOGIC_IMPLICIT, $1));
+			{ $$ = new AstFunc($<fl>2,*$<strp>2,NULL,
+					   new AstBasicDType($<fl>2, LOGIC_IMPLICIT, $1));
 			  SYMP->pushNewUnder($$, NULL); }
 	|	data_type		tfIdScoped
-			{ $$ = new AstFunc ($<fl>2,*$<strp>2,NULL,$1);
+			{ $$ = new AstFunc($<fl>2,*$<strp>2,NULL,$1);
 			  SYMP->pushNewUnder($$, NULL); }
 	//			// To verilator tasks are the same as void functions (we separately detect time passing)
 	|	yVOID			tfIdScoped
-			{ $$ = new AstTask ($<fl>2,*$<strp>2,NULL);
+			{ $$ = new AstTask($<fl>2,*$<strp>2,NULL);
 			  SYMP->pushNewUnder($$, NULL); }
 	;
 
@@ -3180,8 +3180,8 @@ expr<nodep>:			// IEEE: part of expression/constant_expression/primary
 	|	'~' ~r~expr	%prec prNEGATION	{ $$ = new AstNot	($1,$2); }
 	|	'|' ~r~expr	%prec prREDUCTION	{ $$ = new AstRedOr	($1,$2); }
 	|	'^' ~r~expr	%prec prREDUCTION	{ $$ = new AstRedXor	($1,$2); }
-	|	yP_NAND ~r~expr	%prec prREDUCTION	{ $$ = new AstLogNot($1,new AstRedAnd($1,$2)); }
-	|	yP_NOR  ~r~expr	%prec prREDUCTION	{ $$ = new AstLogNot($1,new AstRedOr ($1,$2)); }
+	|	yP_NAND ~r~expr	%prec prREDUCTION	{ $$ = new AstLogNot($1, new AstRedAnd($1, $2)); }
+	|	yP_NOR  ~r~expr	%prec prREDUCTION	{ $$ = new AstLogNot($1, new AstRedOr($1, $2)); }
 	|	yP_XNOR ~r~expr	%prec prREDUCTION	{ $$ = new AstRedXnor	($1,$2); }
 	//
 	//			// IEEE: inc_or_dec_expression
@@ -3229,6 +3229,7 @@ expr<nodep>:			// IEEE: part of expression/constant_expression/primary
 	|	~l~expr yP_SLEFT ~r~expr		{ $$ = new AstShiftL	($2,$1,$3); }
 	|	~l~expr yP_SRIGHT ~r~expr		{ $$ = new AstShiftR	($2,$1,$3); }
 	|	~l~expr yP_SSRIGHT ~r~expr		{ $$ = new AstShiftRS	($2,$1,$3); }
+	|	~l~expr yP_LTMINUSGT ~r~expr		{ $$ = new AstLogEq     ($2,$1,$3); }
 	//			// <= is special, as we need to disambiguate it with <= assignment
 	//			// We copy all of expr to fexpr and rename this token to a fake one.
 	|	~l~expr yP_LTE~f__IGNORE~ ~r~expr	{ $$ = new AstLte	($2,$1,$3); }
@@ -3246,7 +3247,6 @@ expr<nodep>:			// IEEE: part of expression/constant_expression/primary
 	//======================// PSL expressions
 	//
 	|	~l~expr yP_MINUSGT ~r~expr		{ $$ = new AstLogIf	($2,$1,$3); }
-	|	~l~expr yP_LOGIFF ~r~expr		{ $$ = new AstLogIff	($2,$1,$3); }
 	//
 	//======================// IEEE: primary/constant_primary
 	//
@@ -3444,8 +3444,8 @@ argsExprListE<nodep>:		// IEEE: part of list_of_arguments
 	;
 
 argsExprOneE<nodep>:		// IEEE: part of list_of_arguments
-		/*empty*/				{ $$ = new AstArg(CRELINE(),"",NULL); }
-	|	expr					{ $$ = new AstArg(CRELINE(),"",$1); }
+		/*empty*/				{ $$ = new AstArg(CRELINE(), "", NULL); }
+	|	expr					{ $$ = new AstArg(CRELINE(), "", $1); }
 	;
 
 argsDottedList<nodep>:		// IEEE: part of list_of_arguments
@@ -3593,60 +3593,60 @@ gateRangeE<nodep>:
 
 gateBuf<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gatePinExpr ')'
-			{ $$ = new AstAssignW ($3,$4,$6); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,$6); DEL($2); }
 	;
 gateBufif0<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gatePinExpr ',' gatePinExpr ')'
-			{ $$ = new AstAssignW ($3,$4,new AstBufIf1($3,new AstNot($3,$8),$6)); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,new AstBufIf1($3,new AstNot($3,$8),$6)); DEL($2); }
 	;
 gateBufif1<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gatePinExpr ',' gatePinExpr ')'
-			{ $$ = new AstAssignW ($3,$4,new AstBufIf1($3,$8,$6)); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,new AstBufIf1($3,$8,$6)); DEL($2); }
 	;
 gateNot<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gatePinExpr ')'
-			{ $$ = new AstAssignW ($3,$4,new AstNot($5,$6)); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,new AstNot($5,$6)); DEL($2); }
 	;
 gateNotif0<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gatePinExpr ',' gatePinExpr ')'
-			{ $$ = new AstAssignW ($3,$4,new AstBufIf1($3,new AstNot($3,$8), new AstNot($3, $6))); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,new AstBufIf1($3,new AstNot($3,$8), new AstNot($3, $6))); DEL($2); }
 	;
 gateNotif1<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gatePinExpr ',' gatePinExpr ')'
-			{ $$ = new AstAssignW ($3,$4,new AstBufIf1($3,$8, new AstNot($3,$6))); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,new AstBufIf1($3,$8, new AstNot($3,$6))); DEL($2); }
 	;
 gateAnd<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gateAndPinList ')'
-			{ $$ = new AstAssignW ($3,$4,$6); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,$6); DEL($2); }
 	;
 gateNand<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gateAndPinList ')'
-			{ $$ = new AstAssignW ($3,$4,new AstNot($5,$6)); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,new AstNot($5,$6)); DEL($2); }
 	;
 gateOr<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gateOrPinList ')'
-			{ $$ = new AstAssignW ($3,$4,$6); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,$6); DEL($2); }
 	;
 gateNor<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gateOrPinList ')'
-			{ $$ = new AstAssignW ($3,$4,new AstNot($5,$6)); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,new AstNot($5,$6)); DEL($2); }
 	;
 gateXor<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gateXorPinList ')'
-			{ $$ = new AstAssignW ($3,$4,$6); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,$6); DEL($2); }
 	;
 gateXnor<nodep>:
 		gateIdE gateRangeE '(' variable_lvalue ',' gateXorPinList ')'
-			{ $$ = new AstAssignW ($3,$4,new AstNot($5,$6)); DEL($2); }
+			{ $$ = new AstAssignW($3,$4,new AstNot($5,$6)); DEL($2); }
 	;
 gatePullup<nodep>:
-		gateIdE gateRangeE '(' variable_lvalue ')'	{ $$ = new AstPull ($3, $4, true); DEL($2); }
+		gateIdE gateRangeE '(' variable_lvalue ')'	{ $$ = new AstPull($3, $4, true); DEL($2); }
 	;
 gatePulldown<nodep>:
-		gateIdE gateRangeE '(' variable_lvalue ')'	{ $$ = new AstPull ($3, $4, false); DEL($2); }
+		gateIdE gateRangeE '(' variable_lvalue ')'	{ $$ = new AstPull($3, $4, false); DEL($2); }
 	;
 gateUnsup<nodep>:
-		gateIdE gateRangeE '(' gateUnsupPinList ')'	{ $$ = new AstImplicit ($3,$4); DEL($2); }
+		gateIdE gateRangeE '(' gateUnsupPinList ')'	{ $$ = new AstImplicit($3,$4); DEL($2); }
 	;
 
 gateIdE:
@@ -3770,7 +3770,6 @@ variable_lvalue<nodep>:		// IEEE: variable_lvalue or net_lvalue
 	//UNSUP	data_type  yP_TICKBRA variable_lvalueList '}'	{ UNSUP }
 	//UNSUP	idClassSel yP_TICKBRA variable_lvalueList '}'	{ UNSUP }
 	//UNSUP	/**/       yP_TICKBRA variable_lvalueList '}'	{ UNSUP }
-	//UNSUP	streaming_concatenation			{ UNSUP }
 	|	streaming_concatenation			{ $$ = $1; }
 	;
 
@@ -3955,10 +3954,16 @@ property_spec<nodep>:			// IEEE: property_spec
 	;
 
 //************************************************
+// Let
+
+//************************************************
 // Covergroup
 
 //**********************************************************************
 // Randsequence
+
+//**********************************************************************
+// Checker
 
 //**********************************************************************
 // Class
@@ -4001,6 +4006,9 @@ package_scopeIdFollows<packagep>:	// IEEE: package_scope
 	;
 
 //**********************************************************************
+// Constraints
+
+//**********************************************************************
 // VLT Files
 
 vltItem:
@@ -4034,217 +4042,7 @@ vltOnFront<errcodeen>:
 
 //**********************************************************************
 %%
-
-int V3ParseImp::bisonParse() {
-    // Use --debugi-bison 9 to enable this
-    if (PARSEP->debugBison()>=9) yydebug = 1;
-    return yyparse();
-}
-
-const char* V3ParseImp::tokenName(int token) {
-#if YYDEBUG || YYERROR_VERBOSE
-    static const char** nameTablep = NULL;
-    if (!nameTablep) {
-        int size;
-        for (size=0; yytname[size]; ++size) ;
-        nameTablep = new const char* [size];
-        // Workaround bug in bison's which have '!' in yytname but not token values
-        int iout = 0;
-        for (int i=0; yytname[i]; ++i) {
-            if (yytname[i][0] == '\'') continue;
-            nameTablep[iout++] = yytname[i];
-        }
-    }
-    if (token >= 255) {
-        return nameTablep[token-255];
-    } else {
-        static char ch[2];  ch[0]=token; ch[1]='\0';
-        return ch;
-    }
-#else
-    return "";
-#endif
-}
-
-void V3ParseImp::parserClear() {
-    // Clear up any dynamic memory V3Parser required
-    VARDTYPE(NULL);
-}
-
-void V3ParseGrammar::argWrapList(AstNodeFTaskRef* nodep) {
-    // Convert list of expressions to list of arguments
-    AstNode* outp = NULL;
-    while (nodep->pinsp()) {
-	AstNode* exprp = nodep->pinsp()->unlinkFrBack();
-	// addNext can handle nulls:
-	outp = AstNode::addNext(outp, new AstArg(exprp->fileline(), "", exprp));
-    }
-    if (outp) nodep->addPinsp(outp);
-}
-
-AstNode* V3ParseGrammar::createSupplyExpr(FileLine* fileline, string name, int value) {
-    return new AstAssignW(fileline, new AstVarRef(fileline, name, true),
-                          new AstConst(fileline, AstConst::StringToParse(),
-				       (value ? "'1" : "'0")));
-}
-
-AstRange* V3ParseGrammar::scrubRange(AstNodeRange* nrangep) {
-    // Remove any UnsizedRange's from list
-    for (AstNodeRange* nodep = nrangep, *nextp; nodep; nodep=nextp) {
-        nextp = VN_CAST(nrangep->nextp(), NodeRange);
-        if (!VN_IS(nodep, Range)) {
-            nodep->v3error("Unsupported or syntax error: Unsized range in cell or other declaration");
-            nodep->unlinkFrBack(); nodep->deleteTree(); VL_DANGLING(nodep);
-        }
-    }
-    return VN_CAST(nrangep, Range);
-}
-
-AstNodeDType* V3ParseGrammar::createArray(AstNodeDType* basep, AstNodeRange* nrangep, bool isPacked) {
-    // Split RANGE0-RANGE1-RANGE2 into ARRAYDTYPE0(ARRAYDTYPE1(ARRAYDTYPE2(BASICTYPE3),RANGE),RANGE)
-    AstNodeDType* arrayp = basep;
-    if (nrangep) { // Maybe no range - return unmodified base type
-        while (nrangep->nextp()) nrangep = VN_CAST(nrangep->nextp(), NodeRange);
-        while (nrangep) {
-            AstNodeRange* prevp = VN_CAST(nrangep->backp(), NodeRange);
-            if (prevp) nrangep->unlinkFrBack();
-            AstRange* rangep = VN_CAST(nrangep, Range);
-            if (!rangep) {
-                if (!VN_IS(nrangep, UnsizedRange)) nrangep->v3fatalSrc("Expected range or unsized range");
-                arrayp = new AstUnsizedArrayDType(nrangep->fileline(), VFlagChildDType(), arrayp);
-            } else if (isPacked) {
-                arrayp = new AstPackArrayDType(rangep->fileline(), VFlagChildDType(), arrayp, rangep);
-            } else {
-                arrayp = new AstUnpackArrayDType(rangep->fileline(), VFlagChildDType(), arrayp, rangep);
-            }
-            nrangep = prevp;
-        }
-    }
-    return arrayp;
-}
-
-AstVar* V3ParseGrammar::createVariable(FileLine* fileline, string name, AstNodeRange* arrayp, AstNode* attrsp) {
-    AstNodeDType* dtypep = GRAMMARP->m_varDTypep;
-    UINFO(5,"  creVar "<<name<<"  decl="<<GRAMMARP->m_varDecl<<"  io="<<GRAMMARP->m_varIO<<"  dt="<<(dtypep?"set":"")<<endl);
-    if (GRAMMARP->m_varIO == VDirection::NONE
-	&& GRAMMARP->m_varDecl == AstVarType::PORT) {
-	// Just a port list with variable name (not v2k format); AstPort already created
-	if (dtypep) fileline->v3error("Unsupported: Ranges ignored in port-lists");
-	return NULL;
-    }
-    if (GRAMMARP->m_varDecl == AstVarType::WREAL) {
-	// dtypep might not be null, might be implicit LOGIC before we knew better
-	dtypep = new AstBasicDType(fileline,AstBasicDTypeKwd::DOUBLE);
-    }
-    if (!dtypep) {  // Created implicitly
-	dtypep = new AstBasicDType(fileline, LOGIC_IMPLICIT);
-    } else {  // May make new variables with same type, so clone
-	dtypep = dtypep->cloneTree(false);
-    }
-    //UINFO(0,"CREVAR "<<fileline->ascii()<<" decl="<<GRAMMARP->m_varDecl.ascii()<<" io="<<GRAMMARP->m_varIO.ascii()<<endl);
-    AstVarType type = GRAMMARP->m_varDecl;
-    if (type == AstVarType::UNKNOWN) {
-        if (GRAMMARP->m_varIO.isAny()) {
-            type = AstVarType::PORT;
-        } else {
-            fileline->v3fatalSrc("Unknown signal type declared");
-        }
-    }
-    if (type == AstVarType::GENVAR) {
-	if (arrayp) fileline->v3error("Genvars may not be arrayed: "<<name);
-    }
-
-    // Split RANGE0-RANGE1-RANGE2 into ARRAYDTYPE0(ARRAYDTYPE1(ARRAYDTYPE2(BASICTYPE3),RANGE),RANGE)
-    AstNodeDType* arrayDTypep = createArray(dtypep, arrayp, false);
-
-    AstVar* nodep = new AstVar(fileline, type, name, VFlagChildDType(), arrayDTypep);
-    nodep->addAttrsp(attrsp);
-    if (GRAMMARP->m_varDecl != AstVarType::UNKNOWN) nodep->combineType(GRAMMARP->m_varDecl);
-    if (GRAMMARP->m_varIO != VDirection::NONE) {
-        nodep->declDirection(GRAMMARP->m_varIO);
-        nodep->direction(GRAMMARP->m_varIO);
-    }
-
-    if (GRAMMARP->m_varDecl == AstVarType::SUPPLY0) {
-	nodep->addNext(V3ParseGrammar::createSupplyExpr(fileline, nodep->name(), 0));
-    }
-    if (GRAMMARP->m_varDecl == AstVarType::SUPPLY1) {
-	nodep->addNext(V3ParseGrammar::createSupplyExpr(fileline, nodep->name(), 1));
-    }
-    if (VN_IS(dtypep, ParseTypeDType)) {
-	// Parser needs to know what is a type
-	AstNode* newp = new AstTypedefFwd(fileline, name);
-	nodep->addNext(newp);
-	SYMP->reinsert(newp);
-    }
-    // Don't set dtypep in the ranging;
-    // We need to autosize parameters and integers separately
-    //
-    // Propagate from current module tracing state
-    if (nodep->isGenVar()) nodep->trace(false);
-    else if (nodep->isParam() && !v3Global.opt.traceParams()) nodep->trace(false);
-    else nodep->trace(allTracingOn(nodep->fileline()));
-
-    // Remember the last variable created, so we can attach attributes to it in later parsing
-    GRAMMARP->m_varAttrp = nodep;
-    PARSEP->tagNodep(GRAMMARP->m_varAttrp);
-    return nodep;
-}
-
-string V3ParseGrammar::deQuote(FileLine* fileline, string text) {
-    // Fix up the quoted strings the user put in, for example "\"" becomes "
-    // Reverse is V3OutFormatter::quoteNameControls(...)
-    bool quoted = false;
-    string newtext;
-    unsigned char octal_val = 0;
-    int octal_digits = 0;
-    for (string::const_iterator cp=text.begin(); cp!=text.end(); ++cp) {
-	if (quoted) {
-	    if (isdigit(*cp)) {
-		octal_val = octal_val*8 + (*cp-'0');
-		if (++octal_digits == 3) {
-		    octal_digits = 0;
-		    quoted = false;
-		    newtext += octal_val;
-		}
-	    } else {
-		if (octal_digits) {
-		    // Spec allows 1-3 digits
-		    octal_digits = 0;
-		    quoted = false;
-		    newtext += octal_val;
-		    --cp;  // Backup to reprocess terminating character as non-escaped
-		    continue;
-		}
-		quoted = false;
-		if (*cp == 'n') newtext += '\n';
-		else if (*cp == 'a') newtext += '\a'; // SystemVerilog 3.1
-		else if (*cp == 'f') newtext += '\f'; // SystemVerilog 3.1
-		else if (*cp == 'r') newtext += '\r';
-		else if (*cp == 't') newtext += '\t';
-		else if (*cp == 'v') newtext += '\v'; // SystemVerilog 3.1
-		else if (*cp == 'x' && isxdigit(cp[1]) && isxdigit(cp[2])) { // SystemVerilog 3.1
-#define vl_decodexdigit(c) ((isdigit(c)?((c)-'0'):(tolower((c))-'a'+10)))
-		    newtext += (char)(16*vl_decodexdigit(cp[1]) + vl_decodexdigit(cp[2]));
-		    cp += 2;
-		}
-		else if (isalnum(*cp)) {
-		    fileline->v3error("Unknown escape sequence: \\"<<*cp);
-		    break;
-		}
-		else newtext += *cp;
-	    }
-	}
-	else if (*cp == '\\') {
-	    quoted = true;
-	    octal_digits = 0;
-	}
-	else if (*cp != '"') {
-	    newtext += *cp;
-	}
-    }
-    return newtext;
-}
+// For implementation functions see V3ParseGrammar.cpp
 
 //YACC = /kits/sources/bison-2.4.1/src/bison --report=lookahead
 // --report=lookahead

@@ -693,7 +693,7 @@ public:
     AstStructDType(FileLine* fl, AstNumeric numericUnpack)
         : AstNodeClassDType(fl, numericUnpack) {}
     ASTNODE_NODE_FUNCS(StructDType)
-    virtual string verilogKwd() const { return "struct"; };
+    virtual string verilogKwd() const { return "struct"; }
 };
 
 class AstUnionDType : public AstNodeClassDType {
@@ -702,7 +702,7 @@ public:
     AstUnionDType(FileLine* fl, AstNumeric numericUnpack)
         : AstNodeClassDType(fl, numericUnpack) {}
     ASTNODE_NODE_FUNCS(UnionDType)
-    virtual string verilogKwd() const { return "union"; };
+    virtual string verilogKwd() const { return "union"; }
 };
 
 class AstMemberDType : public AstNodeDType {
@@ -3095,7 +3095,7 @@ public:
     explicit AstBreak(FileLine* fileline)
         : AstNodeStmt(fileline) {}
     ASTNODE_NODE_FUNCS(Break)
-    virtual string verilogKwd() const { return "break"; };
+    virtual string verilogKwd() const { return "break"; }
     virtual V3Hash sameHash() const { return V3Hash(); }
     virtual bool isBrancher() const { return true; }  // SPECIAL: We don't process code after breaks
 };
@@ -3105,7 +3105,7 @@ public:
     explicit AstContinue(FileLine* fileline)
         : AstNodeStmt(fileline) {}
     ASTNODE_NODE_FUNCS(Continue)
-    virtual string verilogKwd() const { return "continue"; };
+    virtual string verilogKwd() const { return "continue"; }
     virtual V3Hash sameHash() const { return V3Hash(); }
     virtual bool isBrancher() const { return true; }  // SPECIAL: We don't process code after breaks
 };
@@ -3129,7 +3129,7 @@ public:
         setNOp1p(lhsp);
     }
     ASTNODE_NODE_FUNCS(Return)
-    virtual string verilogKwd() const { return "return"; };
+    virtual string verilogKwd() const { return "return"; }
     virtual V3Hash sameHash() const { return V3Hash(); }
     AstNode* lhsp() const { return op1p(); }
     virtual bool isBrancher() const { return true; }  // SPECIAL: We don't process code after breaks
@@ -3580,6 +3580,7 @@ public:
     AstNode* fromp() const { return op1p(); }
     AstNode* dimp() const { return op2p(); }
     AstAttrType attrType() const { return m_attrType; }
+    virtual V3Hash sameHash() const { return V3Hash(m_attrType); }
     virtual void dump(std::ostream& str=std::cout);
 };
 
@@ -4375,16 +4376,18 @@ public:
     virtual bool sizeMattersRhs() { return false; }
     virtual int instrCount() const { return widthInstrs()+instrCountBranch(); }
 };
-class AstLogIf : public AstNodeBiop {
+class AstLogEq : public AstNodeBiCom {
 public:
-    AstLogIf(FileLine* fl, AstNode* lhsp, AstNode* rhsp) : AstNodeBiop(fl, lhsp, rhsp) {
+    AstLogEq(FileLine* fl, AstNode* lhsp, AstNode* rhsp) : AstNodeBiCom(fl, lhsp, rhsp) {
         dtypeSetLogicBool(); }
-    ASTNODE_NODE_FUNCS(LogIf)
-    virtual AstNode* cloneType(AstNode* lhsp, AstNode* rhsp) { return new AstLogIf(this->fileline(), lhsp, rhsp); }
-    virtual void numberOperate(V3Number& out, const V3Number& lhs, const V3Number& rhs) { out.opLogIf(lhs, rhs); }
-    virtual string emitVerilog() { return "%k(%l %f-> %r)"; }
-    virtual string emitC() { return "VL_LOGIF_%nq%lq%rq(%nw,%lw,%rw, %P, %li, %ri)"; }
-    virtual string emitSimpleOperator() { return "->"; }
+    ASTNODE_NODE_FUNCS(LogEq)
+    virtual AstNode* cloneType(AstNode* lhsp, AstNode* rhsp) {
+        return new AstLogEq(this->fileline(), lhsp, rhsp); }
+    virtual void numberOperate(V3Number& out, const V3Number& lhs, const V3Number& rhs) {
+        out.opLogEq(lhs, rhs); }
+    virtual string emitVerilog() { return "%k(%l %f<-> %r)"; }
+    virtual string emitC() { return "VL_LOGEQ_%nq%lq%rq(%nw,%lw,%rw, %P, %li, %ri)"; }
+    virtual string emitSimpleOperator() { return "<->"; }
     virtual bool cleanOut() { return true; }
     virtual bool cleanLhs() { return true; }
     virtual bool cleanRhs() { return true; }
@@ -4392,16 +4395,18 @@ public:
     virtual bool sizeMattersRhs() { return false; }
     virtual int instrCount() const { return widthInstrs()+instrCountBranch(); }
 };
-class AstLogIff : public AstNodeBiCom {
+class AstLogIf : public AstNodeBiop {
 public:
-    AstLogIff(FileLine* fl, AstNode* lhsp, AstNode* rhsp) : AstNodeBiCom(fl, lhsp, rhsp) {
+    AstLogIf(FileLine* fl, AstNode* lhsp, AstNode* rhsp) : AstNodeBiop(fl, lhsp, rhsp) {
         dtypeSetLogicBool(); }
-    ASTNODE_NODE_FUNCS(LogIff)
-    virtual AstNode* cloneType(AstNode* lhsp, AstNode* rhsp) { return new AstLogIff(this->fileline(), lhsp, rhsp); }
-    virtual void numberOperate(V3Number& out, const V3Number& lhs, const V3Number& rhs) { out.opLogIff(lhs, rhs); }
-    virtual string emitVerilog() { return "%k(%l %f<-> %r)"; }
-    virtual string emitC() { return "VL_LOGIFF_%nq%lq%rq(%nw,%lw,%rw, %P, %li, %ri)"; }
-    virtual string emitSimpleOperator() { return "<->"; }
+    ASTNODE_NODE_FUNCS(LogIf)
+    virtual AstNode* cloneType(AstNode* lhsp, AstNode* rhsp) {
+        return new AstLogIf(this->fileline(), lhsp, rhsp); }
+    virtual void numberOperate(V3Number& out, const V3Number& lhs, const V3Number& rhs) {
+        out.opLogIf(lhs, rhs); }
+    virtual string emitVerilog() { return "%k(%l %f-> %r)"; }
+    virtual string emitC() { return "VL_LOGIF_%nq%lq%rq(%nw,%lw,%rw, %P, %li, %ri)"; }
+    virtual string emitSimpleOperator() { return "->"; }
     virtual bool cleanOut() { return true; }
     virtual bool cleanLhs() { return true; }
     virtual bool cleanRhs() { return true; }
