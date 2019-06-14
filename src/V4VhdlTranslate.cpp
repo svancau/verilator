@@ -476,7 +476,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return translateObject(obj["expr"].GetObject());
 
     } else {
-        v3error("Failed to translate object");
+        v3error("Failed to translate object of class " << obj["cls"].GetString());
     }
     return nullptr;
 }
