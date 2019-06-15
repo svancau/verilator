@@ -134,19 +134,18 @@ AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
     string type_name = item["name"].GetString();
     UINFO(9, indentString() << "Type " << type_name << endl);
 
-    if (type_name == "STD_LOGIC%s") {
+    if (type_name == "STD_LOGIC") {
         return new AstBasicDType(fl2, AstBasicDTypeKwd::LOGIC_IMPLICIT);
-    } else if (type_name == "STD_LOGIC_VECTOR%s" or type_name == "UNSIGNED%s" or type_name == "SIGNED%s") {
+    } else if (type_name == "STD_LOGIC_VECTOR" or type_name == "UNSIGNED" or type_name == "SIGNED") {
         AstNodeDType *base_type = new AstBasicDType(fl2, AstBasicDTypeKwd::LOGIC_IMPLICIT);
         FileLine *fl3 = new FileLine(currentFilename, 0);
         Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
         AstRange *range = new AstRange(fl3, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
         return createArray(base_type, range, true);
-    } else if (type_name == "INTEGER%s" or type_name == "NATURAL%s" or type_name == "POSITIVE%s") {
+    } else if (type_name == "INTEGER" or type_name == "NATURAL" or type_name == "POSITIVE") {
         return new AstBasicDType(fl2, AstBasicDTypeKwd::INT);
     } else {
-        v3error("Failed to translate type " + type_name);
-        return nullptr;
+        return new AstRefDType(fl2, type_name);
     }
 
 }
