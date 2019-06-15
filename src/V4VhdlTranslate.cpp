@@ -474,6 +474,27 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         currentLevel--;
         return translateObject(obj["expr"].GetObject());
 
+    } else if (obj["cls"] == "typedecl") {
+        FileLine *fl = new FileLine(currentFilename, 0);
+        AstNodeDType *nodedtype = NULL;
+        if ((type_kind_t)obj["kind"].GetInt() == T_ENUM) {
+            nodedtype = new AstEnumDType(fl, VFlagChildDType(), new AstBasicDType(fl, AstBasicDTypeKwd::INT), NULL);
+            Value::ConstArray enum_val = obj["enum_val"].GetArray();
+            unsigned int indexValue = 0;
+            for(Value::ConstValueIterator m = enum_val.Begin(); m != enum_val.End(); ++m) {
+                ((AstEnumDType*)nodedtype)->addValuesp(new AstEnumItem(fl, m->GetString(), NULL, new AstConst(fl, indexValue)));
+                indexValue ++;
+            }
+        }
+        AstNode *tdef = new AstTypedef(fl, obj["name"].GetString(), NULL, VFlagChildDType(), nodedtype);
+        currentLevel--;
+        return tdef;
+
+    } else if (obj["cls"] == "aggregate" or obj["cls"] == "string") {
+        FileLine *fl = new FileLine(currentFilename, 0);
+        currentLevel--;
+        return new AstConst(fl, 0);
+
     } else {
         v3error("Failed to translate object of class " << obj["cls"].GetString());
     }

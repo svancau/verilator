@@ -46,6 +46,27 @@ public:
     V4VhdlTranslate(V3ParseSym &symtable);
     ~V4VhdlTranslate();
     void translate(string filename);
+
+    typedef enum type_kind {
+   T_UNRESOLVED,
+   T_SUBTYPE,
+   T_INTEGER,
+   T_REAL,
+   T_ENUM,
+   T_PHYSICAL,
+   T_CARRAY,
+   T_UARRAY,
+   T_RECORD,
+   T_FILE,
+   T_ACCESS,
+   T_FUNC,
+   T_INCOMPLETE,
+   T_PROC,
+   T_NONE,
+   T_PROTECTED,
+
+   T_LAST_TYPE_KIND
+} type_kind_t;
 };
 
 #endif
