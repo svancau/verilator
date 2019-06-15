@@ -26,7 +26,7 @@ V4VhdlTranslate::~V4VhdlTranslate()
 
 string V4VhdlTranslate::indentString() {
     stringstream ss;
-    for (int i = 0; i < currentLevel; ++i) {
+    for (int i = 0; i < currentLevel and i < 20; ++i) {
         ss << "  ";
     }
     return ss.str();
