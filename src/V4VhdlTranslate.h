@@ -4,6 +4,7 @@
 #include "V3Global.h"
 #include "V3Ast.h"
 #include "V3ParseSym.h"
+#include "V3Number.h"
 #include <iostream>
 #include <string>
 #include <fstream>

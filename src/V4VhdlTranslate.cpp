@@ -490,7 +490,15 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         currentLevel--;
         return tdef;
 
-    } else if (obj["cls"] == "aggregate" or obj["cls"] == "string") {
+    } else if (obj["cls"] == "string") {
+        FileLine *fl = new FileLine(currentFilename, 0);
+        string value = obj["val"].GetString();
+        stringstream ss;
+        ss << value.length() << "'b" << value;
+        currentLevel--;
+        return new AstConst(fl, V3Number(V3Number::FileLined(), fl, ss.str().c_str()));
+
+    } else if (obj["cls"] == "aggregate") {
         FileLine *fl = new FileLine(currentFilename, 0);
         currentLevel--;
         return new AstConst(fl, 0);
