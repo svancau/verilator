@@ -61,7 +61,7 @@ run:
 
 	@echo
 	@echo "-- VERILATE ----------------"
-	$(VERILATOR) $(VERILATOR_FLAGS) pwm.vhd pwm.cpp
+	$(VERILATOR) $(VERILATOR_FLAGS) pwm.vhd pwm_top.vhd pwm.cpp
 
 	@echo
 	@echo "-- COMPILE -----------------"

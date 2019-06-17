@@ -11,7 +11,7 @@ entity pwm is
 end entity pwm;
 
 architecture rtl of pwm is
-	signal counter : unsigned(7 downto 0);
+	signal counter : unsigned(7 downto 0) := X"00";
 begin
     process(clk)
     begin
