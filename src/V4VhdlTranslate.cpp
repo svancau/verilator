@@ -411,7 +411,11 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         VARDTYPE(translateType(obj["type"].GetObject()));
         currentLevel--;
-        return createVariable(fl, obj["name"].GetString(), NULL, NULL);
+        string varName = obj["name"].GetString();
+        AstVar *var = createVariable(fl, varName, NULL, NULL);
+        if (obj.HasMember("val"))
+            var->valuep(translateObject(obj["val"].GetObject()));
+        return var;
 
     } else if (obj["cls"] == "constdecl") {
         VARRESET();
@@ -419,7 +423,11 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         VARDTYPE(translateType(obj["type"].GetObject()));
         currentLevel--;
-        return createVariable(fl, obj["name"].GetString(), NULL, NULL);
+        string varName = obj["name"].GetString();
+        AstVar *var = createVariable(fl, varName, NULL, NULL);
+        if (obj.HasMember("val"))
+            var->valuep(translateObject(obj["val"].GetObject()));
+        return var;
 
     } else if (obj["cls"] == "aref") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
