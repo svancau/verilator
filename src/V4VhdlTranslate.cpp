@@ -257,7 +257,8 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             VARRESET();
             VARDECL(GPARAM);
             VARDTYPE(translateType(gen_obj["type"].GetObject()));
-            mod->addStmtp(createVariable(fl, gen_obj["name"].GetString(), NULL, NULL));
+            AstVar *generic_var = createVariable(fl, gen_obj["name"].GetString(), NULL, NULL);
+            mod->addStmtp(generic_var);
         }
         // Handle Ports
         pinnum = 1;
@@ -278,7 +279,8 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
             VARDTYPE(translateType(port_obj["type"].GetObject()));
             mod->addStmtp(port);
-            mod->addStmtp(createVariable(fl, port->name(), NULL, NULL));
+            AstVar *port_var = createVariable(fl, port->name(), NULL, NULL);
+            mod->addStmtp(port_var);
         }
         pinnum = 0;
 
@@ -514,6 +516,25 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         currentLevel--;
         return new AstConst(fl, 0);
+
+    } else if (obj["cls"] == "instance") {
+        static long instanceCount = 0;
+        stringstream ss;
+        string inst_base = convertName(obj["name"].GetString());
+        ss << "i_" << inst_base << "_" << instanceCount++;
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstCell * instance = new AstCell(fl, ss.str(), inst_base, NULL, NULL, NULL);
+        Value::ConstArray ports = obj["port"].GetArray();
+        long pinNum = 1;
+        for(Value::ConstValueIterator m = ports.Begin(); m != ports.End(); ++m) {
+            Value::ConstObject port = m->GetObject();
+            string portname = (port["name"].GetObject())["name"].GetString();
+            FileLine *pinfl = new FileLine(currentFilename, getLine(port));
+            instance->addPinsp(new AstPin(pinfl, pinNum++, portname, translateObject(port["value"].GetObject())));
+        }
+        currentLevel--;
+        return instance;
+
 
     } else {
         v3error("Failed to translate object of class " << obj["cls"].GetString());
