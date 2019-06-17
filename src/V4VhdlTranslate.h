@@ -43,6 +43,7 @@ private:
     AstAlways *current_process;
     V3ParseSym &symt;
     string indentString();
+    long getLine(Value::ConstObject obj);
 public:
     V4VhdlTranslate(V3ParseSym &symtable);
     ~V4VhdlTranslate();

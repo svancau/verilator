@@ -32,6 +32,10 @@ string V4VhdlTranslate::indentString() {
     return ss.str();
 }
 
+long V4VhdlTranslate::getLine(Value::ConstObject obj) {
+    return obj["ln"].GetInt();
+}
+
 AstNodeDType* V4VhdlTranslate::createArray(AstNodeDType* basep, AstNodeRange* nrangep, bool isPacked) {
     // Split RANGE0-RANGE1-RANGE2 into ARRAYDTYPE0(ARRAYDTYPE1(ARRAYDTYPE2(BASICTYPE3),RANGE),RANGE)
     AstNodeDType* arrayp = basep;
@@ -153,7 +157,7 @@ AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
 AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     string fname = item["name"].GetString();
     UINFO(9, indentString() << "FCall " << fname << endl);
-    FileLine *fl = new FileLine(currentFilename, 0);
+    FileLine *fl = new FileLine(currentFilename, getLine(item));
     vector<AstNode*> params;
     Value::ConstArray stmts = item["params"].GetArray();
     for (Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
@@ -243,13 +247,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     if (obj["cls"] == "entity") {
         string module_name = convertName(obj["name"].GetString());
         currentFilename = obj["filename"].GetString();
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstModule *mod = new AstModule(fl, module_name);
 
         auto gen_array = obj["generic"].GetArray();
         for(Value::ConstValueIterator m = gen_array.Begin(); m != gen_array.End(); ++m) {
             auto gen_obj = m->GetObject();
-            FileLine *fl = new FileLine(currentFilename, 0);
+            FileLine *fl = new FileLine(currentFilename, getLine(gen_obj));
             VARRESET();
             VARDECL(GPARAM);
             VARDTYPE(translateType(gen_obj["type"].GetObject()));
@@ -269,7 +273,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
                 VARIO(INOUT);
             }
             VARDECL(PORT);
-            FileLine *fl = new FileLine(currentFilename, 0);
+            FileLine *fl = new FileLine(currentFilename, getLine(port_obj));
             AstPort *port = new AstPort(fl, pinnum++, port_obj["name"].GetString());
 
             VARDTYPE(translateType(port_obj["type"].GetObject()));
@@ -303,10 +307,10 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         currentLevel--;
 
     } else if (obj["cls"] == "process") {
-        FileLine *fl_st = new FileLine(currentFilename, 0);
+        FileLine *fl_st = new FileLine(currentFilename, getLine(obj));
         AstSenTree *st = new AstSenTree(fl_st, NULL);
 
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstAlways *process = new AstAlways(fl, VAlwaysKwd::en::ALWAYS, st, NULL);
         current_process = process;
         Value::ConstArray decls = obj["decls"].GetArray();
@@ -332,7 +336,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         Value::ConstArray on = obj["on"].GetArray();
         for (Value::ConstValueIterator m = on.Begin(); m != on.End(); ++m) {
             AstNode *ref = translateObject(m->GetObject());
-            FileLine *fl2 = new FileLine(currentFilename, 0);
+            FileLine *fl2 = new FileLine(currentFilename, getLine(obj));
             string item_name = m->GetObject()["name"].GetString();
             AstEdgeType edge_type = AstEdgeType::ET_ANYEDGE;
             if (m_sig_edges[item_name])
@@ -344,7 +348,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         currentLevel--;
 
     } else if (obj["cls"] == "sigassign") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstNode * lhsp = translateObject(obj["target"].GetObject());
         AstNode * rhsp = translateObject(obj["lhs"].GetObject());
         AstAssignDly * assign = new AstAssignDly(fl, lhsp, rhsp);
@@ -352,7 +356,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return assign;
 
     } else if (obj["cls"] == "varassign") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstNode * lhsp = translateObject(obj["target"].GetObject());
         AstNode * rhsp = translateObject(obj["lhs"].GetObject());
         AstAssign *assign = new AstAssign(fl, lhsp, rhsp);
@@ -360,7 +364,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return assign;
 
     } else if (obj["cls"] == "ref") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         string refname = obj["name"].GetString();
         currentLevel--;
         if (refname[0] == '\'') {
@@ -373,17 +377,17 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             return new AstVarRef(fl, refname, false);
     
     } else if (obj["cls"] == "fcall") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         currentLevel--;
         return translateFcall(obj);
 
     } else if (obj["cls"] == "int") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         currentLevel--;
         return new AstConst(fl, AstConst::Unsized32(), obj["value"].GetUint());
 
     } else if (obj["cls"] == "if") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         currentLevel--;
         AstIf *ifn = new AstIf(fl, translateObject(obj["cond"].GetObject()), NULL, NULL);
 
@@ -404,7 +408,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "sigdecl" or obj["cls"] == "vardecl") {
         VARRESET();
         VARDECL(VAR);
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         VARDTYPE(translateType(obj["type"].GetObject()));
         currentLevel--;
         return createVariable(fl, obj["name"].GetString(), NULL, NULL);
@@ -412,13 +416,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "constdecl") {
         VARRESET();
         VARDECL(LPARAM);
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         VARDTYPE(translateType(obj["type"].GetObject()));
         currentLevel--;
         return createVariable(fl, obj["name"].GetString(), NULL, NULL);
 
     } else if (obj["cls"] == "aref") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         Value::ConstArray params = obj["params"].GetArray();
         if (params[0]["name"].IsNull()) {
             return new AstSelBit(fl, translateObject(obj["of"].GetObject()), translateObject(params[0]["value"].GetObject()));    
@@ -427,13 +431,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return NULL; // TODO fix this
 
     } else if (obj["cls"] == "aslice") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         Value::ConstObject rng = obj["range"].GetObject();
         currentLevel--;
         return new AstSelExtract(fl, translateObject(obj["of"].GetObject()), translateObject(rng["l"].GetObject()), translateObject(rng["r"].GetObject()));
 
     } else if (obj["cls"] == "concat") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         Value::ConstArray items = obj["items"].GetArray();
         AstNode *last_concat = new AstConcat(fl, translateObject(items[0].GetObject()), translateObject(items[1].GetObject()));
         for (int i = 2; i < items.Size(); ++i) {
@@ -447,7 +451,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return nullptr;
 
     } else if (obj["cls"] == "next") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstNode *next = new AstContinue(fl);
         if(!obj["when"].IsNull()) {
             next = new AstIf(fl, translateObject(obj["when"].GetObject()), next);
@@ -456,7 +460,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return next;
 
     } else if (obj["cls"] == "exit") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstNode *exit = new AstBreak(fl);
         if(!obj["when"].IsNull()) {
             exit = new AstIf(fl, translateObject(obj["when"].GetObject()), exit);
@@ -465,7 +469,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return exit;
 
     } else if (obj["cls"] == "while") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstNode *whle = new AstWhile(fl, translateObject(obj["cond"].GetObject()), translateObject(obj["stmts"].GetObject()));
         currentLevel--;
         return whle;
@@ -475,7 +479,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return translateObject(obj["expr"].GetObject());
 
     } else if (obj["cls"] == "typedecl") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstNodeDType *nodedtype = NULL;
         if ((type_kind_t)obj["kind"].GetInt() == T_ENUM) {
             nodedtype = new AstEnumDType(fl, VFlagChildDType(), new AstBasicDType(fl, AstBasicDTypeKwd::INT), NULL);
@@ -491,7 +495,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return tdef;
 
     } else if (obj["cls"] == "string") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         string value = obj["val"].GetString();
         stringstream ss;
         ss << value.length() << "'b" << value;
@@ -499,7 +503,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return new AstConst(fl, V3Number(V3Number::FileLined(), fl, ss.str().c_str()));
 
     } else if (obj["cls"] == "aggregate") {
-        FileLine *fl = new FileLine(currentFilename, 0);
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         currentLevel--;
         return new AstConst(fl, 0);
 
