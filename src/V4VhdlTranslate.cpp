@@ -523,13 +523,19 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
     } else if (obj["cls"] == "instance") {
         static long instanceCount = 0;
-        stringstream ss;
         string inst_base = convertName(obj["name"].GetString());
-        ss << "i_" << inst_base << "_" << instanceCount++;
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
-        AstCell * instance = new AstCell(fl, ss.str(), inst_base, NULL, NULL, NULL);
+        AstCell * instance = new AstCell(fl, obj["iname"].GetString(), inst_base, NULL, NULL, NULL);
         Value::ConstArray ports = obj["port"].GetArray();
         long pinNum = 1;
+        Value::ConstArray generics = obj["generic"].GetArray();
+        for(Value::ConstValueIterator m = generics.Begin(); m != generics.End(); ++m) {
+            Value::ConstObject generic = m->GetObject();
+            string generic_name = (generic["name"].GetObject())["name"].GetString();
+            FileLine *pinfl = new FileLine(currentFilename, getLine(generic));
+            instance->addParamsp(new AstPin(pinfl, pinNum++, generic_name, translateObject(generic["value"].GetObject())));
+        }
+        pinNum = 1;
         for(Value::ConstValueIterator m = ports.Begin(); m != ports.End(); ++m) {
             Value::ConstObject port = m->GetObject();
             string portname = (port["name"].GetObject())["name"].GetString();
