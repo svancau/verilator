@@ -258,6 +258,8 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             VARDECL(GPARAM);
             VARDTYPE(translateType(gen_obj["type"].GetObject()));
             AstVar *generic_var = createVariable(fl, gen_obj["name"].GetString(), NULL, NULL);
+            if (gen_obj.HasMember("val"))
+                generic_var->valuep(translateObject(gen_obj["val"].GetObject()));
             mod->addStmtp(generic_var);
         }
         // Handle Ports
@@ -280,6 +282,8 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             VARDTYPE(translateType(port_obj["type"].GetObject()));
             mod->addStmtp(port);
             AstVar *port_var = createVariable(fl, port->name(), NULL, NULL);
+            if (port_obj.HasMember("val"))
+                port_var->valuep(translateObject(obj["val"].GetObject()));
             mod->addStmtp(port_var);
         }
         pinnum = 0;
