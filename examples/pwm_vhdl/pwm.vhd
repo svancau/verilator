@@ -3,15 +3,16 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity pwm is
+    generic (size : integer := 8);
     port (
 	clk : in std_logic;
-	duty : in unsigned(7 downto 0);
+	duty : in unsigned(size-1 downto 0);
 	output : out std_logic
     );
 end entity pwm;
 
 architecture rtl of pwm is
-	signal counter : unsigned(7 downto 0) := X"00";
+    signal counter : unsigned(size-1 downto 0) := X"000";
 begin
     process(clk)
     begin
