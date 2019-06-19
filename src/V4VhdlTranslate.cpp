@@ -133,23 +133,22 @@ AstNode* V4VhdlTranslate::createSupplyExpr(FileLine* fileline, string name, int 
 				       (value ? "'1" : "'0")));
 }
 
-AstNodeDType *V4VhdlTranslate::translateType(Value::ConstObject item) {
-    FileLine *fl2 = new FileLine(currentFilename, 0);
+AstNodeDType *V4VhdlTranslate::translateType(FileLine *fl, Value::ConstObject item) {
     string type_name = item["name"].GetString();
     UINFO(9, indentString() << "Type " << type_name << endl);
 
     if (type_name == "STD_LOGIC") {
-        return new AstBasicDType(fl2, AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        return new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
     } else if (type_name == "STD_LOGIC_VECTOR" or type_name == "UNSIGNED" or type_name == "SIGNED") {
-        AstNodeDType *base_type = new AstBasicDType(fl2, AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        AstNodeDType *base_type = new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
         FileLine *fl3 = new FileLine(currentFilename, 0);
         Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
         AstRange *range = new AstRange(fl3, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
         return createArray(base_type, range, true);
     } else if (type_name == "INTEGER" or type_name == "NATURAL" or type_name == "POSITIVE") {
-        return new AstBasicDType(fl2, AstBasicDTypeKwd::INT);
+        return new AstBasicDType(fl, AstBasicDTypeKwd::INT);
     } else {
-        return new AstRefDType(fl2, type_name);
+        return new AstRefDType(fl, type_name);
     }
 
 }
@@ -256,7 +255,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             FileLine *fl = new FileLine(currentFilename, getLine(gen_obj));
             VARRESET();
             VARDECL(GPARAM);
-            VARDTYPE(translateType(gen_obj["type"].GetObject()));
+            VARDTYPE(translateType(fl, gen_obj["type"].GetObject()));
             AstVar *generic_var = createVariable(fl, gen_obj["name"].GetString(), NULL, NULL);
             if (gen_obj.HasMember("val"))
                 generic_var->valuep(translateObject(gen_obj["val"].GetObject()));
@@ -279,7 +278,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             FileLine *fl = new FileLine(currentFilename, getLine(port_obj));
             AstPort *port = new AstPort(fl, pinnum++, port_obj["name"].GetString());
 
-            VARDTYPE(translateType(port_obj["type"].GetObject()));
+            VARDTYPE(translateType(fl, port_obj["type"].GetObject()));
             mod->addStmtp(port);
             AstVar *port_var = createVariable(fl, port->name(), NULL, NULL);
             if (port_obj.HasMember("val"))
@@ -415,7 +414,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         VARRESET();
         VARDECL(VAR);
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
-        VARDTYPE(translateType(obj["type"].GetObject()));
+        VARDTYPE(translateType(fl, obj["type"].GetObject()));
         currentLevel--;
         string varName = obj["name"].GetString();
         AstVar *var = createVariable(fl, varName, NULL, NULL);
@@ -427,7 +426,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         VARRESET();
         VARDECL(LPARAM);
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
-        VARDTYPE(translateType(obj["type"].GetObject()));
+        VARDTYPE(translateType(fl, obj["type"].GetObject()));
         currentLevel--;
         string varName = obj["name"].GetString();
         AstVar *var = createVariable(fl, varName, NULL, NULL);

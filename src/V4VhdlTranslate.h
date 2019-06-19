@@ -35,7 +35,7 @@ private:
 
     unsigned long pinnum;
     void iterateArray(Value::ConstArray arr, void(*add)(AstNode *newp));
-    AstNodeDType *translateType(Value::ConstObject item);
+    AstNodeDType *translateType(FileLine *fl, Value::ConstObject item);
     AstNode *translateObject(Value::ConstObject item);
     AstNode *translateFcall(Value::ConstObject item);
     map<string, AstNode*> m_entities;
