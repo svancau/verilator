@@ -6150,5 +6150,52 @@ public:
 };
 
 //######################################################################
+// VHDL specific nodes
+class AstVHDAggregate : public AstNode {
+    // Single item of a case statement
+    // Parents:  Module
+    // aggritems Children: MATH  (Null condition used for default block)
+public:
+    AstVHDAggregate(FileLine* fileline, AstNode* aggritems)
+        : AstNode(fileline) {
+        addNOp1p(aggritems);
+    }
+    ASTNODE_NODE_FUNCS(VHDAggregate)
+    AstNode* aggritemsp() const { return op1p(); }  // op1 = list of possible matching expressions
+    void addAggritemsp(AstNode* newp) { addOp1p(newp); }
+
+};
+
+class AstVHDAggregateItem : public AstNode {
+    // Single item of a case statement
+    // Parents:  Module
+    // item Children: MATH  (Null condition used for default block)
+    // expr Children: MATH Actual Value
+public:
+    AstVHDAggregateItem(FileLine* fileline, AstNode* item, AstNode* expr)
+        : AstNode(fileline) {
+        addNOp1p(item);
+        addOp2p(expr);
+    }
+    ASTNODE_NODE_FUNCS(VHDAggregateItem)
+};
+
+class AstVHDPredefinedAttr : public AstNode {
+    // Single item of a case statement
+    // Parents:  Module
+    // item Children: MATH  (Null condition used for default block)
+    // expr Children: MATH Actual Value
+private:
+    string attributeName;
+public:
+    AstVHDPredefinedAttr(FileLine* fileline, string attr_name, AstNode* ofp)
+        : AstNode(fileline) {
+        attributeName = attr_name;
+        setOp1p(ofp);
+    }
+    ASTNODE_NODE_FUNCS(VHDPredefinedAttr)
+};
+
+//######################################################################
 
 #endif  // Guard
