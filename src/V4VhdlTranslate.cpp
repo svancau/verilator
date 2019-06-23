@@ -373,10 +373,12 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         string refname = obj["name"].GetString();
         currentLevel--;
         if (refname[0] == '\'') {
-            if (refname[1] == '0')
+            if (refname[1] == '0' or refname[1] == 'L')
                 return new AstConst(fl, AstConst::LogicFalse());
-            else if (refname[1] == '1')
+            else if (refname[1] == '1' or refname[1] == 'H')
                 return new AstConst(fl, AstConst::LogicTrue());
+            else if (refname[1] == 'U' or refname[1] == 'X')
+                return new AstConst(fl, AstConst::StringToParse(), "1'bX");
         }
         else
             return new AstVarRef(fl, refname, false);
