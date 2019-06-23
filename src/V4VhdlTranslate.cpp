@@ -191,6 +191,9 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     } else if (fname == "IEEE.NUMERIC_STD.\"*\"" or fname == "\"*\"") {
         FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstMul(fl, params[0], params[1]);
+    } else if (fname == "IEEE.NUMERIC_STD.\"/\"" or fname == "\"/\"") {
+        FileLine *fl2 = new FileLine(currentFilename, 0);
+        return new AstDiv(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"<\"" or fname == "\"<\"") {
         FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstLt(fl, params[0], params[1]);
