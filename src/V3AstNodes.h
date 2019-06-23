@@ -6177,6 +6177,8 @@ public:
         addNOp1p(item);
         addOp2p(expr);
     }
+    AstNode* lhsp() const { return op1p(); }  // op1 = list of possible matching expressions
+    AstNode* rhsp() const { return op2p(); }  // op1 = list of possible matching expressions
     ASTNODE_NODE_FUNCS(VHDAggregateItem)
 };
 

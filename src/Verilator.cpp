@@ -93,6 +93,7 @@
 #include "V3Unknown.h"
 #include "V3Unroll.h"
 #include "V4VhdlFrontend.h"
+#include "V4VhdlVisitor.h"
 #include "V3Width.h"
 
 #include <ctime>
@@ -196,6 +197,8 @@ void process() {
     // Remove any modules that were parameterized and are no longer referenced.
     V3Dead::deadifyModules(v3Global.rootp());
     v3Global.checkTree();
+
+    V4VhdlAggregate::translateVhdlAggregates(v3Global.rootp());
 
     // Calculate and check widths, edit tree to TRUNC/EXTRACT any width mismatches
     V3Width::width(v3Global.rootp());

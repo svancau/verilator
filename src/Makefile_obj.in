@@ -242,6 +242,7 @@ RAW_OBJS = \
 	V3Width.o \
 	V4VhdlFrontend.o \
 	V4VhdlTranslate.o \
+	V4VhdlVisitor.o \
 	V3WidthSel.o \
 
 PROCESS_OBJS += \
