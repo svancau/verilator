@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 entity pwm_top is
     port (
 	clk : in std_logic;
-	duty : in unsigned(11 downto 0);
+	duty : in unsigned(15 downto 0);
 	output : out std_logic_vector(2 downto 0)
     );
 end entity pwm_top;
@@ -16,15 +16,15 @@ begin
 
 pwm0 : entity work.pwm
 generic map(
-	size => pwm_size)
+	size => 8)
 port map(
 	clk => clk,
-	duty => duty,
+	duty => duty(7 downto 0),
 	output => output(0));
 
 pwm1 : entity work.pwm
 generic map(
-	size => pwm_size)
+	size => 16)
 port map(
 	clk => clk,
 	duty => duty,
@@ -35,6 +35,6 @@ generic map(
 	size => pwm_size)
 port map(
 	clk => clk,
-	duty => duty,
+	duty => duty(pwm_size-1 downto 0),
 	output => output(2));
 end architecture rtl;

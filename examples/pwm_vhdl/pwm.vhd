@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity pwm is
-    generic (size : integer := 8);
+    generic (size : integer := 12);
     port (
 	clk : in std_logic;
 	duty : in unsigned(size-1 downto 0);
@@ -12,7 +12,7 @@ entity pwm is
 end entity pwm;
 
 architecture rtl of pwm is
-    signal counter : unsigned(size-1 downto 0) := X"000";
+    signal counter : unsigned(size-1 downto 0) := (others => '0');
 begin
     process(clk)
     begin
