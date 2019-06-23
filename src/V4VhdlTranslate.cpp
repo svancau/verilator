@@ -517,8 +517,14 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
     } else if (obj["cls"] == "aggregate") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstVHDAggregate *aggr = new AstVHDAggregate(fl, NULL);
+        Value::ConstArray aggr_elts = obj["elts"].GetArray();
+        for(Value::ConstValueIterator m = aggr_elts.Begin(); m != aggr_elts.End(); ++m) {
+            Value::ConstObject elt = m->GetObject();
+            aggr->addAggritemsp(translateObject(elt));
+        }
         currentLevel--;
-        return new AstConst(fl, 0);
+        return aggr;
 
     } else if (obj["cls"] == "instance") {
         static long instanceCount = 0;
@@ -543,7 +549,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         }
         currentLevel--;
         return instance;
+    } else if (obj["cls"] == "aggregate_others") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        return new AstVHDAggregateItem(fl, NULL, translateObject(obj["expr"].GetObject()));
 
+    } else if (obj["cls"] == "attr") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        return new AstVHDPredefinedAttr(fl, obj["name"].GetString(), translateObject(obj["op"].GetObject()));
 
     } else {
         v3error("Failed to translate object of class " << obj["cls"].GetString());
