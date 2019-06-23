@@ -260,6 +260,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             VARDECL(GPARAM);
             VARDTYPE(translateType(fl, gen_obj["type"].GetObject()));
             AstVar *generic_var = createVariable(fl, gen_obj["name"].GetString(), NULL, NULL);
+            symt.reinsert(generic_var);
             if (gen_obj.HasMember("val"))
                 generic_var->valuep(translateObject(gen_obj["val"].GetObject()));
             mod->addStmtp(generic_var);
@@ -284,6 +285,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             VARDTYPE(translateType(fl, port_obj["type"].GetObject()));
             mod->addStmtp(port);
             AstVar *port_var = createVariable(fl, port->name(), NULL, NULL);
+            symt.reinsert(port_var);
             if (port_obj.HasMember("val"))
                 port_var->valuep(translateObject(obj["val"].GetObject()));
             mod->addStmtp(port_var);
@@ -291,7 +293,6 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         pinnum = 0;
 
         v3Global.rootp()->addModulep(mod);
-        symt.pushNew(mod);
         currentLevel--;
         m_entities.insert(pair<string,AstNode*>(module_name, mod));
 
@@ -383,8 +384,17 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             else if (refname[1] == 'U' or refname[1] == 'X')
                 return new AstConst(fl, AstConst::StringToParse(), "1'bX");
         }
-        else
-            return new AstVarRef(fl, refname, false);
+        else {
+            AstNode *refNode = symt.findEntUpward(refname);
+            if (VN_IS(refNode, EnumItem)) {
+                return new AstEnumItemRef(fl, VN_CAST(refNode, EnumItem), NULL);
+            } else if (VN_IS(refNode, Var)) {
+                return new AstVarRef(fl, refname, false);
+            } else {
+                v3fatal("Failed to find reference to " << refname);
+            }
+            return nullptr;
+        }
     
     } else if (obj["cls"] == "fcall") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
@@ -423,6 +433,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         currentLevel--;
         string varName = obj["name"].GetString();
         AstVar *var = createVariable(fl, varName, NULL, NULL);
+        symt.reinsert(var);
         if (obj.HasMember("val"))
             var->valuep(translateObject(obj["val"].GetObject()));
         return var;
@@ -435,6 +446,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         currentLevel--;
         string varName = obj["name"].GetString();
         AstVar *var = createVariable(fl, varName, NULL, NULL);
+        symt.reinsert(var);
         if (obj.HasMember("val"))
             var->valuep(translateObject(obj["val"].GetObject()));
         return var;
@@ -498,17 +510,21 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
     } else if (obj["cls"] == "typedecl") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
+
         AstNodeDType *nodedtype = NULL;
         if ((type_kind_t)obj["kind"].GetInt() == T_ENUM) {
             nodedtype = new AstEnumDType(fl, VFlagChildDType(), new AstBasicDType(fl, AstBasicDTypeKwd::INT), NULL);
             Value::ConstArray enum_val = obj["enum_val"].GetArray();
             unsigned int indexValue = 0;
             for(Value::ConstValueIterator m = enum_val.Begin(); m != enum_val.End(); ++m) {
-                ((AstEnumDType*)nodedtype)->addValuesp(new AstEnumItem(fl, m->GetString(), NULL, new AstConst(fl, indexValue)));
+                AstEnumItem *enumItem = new AstEnumItem(fl, m->GetString(), NULL, new AstConst(fl, indexValue));
+                symt.reinsert(enumItem);
+                ((AstEnumDType*)nodedtype)->addValuesp(enumItem);
                 indexValue ++;
             }
         }
         AstNode *tdef = new AstTypedef(fl, obj["name"].GetString(), NULL, VFlagChildDType(), nodedtype);
+        symt.reinsert(tdef);
         currentLevel--;
         return tdef;
 
@@ -561,6 +577,11 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "attr") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         return new AstVHDPredefinedAttr(fl, obj["name"].GetString(), translateObject(obj["op"].GetObject()));
+
+    } else if (obj["cls"] == "case") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstCase *cas = new AstCase(fl, VCaseType(), translateObject(obj["sel"].GetObject()), NULL);
+        return cas;
 
     } else {
         v3error("Failed to translate object of class " << obj["cls"].GetString());
