@@ -581,7 +581,38 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "case") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstCase *cas = new AstCase(fl, VCaseType(), translateObject(obj["sel"].GetObject()), NULL);
+        Value::ConstArray assoc = obj["assoc"].GetArray();
+        for(Value::ConstValueIterator m = assoc.Begin(); m != assoc.End(); ++m) {
+            Value::ConstObject assoc_obj = m->GetObject();
+            AstNode *expr = NULL;
+            if (assoc_obj.HasMember("expr"))
+             expr = translateObject(assoc_obj["expr"].GetObject());
+
+            cas->addItemsp(new AstCaseItem(fl, expr, translateObject(assoc_obj["to"].GetObject())));
+        }
         return cas;
+
+    } else if (obj["cls"] == "block") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstBegin *block = new AstBegin(fl, "", NULL);
+        Value::ConstObject blk = obj["block"].GetObject();
+        Value::ConstArray decls = blk["decl"].GetArray();
+        for(Value::ConstValueIterator m = decls.Begin(); m != decls.End(); ++m) {
+            block->addStmtsp(translateObject(m->GetObject()));
+        }
+        Value::ConstArray stmts = blk["stmts"].GetArray();
+        for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
+            block->addStmtsp(translateObject(m->GetObject()));
+        }
+        return block;
+
+    } else if (obj["cls"] == "for_generate") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        return nullptr;
+
+
+    } else if (obj["cls"] == "assert") {
+        return nullptr;
 
     } else {
         v3error("Failed to translate object of class " << obj["cls"].GetString());
