@@ -251,6 +251,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         currentFilename = obj["filename"].GetString();
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstModule *mod = new AstModule(fl, module_name);
+        symt.pushNew(mod);
 
         auto gen_array = obj["generic"].GetArray();
         for(Value::ConstValueIterator m = gen_array.Begin(); m != gen_array.End(); ++m) {
@@ -294,11 +295,13 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
         v3Global.rootp()->addModulep(mod);
         currentLevel--;
+        symt.popScope(mod);
         m_entities.insert(pair<string,AstNode*>(module_name, mod));
 
     } else if (obj["cls"] == "architecture") {
         currentFilename = obj["filename"].GetString();
         auto entity_mod = m_entities.find(convertName(obj["of"].GetString()));
+        symt.pushNew(entity_mod->second);
         if(entity_mod != m_entities.end()) {
             Value::ConstArray decls = obj["decls"].GetArray();
 
@@ -312,6 +315,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
                 AstNode * res = translateObject(m->GetObject());
                 if(res) ((AstModule*)(entity_mod->second))->addStmtp(res);
             }
+            symt.popScope(entity_mod->second);
         }
         currentLevel--;
 
@@ -321,6 +325,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         AstAlways *process = new AstAlways(fl, VAlwaysKwd::en::ALWAYS, st, NULL);
+        symt.pushNew(process);
         current_process = process;
         Value::ConstArray decls = obj["decls"].GetArray();
 
@@ -338,6 +343,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         current_process = NULL;
         m_sig_edges.clear();
         currentLevel--;
+        symt.popScope(process);
         return process;
 
     } else if (obj["cls"] == "wait") {
