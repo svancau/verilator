@@ -320,6 +320,19 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         }
         currentLevel--;
 
+    } else if (obj["cls"] == "pkg") {
+        currentFilename = obj["filename"].GetString();
+        string package_name = convertName(obj["name"].GetString());
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstPackage *pkg = new AstPackage(fl, package_name);
+        symt.pushNew(pkg);
+        Value::ConstArray decls = obj["decls"].GetArray();
+        for (Value::ConstValueIterator m = decls.Begin(); m != decls.End(); ++m) {
+            AstNode * res = translateObject(m->GetObject());
+            if(res) pkg->addStmtp(res);
+        }
+        symt.popScope(pkg);
+
     } else if (obj["cls"] == "process") {
         FileLine *fl_st = new FileLine(currentFilename, getLine(obj));
         AstSenTree *st = new AstSenTree(fl_st, NULL);
