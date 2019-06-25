@@ -147,6 +147,8 @@ AstNodeDType *V4VhdlTranslate::translateType(FileLine *fl, Value::ConstObject it
         return createArray(base_type, range, true);
     } else if (type_name == "INTEGER" or type_name == "NATURAL" or type_name == "POSITIVE") {
         return new AstBasicDType(fl, AstBasicDTypeKwd::INT);
+    } else if (type_name == "STRING") {
+        return new AstBasicDType(fl, AstBasicDTypeKwd::STRING);
     } else {
         return new AstRefDType(fl, type_name);
     }
