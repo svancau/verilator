@@ -38,6 +38,7 @@ bool V3Error::s_warnFatal = true;
 int V3Error::s_tellManual = 0;
 std::ostringstream V3Error::s_errorStr;  // Error string being formed
 V3ErrorCode V3Error::s_errorCode = V3ErrorCode::EC_FATAL;
+bool V3Error::s_errorContexted = false;
 bool V3Error::s_errorSuppressed = false;
 bool V3Error::s_describedEachWarn[V3ErrorCode::_ENUM_MAX];
 bool V3Error::s_describedWarnings = false;
@@ -170,8 +171,22 @@ void V3Error::v3errorEnd(std::ostringstream& sstr) {
         // On debug, show only non default-off warning to prevent pages of warnings
         && (!debug() || s_errorCode.defaultsOff())) return;
     string msg = msgPrefix()+sstr.str();
-    if (msg[msg.length()-1] != '\n') msg += '\n';
-    // Suppress duplicates
+    if (s_errorSuppressed) {  // If suppressed print only first line to reduce verbosity
+        string::size_type pos;
+        if ((pos = msg.find('\n')) != string::npos) {
+            msg.erase(pos, msg.length()-pos);
+            msg += "...";
+        }
+    }
+    // Trailing newline (generally not on messages) & remove dup newlines
+    {
+        msg += '\n';  // Trailing newlines generally not put on messages so add
+        string::size_type pos;
+        while ((pos = msg.find("\n\n")) != string::npos) {
+            msg.erase(pos+1, 1);
+        }
+    }
+    // Suppress duplicate messages
     if (s_messages.find(msg) != s_messages.end()) return;
     s_messages.insert(msg);
     // Output

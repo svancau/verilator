@@ -2,7 +2,14 @@ Revision history for Verilator
 
 The contributors that suggested a given feature are shown in []. Thanks!
 
-* Verilator 4.015 devel
+* Verilator 4.017 devel
+
+****  Show included-from filenames in warnings, bug1439. [Todd Strader]
+
+****  Fix not reporting some duplicate signals/ports, bug1462. [Peter Gerst]
+
+
+* Verilator 4.016 2016-06-16
 
 ***   Add --quiet-exit, bug1436. [Todd Strader]
 
@@ -33,6 +40,10 @@ The contributors that suggested a given feature are shown in []. Thanks!
 ****  Fix build error on MinGW, bug1460. [Richard Myers]
 
 ****  Fix not reporting some duplicate signals, bug1462. [Peter Gerst]
+
+****  Fix --savable invalid C++ on packed arrays, bug1465. [Alex Chadwick]
+
+****  Fix constant function return of function var, bug1467. [Roman Popov]
 
 
 * Verilator 4.014 2019-05-08

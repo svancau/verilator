@@ -81,7 +81,7 @@ void LinkCellsGraph::loopsMessageCb(V3GraphVertex* vertexp) {
         vvertexp->modp()->v3error("Unsupported: Recursive multiple modules (module instantiates something leading back to itself): "
                                   <<vvertexp->modp()->prettyName()<<endl
                                   <<V3Error::warnMore()
-                                  <<"... Note self-recursion (module instantiating itself directly) is supported.");
+                                  <<"... note: self-recursion (module instantiating itself directly) is supported.");
         V3Error::abortIfErrors();
     } else {  // Everything should match above, but...
         v3fatalSrc("Recursive instantiations");
@@ -464,7 +464,9 @@ private:
                       || nodep->fileline()->warnIsOff(V3ErrorCode::MODDUP))) {
                     nodep->v3warn(MODDUP, "Duplicate declaration of module: "
                                   <<nodep->prettyName()<<endl
-                                  <<foundp->warnMore()<<"... Location of original declaration");
+                                  <<nodep->warnContextPrimary()<<endl
+                                  <<foundp->warnMore()<<"... Location of original declaration"<<endl
+                                  <<foundp->warnContextSecondary());
                 }
                 nodep->unlinkFrBack();
                 pushDeletep(nodep); VL_DANGLING(nodep);
