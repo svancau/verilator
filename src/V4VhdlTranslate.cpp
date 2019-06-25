@@ -634,6 +634,9 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "assert") {
         return nullptr;
 
+    } else if (obj["cls"] == "fdecl") {
+        return nullptr;
+
     } else {
         v3error("Failed to translate object of class " << obj["cls"].GetString());
     }
