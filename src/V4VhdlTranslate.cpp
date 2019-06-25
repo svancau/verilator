@@ -296,26 +296,25 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         v3Global.rootp()->addModulep(mod);
         currentLevel--;
         symt.popScope(mod);
-        m_entities.insert(pair<string,AstNode*>(module_name, mod));
 
     } else if (obj["cls"] == "architecture") {
         currentFilename = obj["filename"].GetString();
-        auto entity_mod = m_entities.find(convertName(obj["of"].GetString()));
-        symt.pushNew(entity_mod->second);
-        if(entity_mod != m_entities.end()) {
+        AstModule *entity_mod = (AstModule*)symt.findEntUpward(convertName(obj["of"].GetString()));
+        symt.pushNew(entity_mod);
+        if(entity_mod != NULL) {
             Value::ConstArray decls = obj["decls"].GetArray();
 
             for (Value::ConstValueIterator m = decls.Begin(); m != decls.End(); ++m) {
                 AstNode * res = translateObject(m->GetObject());
-                if(res) ((AstModule*)(entity_mod->second))->addStmtp(res);
+                if(res) ((AstModule*)(entity_mod))->addStmtp(res);
             }
             
             Value::ConstArray stmts = obj["stmts"].GetArray();
             for (Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
                 AstNode * res = translateObject(m->GetObject());
-                if(res) ((AstModule*)(entity_mod->second))->addStmtp(res);
+                if(res) ((AstModule*)(entity_mod))->addStmtp(res);
             }
-            symt.popScope(entity_mod->second);
+            symt.popScope(entity_mod);
         }
         currentLevel--;
 

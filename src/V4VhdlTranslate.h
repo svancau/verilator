@@ -38,7 +38,6 @@ private:
     AstNodeDType *translateType(FileLine *fl, Value::ConstObject item);
     AstNode *translateObject(Value::ConstObject item);
     AstNode *translateFcall(Value::ConstObject item);
-    map<string, AstNode*> m_entities;
     map<string, AstEdgeType> m_sig_edges;
     AstAlways *current_process;
     V3ParseSym &symt;
