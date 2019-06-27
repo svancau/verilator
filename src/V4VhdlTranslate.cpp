@@ -389,6 +389,10 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
                 return new AstConst(fl, AstConst::LogicTrue());
             else if (refname[1] == 'U' or refname[1] == 'X')
                 return new AstConst(fl, AstConst::StringToParse(), "1'bX");
+        } else if (refname == "TRUE") {
+            return new AstConst(fl, AstConst::LogicTrue());
+        } else if (refname == "FALSE") {
+            return new AstConst(fl, AstConst::LogicFalse());
         }
         else {
             AstNode *refNode = symt.findEntUpward(refname);
