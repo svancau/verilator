@@ -141,9 +141,8 @@ AstNodeDType *V4VhdlTranslate::translateType(FileLine *fl, Value::ConstObject it
         return new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
     } else if (type_name == "STD_LOGIC_VECTOR" or type_name == "UNSIGNED" or type_name == "SIGNED") {
         AstNodeDType *base_type = new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
-        FileLine *fl3 = new FileLine(currentFilename, 0);
         Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
-        AstRange *range = new AstRange(fl3, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
+        AstRange *range = new AstRange(fl, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
         return createArray(base_type, range, true);
     } else if (type_name == "INTEGER" or type_name == "NATURAL" or type_name == "POSITIVE") {
         return new AstBasicDType(fl, AstBasicDTypeKwd::INT);
@@ -173,65 +172,47 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     else if (fname == "IEEE.STD_LOGIC_1164.\"not\"" or fname == "\"not\"")
         return new AstNot(fl, params[0]);
     else if (fname == "IEEE.STD_LOGIC_1164.\"nand\"" or fname == "\"nand\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstNot(fl, new AstAnd(fl, params[0], params[1]));
     } else if (fname == "IEEE.STD_LOGIC_1164.\"nor\"" or fname == "\"nor\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstNot(fl, new AstOr(fl, params[0], params[1]));
     } else if (fname == "IEEE.STD_LOGIC_1164.\"xor\"" or fname == "\"xor\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstXor(fl, params[0], params[1]);
     } else if (fname == "IEEE.STD_LOGIC_1164.\"xnor\"" or fname == "\"xnor\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstNot(fl, new AstXor(fl, params[0], params[1]));
     } else if (fname == "IEEE.NUMERIC_STD.\"+\"" or fname == "\"+\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstAdd(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"-\"" or fname == "\"-\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstSub(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"*\"" or fname == "\"*\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstMul(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"/\"" or fname == "\"/\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstDiv(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"<\"" or fname == "\"<\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstLt(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"<=\"" or fname == "\"<=\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstLte(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\">\"" or fname == "\">\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstGt(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\">=\"" or fname == "\">=\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstGte(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"=\"" or fname == "\"=\"") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstEq(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.TO_INTEGER") {
         return params[0];
     } else if (fname == "IEEE.MATH_REAL.CEIL") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
-        return new AstCeilD(fl2, params[0]);
+        return new AstCeilD(fl, params[0]);
     } else if (fname == "IEEE.MATH_REAL.FLOOR") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
-        return new AstFloorD(fl2, params[0]);
+        return new AstFloorD(fl, params[0]);
     } else if (fname == "IEEE.MATH_REAL.LOG2") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
-        return new AstLog2D(fl2, params[0]);
+        return new AstLog2D(fl, params[0]);
     } else if (fname == "IEEE.STD_LOGIC_1164.RISING_EDGE") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_POSEDGE));
         // Return True, if removed by constify pass
-        return new AstConst(fl2, AstConst::LogicTrue());
+        return new AstConst(fl, AstConst::LogicTrue());
     } else if (fname == "IEEE.STD_LOGIC_1164.FALLING_EDGE") {
-        FileLine *fl2 = new FileLine(currentFilename, 0);
         m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_NEGEDGE));
         // Return True, if removed by constify pass
-        return new AstConst(fl2, AstConst::LogicTrue());
+        return new AstConst(fl, AstConst::LogicTrue());
     }
     v3error("Failed to translate function " + fname);
     return nullptr;
