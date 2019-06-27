@@ -429,6 +429,11 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         currentLevel--;
         return new AstConst(fl, AstConst::Unsized32(), obj["value"].GetUint());
 
+    } else if (obj["cls"] == "real") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        currentLevel--;
+        return new AstConst(fl, AstConst::RealDouble(), obj["value"].GetDouble());
+
     } else if (obj["cls"] == "if") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         currentLevel--;
