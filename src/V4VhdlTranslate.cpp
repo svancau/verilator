@@ -216,6 +216,9 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     } else if (fname == "IEEE.MATH_REAL.CEIL") {
         FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstCeilD(fl2, params[0]);
+    } else if (fname == "IEEE.MATH_REAL.FLOOR") {
+        FileLine *fl2 = new FileLine(currentFilename, 0);
+        return new AstFloorD(fl2, params[0]);
     } else if (fname == "IEEE.MATH_REAL.LOG2") {
         FileLine *fl2 = new FileLine(currentFilename, 0);
         return new AstLog2D(fl2, params[0]);
