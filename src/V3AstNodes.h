@@ -4193,6 +4193,14 @@ public:
     virtual string emitVerilog() { return "%f$ln(%l)"; }
     virtual string emitC() { return "log(%li)"; }
 };
+class AstLog2D : public AstNodeSystemUniop {
+public:
+    AstLog2D(FileLine* fl, AstNode* lhsp) : AstNodeSystemUniop(fl, lhsp) {}
+    ASTNODE_NODE_FUNCS(Log2D)
+    virtual void numberOperate(V3Number& out, const V3Number& lhs) { out.setDouble(log(lhs.toDouble())); }
+    virtual string emitVerilog() { return "%f$log2(%l)"; }
+    virtual string emitC() { return "log2(%li)"; }
+};
 class AstLog10D : public AstNodeSystemUniop {
 public:
     AstLog10D(FileLine* fl, AstNode* lhsp) : AstNodeSystemUniop(fl, lhsp) {}
