@@ -621,6 +621,16 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         return nullptr;
 
+    } else if (obj["cls"] == "if_generate") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstGenerate *gen = new AstGenerate(fl, NULL);
+        AstIf *ifp = new AstIf(fl, translateObject(obj["cond"].GetObject()), NULL);
+        Value::ConstArray stmts = obj["stmts"].GetArray();
+        for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
+            ifp->addIfsp(translateObject(m->GetObject()));
+        }
+        gen->addStmtp(ifp);
+        return gen;
 
     } else if (obj["cls"] == "assert") {
         return nullptr;
