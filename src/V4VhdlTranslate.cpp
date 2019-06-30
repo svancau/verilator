@@ -546,6 +546,11 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "string") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         string value = obj["val"].GetString();
+        return new AstConst(fl, AstConst::String(), value);
+
+    } else if (obj["cls"] == "string_lit") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        string value = obj["val"].GetString();
         stringstream ss;
         ss << value.length() << "'b" << value;
         currentLevel--;
