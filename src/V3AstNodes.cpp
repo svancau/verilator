@@ -824,6 +824,15 @@ void AstWhile::addNextStmt(AstNode* newp, AstNode* belowp) {
     }
 }
 
+void AstVHDLFor::addBeforeStmt(AstNode* newp, AstNode*) {
+    // Insert newp before current node
+    this->addHereThisAsNext(newp);
+}
+void AstVHDLFor::addNextStmt(AstNode* newp, AstNode*) {
+    // Insert newp after current node
+    this->addNextHere(newp);
+}
+
 //======================================================================
 // Per-type Debugging
 
