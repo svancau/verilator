@@ -47,14 +47,16 @@ void V4VhdlFrontend::parseFiles() {
 
   // Check for missing sim or parse error
   if (nvc_process.get_exit_status() == 127) {
-    v3error("nvc VHDL simulator is not properly installed or not in your $PATH");
+    v3fatal("nvc VHDL simulator is not properly installed or not in your $PATH");
   }
   else if (nvc_process.get_exit_status() != 0) {
-    v3error("nvc failed to parse one of your input files");
+    v3fatal("nvc failed to parse one of your input files");
   }
 
   V4VhdlTranslate xlate(symt);
   xlate.translate(getTempName());
 
-  //unlink(getTempName().c_str());
+  if (unlink(getTempName().c_str()) == -1)
+    v3error("Failed to remove file " << getTempName() << "error " << errno);
+
 }
