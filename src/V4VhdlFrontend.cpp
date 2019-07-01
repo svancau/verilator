@@ -37,13 +37,13 @@ void V4VhdlFrontend::parseFiles() {
   string command = oss.str();
   const char *cmd = command.c_str();
 
-  //cout << string(cmd) << endl;
   Process nvc_process(cmd, "", [](const char *bytes, size_t n) {
     cout << string(bytes, n);
   }, [](const char *bytes, size_t n) {
     cout << string(bytes, n);
+    if (bytes[n-1] != '\n')
+      cout << endl;
   });
-  cout << endl;
 
   // Check for missing sim or parse error
   if (nvc_process.get_exit_status() == 127) {
