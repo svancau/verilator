@@ -409,13 +409,14 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             return new AstConst(fl, AstConst::LogicFalse());
         }
         else {
-            AstNode *refNode = symt.findEntUpward(refname);
+            string name = convertName(refname);
+            AstNode *refNode = symt.findEntUpward(name);
             if (VN_IS(refNode, EnumItem)) {
                 return new AstEnumItemRef(fl, VN_CAST(refNode, EnumItem), NULL);
             } else if (VN_IS(refNode, Var)) {
-                return new AstVarRef(fl, refname, false);
+                return new AstVarRef(fl, name, false);
             } else {
-                v3fatal("Failed to find reference to " << refname);
+                v3fatal("Failed to find reference to " << name);
             }
             return nullptr;
         }
