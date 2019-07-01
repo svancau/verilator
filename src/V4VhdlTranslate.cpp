@@ -220,8 +220,20 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     return nullptr;
 }
 
-string convertName(string inName) { // TODO: clean this hack
-    return inName.erase(0,5);
+string convertName(string inName) {
+    int startIndex = 0;
+    for (startIndex = inName.length()-1; startIndex > 0; --startIndex) {
+        if (inName[startIndex] == '.')
+            break;
+    }
+
+    string outName;
+    if (startIndex != 0)
+        outName = inName.erase(0, startIndex+1);
+    else
+        outName = inName;
+
+    return outName;
 }
 
 AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
