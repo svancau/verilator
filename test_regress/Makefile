@@ -35,16 +35,18 @@ endif
 
 # Run tests in parallel.  Requires Parallel::Forker to be installed.
 ifeq ($(CFG_WITH_LONGTESTS),yes)
- DRIVER_FLAGS += -j 0
+ DRIVER_FLAGS += -j 0 --rerun
 endif
 
 .SUFFIXES:
 
 ######################################################################
 
+SCENARIOS ?= --vlt --vltmt --dist
+
 .PHONY: test
 test:
-	$(PERL) driver.pl $(DRIVER_FLAGS) --vlt --vltmt --dist
+	$(PERL) driver.pl $(DRIVER_FLAGS) $(SCENARIOS)
 
 ######################################################################
 

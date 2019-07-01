@@ -10,6 +10,7 @@ if (!$::Driver) { use FindBin; exec("$FindBin::Bin/bootstrap.pl", @ARGV, $0); di
 scenarios(dist => 1);
 
 foreach my $prog (
+    # See also t_flag_version.pl
     "../bin/verilator",
     "../bin/verilator_coverage",
     "../bin/verilator_difftree",
@@ -17,7 +18,7 @@ foreach my $prog (
     "../bin/verilator_profcfunc",
     ) {
     run(fails => 1,
-        cmd => ["perl",$prog,
+        cmd => ["perl", $prog,
                 "--help"],
         logfile => "$Self->{obj_dir}/t_help.log",
         tee => 0,

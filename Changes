@@ -4,9 +4,13 @@ The contributors that suggested a given feature are shown in []. Thanks!
 
 * Verilator 4.017 devel
 
+***   Change MULTITOP to warning to help linting, see manual.
+
 ****  Show included-from filenames in warnings, bug1439. [Todd Strader]
 
 ****  Fix not reporting some duplicate signals/ports, bug1462. [Peter Gerst]
+
+****  Fix not in array context on non-power-of-two slices, msg2946. [Yu Sheng Lin]
 
 
 * Verilator 4.016 2016-06-16

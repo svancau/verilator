@@ -6,16 +6,6 @@ eval 'exec perl -wS $0 ${1+"$@"}'
 
 require 5.006_001;
 use Cwd;
-BEGIN {
-    if ($ENV{DIRPROJECT} && $ENV{DIRPROJECT_PERL_BOOT}) {
-        # Magic to allow author testing of perl packages in local directory
-        require $ENV{DIRPROJECT}."/".$ENV{DIRPROJECT_PERL_BOOT};
-    }
-    if (!$ENV{VERILATOR_ROOT} && -x "../bin/verilator") {
-        $ENV{VERILATOR_ROOT} = Cwd::getcwd()."/..";
-    }
-}
-
 use Getopt::Long;
 use IO::File;
 use Pod::Usage;
@@ -58,6 +48,7 @@ autoflush STDERR 1;
 our @Orig_ARGV = @ARGV;
 our @Orig_ARGV_Sw;  foreach (@Orig_ARGV) { push @Orig_ARGV_Sw, $_ if /^-/ && !/^-j/; }
 our $Start = time();
+our $Vltmt_threads = 3;
 
 $Debug = 0;
 my $opt_benchmark;
@@ -68,6 +59,8 @@ my $opt_gdbbt;
 my $opt_gdbsim;
 my $opt_jobs = 1;
 my $opt_optimize;
+my $opt_quiet;
+my $opt_rerun;
 my %opt_scenarios;
 my $opt_site;
 my $opt_stop;
@@ -90,6 +83,8 @@ if (! GetOptions(
           "help"        => \&usage,
           "j=i"         => \$opt_jobs,
           "optimize:s"  => \$opt_optimize,
+          "quiet!"      => \$opt_quiet,
+          "rerun!"      => \$opt_rerun,
           "site!"       => \$opt_site,
           "stop!"       => \$opt_stop,
           "trace!"      => \$opt_trace,
@@ -114,7 +109,6 @@ if (! GetOptions(
 }
 
 $opt_jobs = calc_jobs() if defined $opt_jobs && $opt_jobs==0;
-
 $Fork->max_proc($opt_jobs);
 
 if ((scalar keys %opt_scenarios) < 1) {
@@ -141,83 +135,56 @@ if ($#opt_tests>=2 && $opt_jobs>=2) {
         print STDERR "driver.pl: NO_FORKER: For faster testing 'sudo cpan install Parallel::Forker'\n";
     }
     print STDERR "== Many jobs; redirecting STDIN\n";
-    open(STDIN,  "+>/dev/null");
+    open(STDIN, "+>/dev/null");
 }
 
 
 mkdir "obj_dist";
-our $Log_Filename = "obj_dist/driver_".strftime("%Y%m%d_%H%M%S.log", localtime);
-my $LeftCnt=0; my $OkCnt=0; my $FailCnt=0; my $SkipCnt=0; my $UnsupCnt=0;
-my @fails;
+my $timestart = strftime("%Y%m%d_%H%M%S", localtime);
 
-foreach my $testpl (@opt_tests) {
-    foreach my $scenario (sort keys %opt_scenarios) {
-        next if !$opt_scenarios{$scenario};
-        one_test(pl_filename => $testpl, $scenario=>1);
+my $runner;
+{
+    $runner = Runner->new(
+        driver_log_filename => "obj_dist/driver_${timestart}.log",
+        quiet => $opt_quiet);
+    foreach my $testpl (@opt_tests) {
+        foreach my $scenario (sort keys %opt_scenarios) {
+            next if !$opt_scenarios{$scenario};
+            $runner->one_test(pl_filename => $testpl,
+                              $scenario => 1);
+        }
     }
+    $runner->wait_and_report;
 }
 
-$Fork->wait_all();  # Wait for all children to finish
+if ($opt_rerun && $runner->fail_count) {
+    print("="x70,"\n");
+    print("="x70,"\n");
+    print("RERUN  ==\n\n");
 
-sub one_test {
-    my @params = @_;
-    my %params = (@params);
-    $LeftCnt++;
-    $Fork->schedule
-        (
-         test_pl_filename => $params{pl_filename},
-         run_on_start => sub {
-             # Running in context of child, so can't pass data to parent directly
-             print("="x70,"\n");
-             my $test = VTest->new(@params);
-             $test->oprint("="x50,"\n");
-             unlink $test->{status_filename};
-             $test->_prep;
-             $test->_read;
-             # Don't put anything other than _exit after _read,
-             # as may call _exit via another path
-             $test->_exit;
-         },
-         run_on_finish => sub {
-             # RUnning in context of parent
-             my $test = VTest->new(@params);
-             $test->_read_status;
-             if ($test->ok) {
-                 $OkCnt++;
-             } elsif ($test->scenario_off && !$test->errors) {
-             } elsif ($test->skips && !$test->errors) {
-                 $SkipCnt++;
-             } elsif ($test->unsupporteds && !$test->errors) {
-                 $UnsupCnt++;
-             } else {
-                 $test->oprint("FAILED: ","*"x60,"\n");
-                 my $j = ($opt_jobs>1?" -j":"");
-                 my $makecmd = $ENV{VERILATOR_MAKE} || "make$j &&";
-                 push @fails, ("\t#".$test->soprint("%Error: $test->{errors}\n")
-                               ."\t\t$makecmd test_regress/"
-                               .$test->{pl_filename}
-                               ." ".join(' ', _args_scenario())
-                               ." --".$test->{scenario}."\n");
-                 $FailCnt++;
-                 report(\@fails, $Log_Filename);
-                 my $other = "";
-                 foreach my $proc ($Fork->running) {
-                     $other .= "  ".$proc->{test_pl_filename};
-                 }
-                 $test->oprint("Simultaneous running tests:",$other,"\n") if $other;
-                 if ($opt_stop) { die "%Error: --stop and errors found\n"; }
-             }
-             $LeftCnt--;
-             my $LeftMsg = $::Have_Forker ? $LeftCnt : "NO-FORKER";
-             print STDERR "==SUMMARY: Left $LeftMsg  Passed $OkCnt  Unsup $UnsupCnt  Skipped $SkipCnt  Failed $FailCnt\n";
-         },
-         )->ready();
+    # Avoid parallel run to ensure that isn't causing problems
+    # If > 10 failures something more wrong and get results quickly
+    $Fork->max_proc(1) unless $runner->fail_count > 10;
+
+    my $orig_runner = $runner;
+    $runner = Runner->new(
+        driver_log_filename => "obj_dist/driver_${timestart}_rerun.log",
+        quiet => 0,
+        fail1_cnt => $orig_runner->fail_count);
+    foreach my $test (@{$orig_runner->{fail_tests}}) {
+        if (0) {  # TBD if this is required - rare that intermediate results are bad
+            # Remove old results to force hard rebuild
+            system("rm", "-rf", "$test->{obj_dir}__fail1");
+            system("mv", "$test->{obj_dir}", "$test->{obj_dir}__fail1");
+        }
+        # Reschedule test
+        $runner->one_test(pl_filename => $test->{pl_filename},
+                          $test->{scenario} => 1);
+    }
+    $runner->wait_and_report;
 }
 
-report(\@fails, undef);
-report(\@fails, $Log_Filename);
-
-exit(10) if $FailCnt;
+exit(10) if $runner->fail_count;
 
 #----------------------------------------------------------------------
 
@@ -256,18 +223,130 @@ sub parameter {
     }
 }
 
-sub calc_jobs {
+sub max_procs {
     my $ok = eval "
         use Unix::Processors;
         return Unix::Processors->new->max_online;
     ";
+    return $ok;
+}
+
+sub calc_threads {
+    my $default = shift;
+    my $ok = max_procs();
+    $ok && !$@ or return $default;
+    return ($ok < $default) ? $ok : $default;
+}
+
+sub calc_jobs {
+    my $ok = max_procs();
     $ok && !$@ or die "%Error: Can't use -j: $@\n";
     print "driver.pl: Found $ok cores, using -j ",$ok+1,"\n";
     return $ok + 1;
 }
 
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+# Runner class
+
+package Runner;
+use strict;
+
+sub new {
+    my $class = shift;
+    my $self = {
+        # Parameters
+        driver_log_filename => undef,
+        quiet => 0,
+        # Counts
+        left_cnt => 0,
+        ok_cnt => 0,
+        fail1_cnt => 0,
+        fail_cnt => 0,
+        skip_cnt => 0,
+        unsup_cnt => 0,
+        fail_msgs => [],
+        fail_tests => [],
+        @_};
+    bless $self, $class;
+    return $self;
+}
+
+sub fail_count { return $_[0]->{fail_cnt}; }
+
+sub one_test {
+    my $self = shift;
+    my @params = @_;
+    my %params = (@params);
+    $self->{left_cnt}++;
+    $::Fork->schedule
+        (
+         test_pl_filename => $params{pl_filename},
+         run_on_start => sub {
+             # Running in context of child, so can't pass data to parent directly
+             if ($self->{quiet}) {
+                 open(STDOUT, ">/dev/null");
+                 open(STDERR, ">&STDOUT");
+             }
+             print("="x70,"\n");
+             my $test = VTest->new(@params);
+             $test->oprint("="x50,"\n");
+             unlink $test->{status_filename};
+             $test->_prep;
+             $test->_read;
+             # Don't put anything other than _exit after _read,
+             # as may call _exit via another path
+             $test->_exit;
+         },
+         run_on_finish => sub {
+             # Running in context of parent
+             my $test = VTest->new(@params);
+             $test->_read_status;
+             if ($test->ok) {
+                 $self->{ok_cnt}++;
+             } elsif ($test->scenario_off && !$test->errors) {
+             } elsif ($test->skips && !$test->errors) {
+                 $self->{skip_cnt}++;
+             } elsif ($test->unsupporteds && !$test->errors) {
+                 $self->{unsup_cnt}++;
+             } else {
+                 $test->oprint("FAILED: $test->{errors}\n");
+                 my $j = ($opt_jobs>1?" -j":"");
+                 my $makecmd = $ENV{VERILATOR_MAKE} || "make$j &&";
+                 push @{$self->{fail_msgs}},
+                     ("\t#".$test->soprint("%Error: $test->{errors}\n")
+                      ."\t\t$makecmd test_regress/"
+                      .$test->{pl_filename}
+                      ." ".join(' ', _manual_args())
+                      ." --".$test->{scenario}."\n");
+                 push @{$self->{fail_tests}}, $test;
+                 $self->{fail_cnt}++;
+                 $self->report($self->{driver_log_filename});
+                 my $other = "";
+                 foreach my $proc ($::Fork->running) {
+                     $other .= "  ".$proc->{test_pl_filename};
+                 }
+                 $test->oprint("Simultaneous running tests:",$other,"\n") if $other;
+                 if ($opt_stop) { die "%Error: --stop and errors found\n"; }
+             }
+             $self->{left_cnt}--;
+             $self->print_summary;
+         },
+         )->ready();
+}
+
+sub wait_and_report {
+    my $self = shift;
+    $self->print_summary(force=>1);
+    $::Fork->wait_all();  # Wait for all children to finish
+    $runner->report(undef);
+    $runner->report($self->{driver_log_filename});
+}
+
 sub report {
-    my $fails = shift;
+    my $self = shift;
     my $filename = shift;
 
     my $fh = \*STDOUT;
@@ -275,20 +354,45 @@ sub report {
         $fh = IO::File->new(">$filename") or die "%Error: $! writing $filename,";
     }
 
-    my $delta = time() - $Start;
     $fh->print("\n");
     $fh->print("="x70,"\n");
-    $fh->printf("TESTS Passed $OkCnt  Unsup $UnsupCnt  Skipped $SkipCnt  Failed $FailCnt  Time %d:%02d\n",
-               int($delta/60),$delta%60);
-    foreach my $f (sort @$fails) {
+    foreach my $f (sort @{$self->{fail_msgs}}) {
         chomp $f;
         $fh->print("$f\n");
     }
-    $fh->printf("TESTS Passed $OkCnt  Unsup $UnsupCnt  Skipped $SkipCnt  Failed $FailCnt  Time %d:%02d\n",
-               int($delta/60),$delta%60);
+    $fh->print("TESTS DONE: ".$self->sprint_summary."\n");
 }
 
-sub _args_scenario {
+sub print_summary {
+    my $self = shift;
+    my %params = (force => 0, # Force printing
+                  @_);
+    my $leftmsg = $::Have_Forker ? $self->{left_cnt} : "NO-FORKER";
+    if (!$self->{quiet} || !$self->{left_cnt} || $params{force}
+        || time() > ($self->{_next_summary_time} || 0)) {
+        $self->{_next_summary_time} = time() + 15;
+        print STDERR ("==SUMMARY: ".$self->sprint_summary."\n")
+    }
+}
+
+sub sprint_summary {
+    my $self = shift;
+
+    my $delta = time() - $::Start;
+    my $leftmsg = $::Have_Forker ? $self->{left_cnt} : "NO-FORKER";
+    my $out = "";
+    $out .= "Left $leftmsg  " if $self->{left_cnt};
+    $out .= "Passed $self->{ok_cnt}";
+    # Ordered below most severe to least severe
+    $out .= "  Failed $self->{fail_cnt}";
+    $out .= "  Failed-First $self->{fail1_cnt}";
+    $out .= "  Skipped $self->{skip_cnt}";
+    $out .= "  Unsup $self->{unsup_cnt}";
+    $out .= sprintf("  Time %d:%02d", int($delta/60), $delta%60);
+    return $out;
+}
+
+sub _manual_args {
     # Return command line with scenarios stripped
     my @out;
   arg:
@@ -298,6 +402,9 @@ sub _args_scenario {
                 next arg if ("--$allscarg" eq $arg);
             }
         }
+        # Also strip certain flags that per-test debugging won't want
+        next arg if $arg eq '--rerun';
+        next arg if $arg eq '--quiet';
         push @out, $arg;
     }
     return @out;
@@ -565,6 +672,8 @@ sub _write_status {
     my $self = shift;
     my $filename = $self->{status_filename};
     my $fh = IO::File->new(">$filename") or die "%Error: $! $filename,";
+    $Data::Dumper::Indent = 1;
+    $Data::Dumper::Sortkeys = 1;
     print $fh Dumper($self);
     print $fh "1;";
     $fh->close();
@@ -579,9 +688,15 @@ sub _read_status {
         $self->error("driver.pl _read_status file missing: $filename");
         return;
     }
-    require $filename or die "%Error: $! $filename,";
+    {
+        local %INC = ();
+        require $filename or die "%Error: $! $filename,";
+    }
     if ($VAR1) {
         %{$self} = %{$VAR1};
+    } else {
+        $self->error("driver.pl _read_status file empty: $filename");
+        return;
     }
 }
 
@@ -613,7 +728,8 @@ sub compile_vlt_flags {
     unshift @verilator_flags, "--gdbbt" if $opt_gdbbt;
     unshift @verilator_flags, "--x-assign unique";  # More likely to be buggy
     unshift @verilator_flags, "--trace" if $opt_trace;
-    unshift @verilator_flags, "--threads 3" if $param{vltmt};
+    my $threads = ::calc_threads($Vltmt_threads);
+    unshift @verilator_flags, "--threads $threads" if $param{vltmt};
     unshift @verilator_flags, "--trace-fst-thread" if $param{vltmt} && $checkflags =~ /-trace-fst/;
     unshift @verilator_flags, "--debug-partition" if $param{vltmt};
     if (defined $opt_optimize) {
@@ -662,9 +778,10 @@ sub lint {
 
 sub compile {
     my $self = (ref $_[0]? shift : $Self);
-    my %param = (%{$self}, @_);  # Default arguments are from $self
+    my %param = (tee => 1,
+                 %{$self}, @_);  # Default arguments are from $self
     return 1 if $self->errors || $self->skips || $self->unsupporteds;
-    $self->oprint("Compile\n");
+    $self->oprint("Compile\n") if $self->{verbose};
 
     compile_vlt_flags(%param);
 
@@ -793,17 +910,19 @@ sub compile {
 
         $self->_run(logfile=>"$self->{obj_dir}/vlt_compile.log",
                     fails=>$param{fails},
+                    tee=>$param{tee},
                     expect=>$param{expect},
                     expect_filename=>$param{expect_filename},
                     cmd=>\@cmdargs) if $::Opt_Verilation;
         return 1 if $self->errors || $self->skips || $self->unsupporteds;
 
         if (!$param{fails} && $param{verilator_make_gcc}) {
-            $self->oprint("GCC\n");
+            $self->oprint("GCC\n") if $self->{verbose};
             $self->_run(logfile=>"$self->{obj_dir}/vlt_gcc.log",
-                       cmd=>["make",
-                             "-C ".$self->{obj_dir},
-                             "-f ".$::RealBin."/Makefile_obj",
+                        cmd=>["make",
+                              "-C ".$self->{obj_dir},
+                              "-f ".$::RealBin."/Makefile_obj",
+                              ($self->{verbose} ? "" : "--no-print-directory"),
                               "VM_PREFIX=$self->{VM_PREFIX}",
                               "TEST_OBJ_DIR=$self->{obj_dir}",
                               "CPPFLAGS_DRIVER=-D".uc($self->{name}),
@@ -812,7 +931,7 @@ sub compile {
                               ($param{benchmark}?"OPT_FAST=-O2":""),
                               "$self->{VM_PREFIX}",  # bypass default rule, as we don't need archive
                               ($param{make_flags}||""),
-                              ]);
+                        ]);
         }
     }
     else {
@@ -820,7 +939,7 @@ sub compile {
     }
 
     if ($param{make_pli}) {
-        $self->oprint("Compile vpi\n");
+        $self->oprint("Compile vpi\n") if $self->{verbose};
         my @cmd = ('c++', @{$param{pli_flags}}, "-DIS_VPI", "$self->{t_dir}/$self->{name}.cpp");
 
         $self->_run(logfile=>"$self->{obj_dir}/pli_compile.log",
@@ -836,7 +955,10 @@ sub execute {
     return 1 if $self->errors || $self->skips || $self->unsupporteds;
     my %param = (%{$self}, @_);  # Default arguments are from $self
     # params may be expect or {tool}_expect
-    $self->oprint("Run\n");
+    $self->oprint("Run\n") if $self->{verbose};
+
+    delete $ENV{SYSTEMC_DISABLE_COPYRIGHT_MESSAGE};
+    $ENV{SYSTEMC_DISABLE_COPYRIGHT_MESSAGE} = "DISABLE" if !$self->{verbose};
 
     my $run_env = $param{run_env};
     $run_env .= ' ' if $run_env;
@@ -952,7 +1074,7 @@ sub inline_checks {
     my $covfn = $Self->{coverage_filename};
     my $contents = $self->file_contents($covfn);
 
-    $self->oprint("Extract checks\n");
+    $self->oprint("Extract checks\n") if $self->{verbose};
     my $fh = IO::File->new("<$self->{top_filename}");
     while (defined(my $line = $fh->getline)) {
         if ($line =~ /CHECK/) {
@@ -1054,6 +1176,30 @@ sub trace_filename {
     my $self = shift;
     return "$self->{obj_dir}/simx.fst" if $self->{trace_format} =~ /^fst/;
     return "$self->{obj_dir}/simx.vcd";
+}
+
+sub get_default_vltmt_threads {
+    return $Vltmt_threads;
+}
+
+sub too_few_cores {
+    my $threads = ::calc_threads($Vltmt_threads);
+    return $threads < $Vltmt_threads;
+}
+
+sub skip_if_too_few_cores {
+    my $self = (ref $_[0]? shift : $Self);
+    if (too_few_cores()) {
+        $self->skip("Skipping due to too few cores\n");
+    }
+}
+
+sub wno_unopthreads_for_few_cores {
+    if (too_few_cores()) {
+        warn "Too few cores, using -Wno-UNOPTTHREADS\n";
+        return "-Wno-UNOPTTHREADS";
+    }
+    return "";
 }
 
 #----------------------------------------------------------------------
@@ -1279,6 +1425,8 @@ sub _make_main {
     print $fh "    srand48(5);\n";  # Ensure determinism
     print $fh "    Verilated::randReset(".$self->{verilated_randReset}.");\n" if defined $self->{verilated_randReset};
     print $fh "    topp = new $VM_PREFIX(\"top\");\n";
+    print $fh "    Verilated::internalsDump()\n;" if $self->{verilated_debug};
+
     my $set;
     if ($self->sc) {
         print $fh "    topp->fastclk(fastclk);\n" if $self->{inputs}{fastclk};
@@ -1616,6 +1764,7 @@ sub files_identical {
                 # Don't put control chars into our source repository
                 $l1[$l] =~ s/\r/<#013>/mig;
                 $l1[$l] =~ s/Command Failed[^\n]+/Command Failed/mig;
+                $l1[$l] =~ s/Version: Verilator[^\n]+/Version: Verilator ###/mig;
                 if ($l1[$l] =~ s/Exiting due to.*/Exiting due to/mig) {
                     splice @l1, $l+1;  # Trunc rest
                     last;
@@ -2126,6 +2275,17 @@ number of cores installed.  Requires Perl's Parallel::Forker package.
 
 Randomly turn on/off different optimizations.  With specific flags,
 use those optimization settings
+
+=item --quiet
+
+Suppress all output except for failures and progress messages every 15
+seconds.  Intended for use only in automated regressions.  See also
+C<--rerun>, and C<--verbose> which is not the opposite of C<--quiet>.
+
+=item --rerun
+
+Rerun all tests that failed in this run. Reruns force the flags
+C<--no-quiet --j 1>.
 
 =item --site
 

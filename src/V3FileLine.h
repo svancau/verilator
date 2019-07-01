@@ -70,8 +70,8 @@ protected:
 //! millions). To save space, per-file information (e.g. filename, source
 //! language is held in tables in the FileLineSingleton class.
 class FileLine {
-    int m_lineno;
-    int m_filenameno;
+    int m_lineno;  // `line corrected line number
+    int m_filenameno;  // `line corrected filename number
     FileLine* m_parent;  // Parent line that included this line
     std::bitset<V3ErrorCode::_ENUM_MAX> m_warnOn;
 
@@ -130,7 +130,7 @@ public:
     string ascii() const;
     const string filename() const { return singleton().numberToName(m_filenameno); }
     bool filenameIsGlobal() const { return (filename() == commandLineFilename()
-                                            || filename() == internalDefineFilename()); }
+                                            || filename() == builtInFilename()); }
     const string filenameLetters() const { return singleton().filenameLetters(m_filenameno); }
     const string filebasename() const;
     const string filebasenameNoExt() const;
@@ -155,8 +155,9 @@ public:
     void tracingOn(bool flag) { warnOn(V3ErrorCode::I_TRACING, flag); }
 
     // METHODS - Global
-    static string commandLineFilename() { return "COMMAND_LINE"; }
-    static string internalDefineFilename() { return "INTERNAL_VERILATOR_DEFINE"; }
+    // <command-line> and <built-in> match what GCC outputs
+    static string commandLineFilename() { return "<command-line>"; }
+    static string builtInFilename() { return "<built-in>"; }
     static void globalWarnLintOff(bool flag) {
         defaultFileLine().warnLintOff(flag); }
     static void globalWarnStyleOff(bool flag) {
