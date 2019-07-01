@@ -247,6 +247,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     currentLevel++;
 
     if (obj["cls"] == "entity") {
+        V3Config::addIgnore(V3ErrorCode("COMBDLY"), false, "*", 0, 0);
         string module_name = convertName(obj["name"].GetString());
         currentFilename = obj["filename"].GetString();
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
@@ -330,6 +331,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             if(res) pkg->addStmtp(res);
         }
         symt.popScope(pkg);
+        V3Config::addIgnore(V3ErrorCode("COMBDLY"), true, "*", 0, 0);
 
     } else if (obj["cls"] == "process") {
         FileLine *fl_st = new FileLine(currentFilename, getLine(obj));

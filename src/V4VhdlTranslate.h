@@ -5,6 +5,7 @@
 #include "V3Ast.h"
 #include "V3ParseSym.h"
 #include "V3Number.h"
+#include "V3Config.h"
 #include <iostream>
 #include <string>
 #include <fstream>
