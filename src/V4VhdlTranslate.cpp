@@ -141,8 +141,13 @@ AstNodeDType *V4VhdlTranslate::translateType(FileLine *fl, Value::ConstObject it
         return new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
     } else if (type_name == "STD_LOGIC_VECTOR" or type_name == "UNSIGNED" or type_name == "SIGNED") {
         AstNodeDType *base_type = new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
-        Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
-        AstRange *range = new AstRange(fl, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
+        AstNodeRange *range = NULL;
+        if (item.HasMember("range")) {
+            Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
+            range = new AstRange(fl, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
+        } else {
+            range = new AstUnsizedRange(fl);
+        }
         return createArray(base_type, range, true);
     } else if (type_name == "INTEGER" or type_name == "NATURAL" or type_name == "POSITIVE") {
         return new AstBasicDType(fl, AstBasicDTypeKwd::INT);
