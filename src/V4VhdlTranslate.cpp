@@ -562,8 +562,9 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return whle;
 
     } else if (obj["cls"] == "typeconv") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
         currentLevel--;
-        return translateObject(obj["expr"].GetObject());
+        return new AstCast(fl, translateObject(obj["expr"].GetObject()), translateType(fl, obj["type"].GetObject()));
 
     } else if (obj["cls"] == "typedecl") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
