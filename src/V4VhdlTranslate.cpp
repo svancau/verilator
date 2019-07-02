@@ -153,6 +153,8 @@ AstNodeDType *V4VhdlTranslate::translateType(FileLine *fl, Value::ConstObject it
         return new AstBasicDType(fl, AstBasicDTypeKwd::INT);
     } else if (type_name == "STRING") {
         return new AstBasicDType(fl, AstBasicDTypeKwd::STRING);
+    } else if (type_name == "REAL") {
+        return new AstBasicDType(fl, AstBasicDTypeKwd::DOUBLE);
     } else {
         return new AstRefDType(fl, type_name);
     }
