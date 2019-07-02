@@ -207,7 +207,7 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     } else if (fname == "IEEE.NUMERIC_STD.\"/=\"" or fname == "\"/=\"") {
         return new AstNeq(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.TO_INTEGER") {
-        return params[0];
+        return new AstCast(fl, params[0], new AstBasicDType(fl, AstBasicDTypeKwd::INT));
     } else if (fname == "IEEE.MATH_REAL.CEIL") {
         return new AstCeilD(fl, params[0]);
     } else if (fname == "IEEE.MATH_REAL.FLOOR") {
