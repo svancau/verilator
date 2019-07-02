@@ -220,9 +220,29 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
         m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_NEGEDGE));
         // Return True, if removed by constify pass
         return new AstConst(fl, AstConst::LogicTrue());
+    } else {
+        AstNode *functask = symt.findEntUpward(fname);
+        if (not functask) {
+            v3fatal("No reference to task or function " + fname);
+            return nullptr;
+        } else if (VN_CAST(functask, Func)) {
+            AstFuncRef *ref = new AstFuncRef(fl, fname, NULL);
+            for(auto item : params){
+                ref->addPinsp(new AstArg(fl, "", item));
+            }
+            return ref;
+        } else if (VN_CAST(functask, Task)) {
+            AstTaskRef *ref = new AstTaskRef(fl, fname, NULL);
+            for(auto item : params){
+                ref->addPinsp(new AstArg(fl, "", item));
+            }
+            return ref;
+        } else {
+            v3fatal(fname + " is not a task or function");
+            return nullptr;
+        }
     }
-    v3error("Failed to translate function " + fname);
-    return nullptr;
+    return nullptr; // Return null if not oter matched
 }
 
 string convertName(string inName) {
@@ -664,8 +684,110 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "assert") {
         return nullptr;
 
-    } else if (obj["cls"] == "fdecl") {
+    } else if (obj["cls"] == "fdecl" or obj["cls"] == "pdecl") { // No need to translate Function Declaration
         return nullptr;
+
+    } else if (obj["cls"] == "fbody") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstNode *rettype = translateType(fl, obj["ret_type"].GetObject());
+        AstFunc *func = new AstFunc(fl, obj["name"].GetString(), NULL, rettype);
+        pinnum = 1;
+        auto port_array = obj["ports"].GetArray();
+        for(Value::ConstValueIterator m = port_array.Begin(); m != port_array.End(); ++m) {
+            auto port_obj = m->GetObject();
+            string direction = port_obj["dir"].GetString();
+            if (direction == "in") {
+                VARIO(INPUT);
+            } else if (direction == "out") {
+                VARIO(OUTPUT);
+            } else if (direction == "inout") {
+                VARIO(INOUT);
+            }
+            VARDECL(PORT);
+            FileLine *fl = new FileLine(currentFilename, getLine(port_obj));
+            VARDTYPE(translateType(fl, port_obj["type"].GetObject()));
+            AstVar *port_var = createVariable(fl, port_obj["name"].GetString(), NULL, NULL);
+            symt.reinsert(port_var);
+            if (port_obj.HasMember("val"))
+                port_var->valuep(translateObject(obj["val"].GetObject()));
+            func->addStmtsp(port_var);
+            PINNUMINC();
+        }
+        pinnum = 0;
+        Value::ConstObject body = obj["stmts"].GetObject();
+        Value::ConstArray body_decl = body["decl"].GetArray();
+        for(Value::ConstValueIterator m = body_decl.Begin(); m != body_decl.End(); ++m) {
+            func->addStmtsp(translateObject(m->GetObject()));
+        }
+        Value::ConstArray body_stmts = body["stmts"].GetArray();
+                for(Value::ConstValueIterator m = body_stmts.Begin(); m != body_stmts.End(); ++m) {
+            func->addStmtsp(translateObject(m->GetObject()));
+        }
+        symt.reinsert(func);
+        return func;
+
+    } else if (obj["cls"] == "fcall") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstTaskRef *funcref = new AstTaskRef(fl, obj["name"].GetString(), NULL);
+        Value::ConstArray stmts = obj["params"].GetArray();
+        for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
+            funcref->addPinsp(translateObject(m->GetObject()));
+        }
+        return funcref;
+
+    } else if (obj["cls"] == "pbody") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstTask *task = new AstTask(fl, obj["name"].GetString(), NULL);
+        auto port_array = obj["ports"].GetArray();
+        pinnum = 1;
+        for(Value::ConstValueIterator m = port_array.Begin(); m != port_array.End(); ++m) {
+            auto port_obj = m->GetObject();
+            string direction = port_obj["dir"].GetString();
+            if (direction == "in") {
+                VARIO(INPUT);
+            } else if (direction == "out") {
+                VARIO(OUTPUT);
+            } else if (direction == "inout") {
+                VARIO(INOUT);
+            }
+            VARDECL(PORT);
+            FileLine *fl = new FileLine(currentFilename, getLine(port_obj));
+            VARDTYPE(translateType(fl, port_obj["type"].GetObject()));
+            AstVar *port_var = createVariable(fl, port_obj["name"].GetString(), NULL, NULL);
+            symt.reinsert(port_var);
+            if (port_obj.HasMember("val"))
+                port_var->valuep(translateObject(obj["val"].GetObject()));
+            task->addStmtsp(port_var);
+            PINNUMINC();
+        }
+        pinnum = 0;
+        Value::ConstObject body = obj["stmts"].GetObject();
+        Value::ConstArray body_decl = body["decl"].GetArray();
+        for(Value::ConstValueIterator m = body_decl.Begin(); m != body_decl.End(); ++m) {
+            task->addStmtsp(translateObject(m->GetObject()));
+        }
+        Value::ConstArray body_stmts = body["stmts"].GetArray();
+                for(Value::ConstValueIterator m = body_stmts.Begin(); m != body_stmts.End(); ++m) {
+            task->addStmtsp(translateObject(m->GetObject()));
+        }
+        symt.reinsert(task);
+        return task;
+
+    } else if (obj["cls"] == "pcall") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstTaskRef *taskref = new AstTaskRef(fl, obj["name"].GetString(), NULL);
+        Value::ConstArray stmts = obj["params"].GetArray();
+        for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
+            taskref->addPinsp(translateObject(m->GetObject()));
+        }
+        return taskref;
+
+    } else if (obj["cls"] == "for") {
+
+    } else if (obj["cls"] == "return") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstReturn *ret = new AstReturn(fl, translateObject(obj["expr"].GetObject()));
+        return ret;
 
     } else {
         v3error("Failed to translate object of class " << obj["cls"].GetString());
