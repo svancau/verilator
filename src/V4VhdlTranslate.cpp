@@ -488,7 +488,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         VARDTYPE(translateType(fl, obj["type"].GetObject()));
         currentLevel--;
-        string varName = obj["name"].GetString();
+        string varName = convertName(obj["name"].GetString());
         AstVar *var = createVariable(fl, varName, NULL, NULL);
         symt.reinsert(var);
         if (obj.HasMember("val"))
@@ -501,7 +501,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         VARDTYPE(translateType(fl, obj["type"].GetObject()));
         currentLevel--;
-        string varName = obj["name"].GetString();
+        string varName = convertName(obj["name"].GetString());
         AstVar *var = createVariable(fl, varName, NULL, NULL);
         symt.reinsert(var);
         if (obj.HasMember("val"))
