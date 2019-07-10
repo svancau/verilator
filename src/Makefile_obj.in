@@ -92,7 +92,7 @@ endif
 
 # -lfl not needed as Flex invoked with %nowrap option
 # -lstdc++ needed for clang, believed harmless with gcc
-LIBS = -lm -lstdc++
+LIBS = -lm -lstdc++ -lpthread
 
 CPPFLAGS += -MMD
 CPPFLAGS += -I. -I$(bldsrc) -I$(srcdir) -I$(incdir) -I../../include
