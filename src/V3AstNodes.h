@@ -87,9 +87,7 @@ public:
     AstConst(FileLine* fl, uint32_t num)
         : AstNodeMath(fl)
         , m_num(V3Number(this, 32, num)) {
-        dtypeSetLogicSized(m_num.width(),
-                           m_num.sized() ? 0 : m_num.widthMin(),
-                           AstNumeric::UNSIGNED);
+        dtypeSetLogicSized(m_num.width(), 0, AstNumeric::UNSIGNED);
     }
     class Unsized32 {};  // for creator type-overload selection
     AstConst(FileLine* fl, Unsized32, uint32_t num)  // Unsized 32-bit integer of specified value
@@ -953,8 +951,8 @@ class AstSelBit : public AstNodePreSel {
 public:
     AstSelBit(FileLine* fl, AstNode* fromp, AstNode* bitp)
         :AstNodePreSel(fl, fromp, bitp, NULL) {
-        if (v3Global.assertDTypesResolved()) { v3fatalSrc("not coded to create after dtypes resolved"); }
-    }
+        UASSERT_OBJ(!v3Global.assertDTypesResolved(), this,
+                    "not coded to create after dtypes resolved"); }
     ASTNODE_NODE_FUNCS(SelBit)
     AstNode* bitp() const { return rhsp(); }
 };
@@ -1941,7 +1939,7 @@ public:
     AstBind(FileLine* fl, const string& name, AstNode* cellsp)
         : AstNode(fl)
         , m_name(name) {
-        if (!VN_IS(cellsp, Cell)) cellsp->v3fatalSrc("Only cells allowed to be bound");
+        UASSERT_OBJ(VN_IS(cellsp, Cell), cellsp, "Only cells allowed to be bound");
         addNOp1p(cellsp);
     }
     ASTNODE_NODE_FUNCS(Bind)
@@ -3862,8 +3860,8 @@ class AstSigned : public AstNodeUniop {
     // $signed(lhs)
 public:
     AstSigned(FileLine* fl, AstNode* lhsp) : AstNodeUniop(fl, lhsp) {
-        if (v3Global.assertDTypesResolved()) { v3fatalSrc("not coded to create after dtypes resolved"); }
-    }
+        UASSERT_OBJ(!v3Global.assertDTypesResolved(), this,
+                    "not coded to create after dtypes resolved"); }
     ASTNODE_NODE_FUNCS(Signed)
     virtual void numberOperate(V3Number& out, const V3Number& lhs) { out.opAssign(lhs); out.isSigned(false); }
     virtual string emitVerilog() { return "%f$signed(%l)"; }
@@ -3877,8 +3875,8 @@ class AstUnsigned : public AstNodeUniop {
     // $unsigned(lhs)
 public:
     AstUnsigned(FileLine* fl, AstNode* lhsp) : AstNodeUniop(fl, lhsp) {
-        if (v3Global.assertDTypesResolved()) { v3fatalSrc("not coded to create after dtypes resolved"); }
-    }
+        UASSERT_OBJ(!v3Global.assertDTypesResolved(), this,
+                    "not coded to create after dtypes resolved"); }
     ASTNODE_NODE_FUNCS(Unsigned)
     virtual void numberOperate(V3Number& out, const V3Number& lhs) { out.opAssign(lhs); out.isSigned(false); }
     virtual string emitVerilog() { return "%f$unsigned(%l)"; }

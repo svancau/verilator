@@ -435,9 +435,9 @@ private:
     }
     virtual void visit(AstNodeVarRef* nodep) {
         if (m_scopep) {
-            if (!m_logicVertexp) nodep->v3fatalSrc("Var ref not under a logic block");
+            UASSERT_OBJ(m_logicVertexp, nodep, "Var ref not under a logic block");
             AstVarScope* varscp = nodep->varScopep();
-            if (!varscp) nodep->v3fatalSrc("Var didn't get varscoped in V3Scope.cpp");
+            UASSERT_OBJ(varscp, nodep, "Var didn't get varscoped in V3Scope.cpp");
             GateVarVertex* vvertexp = makeVarVertex(varscp);
             UINFO(5," VARREF to "<<varscp<<endl);
             if (m_inSenItem) vvertexp->setIsClock();
@@ -509,10 +509,9 @@ private:
         m_inSlow = lastslow;
     }
     virtual void visit(AstConcat* nodep) {
-        if (VN_IS(nodep->backp(), NodeAssign)
-            && VN_CAST(nodep->backp(), NodeAssign)->lhsp()==nodep) {
-            nodep->v3fatalSrc("Concat on LHS of assignment; V3Const should have deleted it");
-        }
+        UASSERT_OBJ(!(VN_IS(nodep->backp(), NodeAssign)
+                      && VN_CAST(nodep->backp(), NodeAssign)->lhsp()==nodep),
+                    nodep, "Concat on LHS of assignment; V3Const should have deleted it");
         iterateChildren(nodep);
     }
 
@@ -847,17 +846,17 @@ private:
     virtual void visit(AstNodeVarRef* nodep) {
         if (nodep->varScopep() == m_elimVarScp) {
             // Substitute in the new tree
-            // It's possible we substitute into something that will be reduced more later
+            // It's possible we substitute into something that will be reduced more later,
             // however, as we never delete the top Always/initial statement, all should be well.
             m_didReplace = true;
-            if (nodep->lvalue()) nodep->v3fatalSrc("Can't replace lvalue assignments with const var");
+            UASSERT_OBJ(!nodep->lvalue(), nodep,
+                        "Can't replace lvalue assignments with const var");
             AstNode* substp = m_replaceTreep->cloneTree(false);
-            if (VN_IS(nodep, NodeVarRef)
-                && VN_IS(substp, NodeVarRef)
-                && nodep->same(substp)) {
-                // Prevent a infinite loop...
-                substp->v3fatalSrc("Replacing node with itself; perhaps circular logic?");
-            }
+            UASSERT_OBJ(!(VN_IS(nodep, NodeVarRef)
+                          && VN_IS(substp, NodeVarRef)
+                          && nodep->same(substp)),
+                        // Prevent an infinite loop...
+                        substp, "Replacing node with itself; perhaps circular logic?");
             // Which fileline() to use?
             // If replacing with logic, an error/warning is likely to want to point to the logic
             // IE what we're replacing with.
@@ -907,10 +906,11 @@ class GateDedupeHash : public V3HashedUserCheck {
 private:
     // NODE STATE
     // Ast*::user2p     -> parent AstNodeAssign* for this rhsp
-    // Ast*::user3p     -> AstNode* checked in test for duplicate
-    // Ast*::user5p     -> AstNode* checked in test for duplicate
+    // Ast*::user3p     -> AstActive* of assign, for check() in test for duplicate
+    // Ast*::user5p     -> AstNode* of assign if condition, for check() in test for duplicate
     // AstUser2InUse    m_inuser2;      (Allocated for use in GateVisitor)
     AstUser3InUse       m_inuser3;
+    // AstUser4InUse    m_inuser4;      (Allocated for use in V3Hashed)
     AstUser5InUse       m_inuser5;
     V3Hashed            m_hashed;       // Hash, contains rhs of assigns
 
@@ -974,7 +974,7 @@ class GateDedupeVarVisitor : public GateBaseVisitor {
     // Any other ordering or node type, except for an AstComment, makes it not dedupable
 private:
     // STATE
-    GateDedupeHash      m_hash;                 // Hash used to find dupes of rhs of assign
+    GateDedupeHash      m_ghash;                // Hash used to find dupes of rhs of assign
     AstNodeAssign*      m_assignp;              // Assign found for dedupe
     AstNode*            m_ifCondp;              // IF condition that assign is under
     bool                m_always;               // Assign is under an always
@@ -1043,10 +1043,9 @@ public:
             AstNode* lhsp = m_assignp->lhsp();
             // Possible todo, handle more complex lhs expressions
             if (AstNodeVarRef* lhsVarRefp = VN_CAST(lhsp, NodeVarRef)) {
-                if (lhsVarRefp->varScopep() != consumerVarScopep) {
-                    consumerVarScopep->v3fatalSrc("Consumer doesn't match lhs of assign");
-                }
-                if (AstNodeAssign* dup = m_hash.hashAndFindDupe(m_assignp, activep, m_ifCondp)) {
+                UASSERT_OBJ(lhsVarRefp->varScopep() == consumerVarScopep,
+                            consumerVarScopep, "Consumer doesn't match lhs of assign");
+                if (AstNodeAssign* dup = m_ghash.hashAndFindDupe(m_assignp, activep, m_ifCondp)) {
                     return static_cast<AstNodeVarRef*>(dup->lhsp());
                 }
             }
@@ -1077,10 +1076,11 @@ private:
         if (vvertexp->inSize1()) {
             AstNodeVarRef* dupVarRefp = static_cast<AstNodeVarRef*>
                 (vvertexp->iterateInEdges(*this, VNUser(vvertexp)).toNodep());
-            if (dupVarRefp) {
+            if (dupVarRefp) {  // visit(GateLogicVertex*...) returned match
                 V3GraphEdge* edgep = vvertexp->inBeginp();
                 GateLogicVertex* lvertexp = static_cast<GateLogicVertex*>(edgep->fromp());
-                if (!vvertexp->dedupable()) vvertexp->varScp()->v3fatalSrc("GateLogicVertex* visit should have returned NULL if consumer var vertex is not dedupable.");
+                UASSERT_OBJ(vvertexp->dedupable(), vvertexp->varScp(),
+                            "GateLogicVertex* visit should have returned NULL if consumer var vertex is not dedupable.");
                 GateOkVisitor okVisitor(lvertexp->nodep(), false, true);
                 if (okVisitor.isSimple()) {
                     AstVarScope* dupVarScopep = dupVarRefp->varScopep();
@@ -1152,6 +1152,7 @@ void GateVisitor::dedupe() {
     AstNode::user2ClearTree();
     GateDedupeGraphVisitor deduper;
     // Traverse starting from each of the clocks
+    UINFO(9,"Gate dedupe() clocks:\n");
     for (V3GraphVertex* itp = m_graph.verticesBeginp(); itp; itp=itp->verticesNextp()) {
         if (GateVarVertex* vvertexp = dynamic_cast<GateVarVertex*>(itp)) {
             if (vvertexp->isClock()) {
@@ -1160,6 +1161,7 @@ void GateVisitor::dedupe() {
         }
     }
     // Traverse starting from each of the outputs
+    UINFO(9,"Gate dedupe() outputs:\n");
     for (V3GraphVertex* itp = m_graph.verticesBeginp(); itp; itp=itp->verticesNextp()) {
         if (GateVarVertex* vvertexp = dynamic_cast<GateVarVertex*>(itp)) {
             if (vvertexp->isTop() && vvertexp->varScp()->varp()->isWritable()) {
