@@ -21,7 +21,6 @@ V4VhdlTranslate::V4VhdlTranslate(V3ParseSym &symtable) : symt(symtable)
 
 V4VhdlTranslate::~V4VhdlTranslate()
 {
-
 }
 
 string V4VhdlTranslate::indentString() {
@@ -336,7 +335,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
                 AstNode * res = translateObject(m->GetObject());
                 if(res) ((AstModule*)(entity_mod))->addStmtp(res);
             }
-            
+
             Value::ConstArray stmts = obj["stmts"].GetArray();
             for (Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
                 AstNode * res = translateObject(m->GetObject());
@@ -374,7 +373,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             AstNode * res = translateObject(m->GetObject());
             if(res) process->addStmtp(res);
         }
-        
+
         Value::ConstArray stmts = obj["stmts"].GetArray();
         for (Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
             AstNode * res = translateObject(m->GetObject());
@@ -388,7 +387,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return process;
 
     } else if (obj["cls"] == "wait") {
-        
+
         Value::ConstArray on = obj["on"].GetArray();
         for (Value::ConstValueIterator m = on.Begin(); m != on.End(); ++m) {
             AstNode *ref = translateObject(m->GetObject());
@@ -447,7 +446,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             }
             return nullptr;
         }
-    
+
     } else if (obj["cls"] == "fcall") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         currentLevel--;
@@ -512,7 +511,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         Value::ConstArray params = obj["params"].GetArray();
         if (params[0]["name"].IsNull()) {
-            return new AstSelBit(fl, translateObject(obj["of"].GetObject()), translateObject(params[0]["value"].GetObject()));    
+            return new AstSelBit(fl, translateObject(obj["of"].GetObject()), translateObject(params[0]["value"].GetObject()));
         }
         currentLevel--;
         return NULL; // TODO fix this
@@ -786,6 +785,43 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         return taskref;
 
     } else if (obj["cls"] == "for") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+
+        AstVarRef *varref = new AstVarRef(fl, obj["name"].GetString(), true);
+        Value::ConstArray stmts = obj["stmts"].GetArray();
+        AstBegin *begin = new AstBegin(fl, "", NULL, false);
+        symt.pushNew(begin);
+        VARRESET_NONLIST(VAR);
+        VARDTYPE(new AstBasicDType(fl, AstBasicDTypeKwd::INT));
+        AstVar *iterateVar = createVariable(fl, convertName(obj["name"].GetString()), NULL, NULL);
+        begin->addStmtsp(iterateVar);
+        symt.reinsert(iterateVar);
+        AstVHDLFor *forp = new AstVHDLFor(fl, varref,
+            translateObject((obj["range"].GetObject())), NULL);
+        for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
+            forp->addBodysp(translateObject(m->GetObject()));
+        }
+
+        begin->addStmtsp(forp);
+        symt.popScope(begin);
+        return begin;
+
+    } else if (obj["cls"] == "for_generate") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstVarRef *varref = new AstVarRef(fl, obj["name"].GetString(), true);
+        AstVHDLFor *forp = new AstVHDLFor(fl, varref,
+            translateObject(obj["range"].GetObject()), NULL);
+        Value::ConstArray stmts = obj["stmts"].GetArray();
+        for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
+            forp->addBodysp(translateObject(m->GetObject()));
+        }
+        return forp;
+
+    } else if (obj["cls"] == "range") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        AstRange *range = new AstRange(fl, translateObject(obj["l"].GetObject()),
+            translateObject(obj["r"].GetObject()));
+        return range;
 
     } else if (obj["cls"] == "return") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
@@ -814,5 +850,4 @@ void V4VhdlTranslate::translate(string filename)
     {
         v3error("Failed to parse temporary file");
     }
-
 }

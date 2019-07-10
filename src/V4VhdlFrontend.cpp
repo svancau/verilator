@@ -56,7 +56,7 @@ void V4VhdlFrontend::parseFiles() {
   V4VhdlTranslate xlate(symt);
   xlate.translate(getTempName());
 
-  if (unlink(getTempName().c_str()) == -1)
-    v3error("Failed to remove file " << getTempName() << "error " << errno);
+  //if (unlink(getTempName().c_str()) == -1)
+  //  v3error("Failed to remove file " << getTempName() << "error " << errno);
 
 }

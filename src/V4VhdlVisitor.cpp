@@ -55,7 +55,7 @@ private:
         AstVar *var = (AstVar*)(lhs->varp());
         AstPackArrayDType *dt;
         if (dt = dynamic_cast<AstPackArrayDType*>(var->childDTypep())) {
-            AstRange * range = dt->rangep();        
+            AstRange * range = dt->rangep();
             AstVHDAggregateItem *items = (AstVHDAggregateItem*)(nodep->aggritemsp());
             do {
                 if (!items->lhsp())
@@ -93,4 +93,3 @@ void V4VhdlAggregate::translateVhdlAggregates(AstNetlist* nodep) {
     }  // Destruct before checking
     V3Global::dumpCheckGlobalTree("vhdlaggregates", 0, v3Global.opt.dumpTreeLevel(__FILE__) >= 6);
 }
-
