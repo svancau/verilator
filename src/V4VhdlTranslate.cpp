@@ -636,6 +636,15 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         }
         currentLevel--;
         return instance;
+
+    } else if (obj["cls"] == "aggregate_named") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        return new AstVHDAggregateItem(fl, translateObject(obj["l"].GetObject()), translateObject(obj["expr"].GetObject()));
+
+    } else if (obj["cls"] == "aggregate_range") {
+        FileLine *fl = new FileLine(currentFilename, getLine(obj));
+        return new AstVHDAggregateItem(fl, translateObject(obj["range"].GetObject()), translateObject(obj["expr"].GetObject()));
+
     } else if (obj["cls"] == "aggregate_others") {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
         return new AstVHDAggregateItem(fl, NULL, translateObject(obj["expr"].GetObject()));
