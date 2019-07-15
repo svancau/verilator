@@ -191,6 +191,8 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
         return new AstSub(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"*\"" or fname == "\"*\"") {
         return new AstMul(fl, params[0], params[1]);
+    } else if (fname == "IEEE.NUMERIC_STD.\"**\"" or fname == "\"**\"") {
+        return new AstPow(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"/\"" or fname == "\"/\"") {
         return new AstDiv(fl, params[0], params[1]);
     } else if (fname == "IEEE.NUMERIC_STD.\"<\"" or fname == "\"<\"") {
@@ -213,6 +215,8 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
         return new AstFloorD(fl, params[0]);
     } else if (fname == "IEEE.MATH_REAL.LOG2") {
         return new AstLog2D(fl, params[0]);
+    } else if (fname == "IEEE.MATH_REAL.MOD" or fname == "MOD") {
+        return new AstModDiv(fl, params[0], params[1]);
     } else if (fname == "IEEE.STD_LOGIC_1164.RISING_EDGE") {
         m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_POSEDGE));
         // Return True, if removed by constify pass
