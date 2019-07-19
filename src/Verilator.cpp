@@ -198,12 +198,13 @@ void process() {
     V3Dead::deadifyModules(v3Global.rootp());
     v3Global.checkTree();
 
-    V4VhdlAggregate::translateVhdlAggregates(v3Global.rootp());
-
     // Calculate and check widths, edit tree to TRUNC/EXTRACT any width mismatches
     V3Width::width(v3Global.rootp());
 
     V3Error::abortIfErrors();
+
+    // Translate various VHDL constructs
+    V4VhdlAggregate::translateVhdlAggregates(v3Global.rootp());
 
     // Commit to the widths we've chosen; Make widthMin==width
     V3Width::widthCommit(v3Global.rootp());

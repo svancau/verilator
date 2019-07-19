@@ -6155,7 +6155,7 @@ public:
     ASTNODE_NODE_FUNCS(VHDAggregate)
     AstNode* aggritemsp() const { return op1p(); }  // op1 = list of possible matching expressions
     void addAggritemsp(AstNode* newp) { addOp1p(newp); }
-
+    virtual bool hasDType() const { return true; }
 };
 
 class AstVHDAggregateItem : public AstNode {

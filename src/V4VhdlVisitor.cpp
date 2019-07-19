@@ -50,23 +50,37 @@ private:
     // Result handing
     // TODO implement other aggregates
     virtual void visit(AstVHDAggregate *nodep) {
-        AstAssign *assgn = (AstAssign*)(nodep->firstAbovep());
-        AstVarRef *lhs = (AstVarRef*)(assgn->lhsp());
-        AstVar *var = (AstVar*)(lhs->varp());
-        AstPackArrayDType *dt;
-        if (dt = dynamic_cast<AstPackArrayDType*>(var->childDTypep())) {
-            AstRange * range = dt->rangep();
-            AstVHDAggregateItem *items = (AstVHDAggregateItem*)(nodep->aggritemsp());
-            do {
-                if (!items->lhsp())
-                    break;
-            } while (items = (AstVHDAggregateItem*)(items->nextp()));
-            AstNode *value = items->rhsp()->unlinkFrBack();
-            AstNode *rangel = range->leftp()->cloneTree(false);
-            AstNode *ranger = range->rightp()->cloneTree(false);
-            // Length = Left-Right+1 Only support (others -> 'x');
-            AstNode *valLen = new AstAdd(nodep->fileline(), new AstConst(nodep->fileline(), 1), new AstSub(nodep->fileline(), rangel, ranger));
-            nodep->replaceWith(new AstReplicate(items->fileline(), value, valLen));
+        AstNodeAssign *translatedAssign = nullptr;
+        if (AstNodeAssign * assign = VN_CAST(nodep->backp(), NodeAssign)) {
+            AstNode *target = assign->lhsp();
+            AstVHDAggregateItem *itemp = VN_CAST(nodep->aggritemsp(), VHDAggregateItem);
+            if (itemp) {
+                do {
+                    AstNode *lval = itemp->lhsp();
+                    AstNode *base_val = itemp->rhsp();
+                    AstNode *rval = nullptr;
+
+                    int left_width = nodep->width();
+                    if (base_val->width() == 1) { // When single bit slice
+                        rval = new AstReplicate(base_val->fileline(), base_val->unlinkFrBack(),
+                            new AstConst(base_val->fileline(), left_width));
+                    }
+                    if (!lval) {
+                        lval = target->unlinkFrBack();
+                    }
+                    UINFO(9, "VHDL conversion r=" << rval << " l="<< lval << endl);
+                    if(VN_IS(assign, Assign)) {
+                        translatedAssign = new AstAssign(assign->fileline(), lval, rval);
+                    }
+                    else if(VN_IS(assign, AssignDly)) {
+                        translatedAssign = new AstAssignDly(assign->fileline(), lval, rval);
+                    }
+                } while(itemp = VN_CAST(itemp->nextp(), VHDAggregateItem));
+                assign->replaceWith(translatedAssign);
+            }
+        }
+        else {
+            v3fatalSrc("Unsupported: VHDL aggregate not under an assignment");
         }
     }
 

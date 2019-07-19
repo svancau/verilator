@@ -1347,6 +1347,14 @@ private:
         nodep->didWidth(true);
     }
 
+    virtual void visit(AstVHDAggregate* nodep) {
+        if (nodep->didWidth()) return;
+        if (AstNodeAssign * assign = VN_CAST(nodep->backp(), NodeAssign)) {
+            nodep->dtypeFrom(assign->lhsp());
+            userIterateAndNext(assign->lhsp(), WidthVP(nodep->dtypep(), PRELIM).p());
+        }
+    }
+
     virtual void visit(AstEnumDType* nodep) {
         if (nodep->didWidthAndSet()) return;  // This node is a dtype & not both PRELIMed+FINALed
         UINFO(5,"  ENUMDTYPE "<<nodep<<endl);
