@@ -129,7 +129,7 @@ void V3Global::readFiles() {
     const V3StringList& vFiles = v3Global.opt.vFiles();
     for (V3StringList::const_iterator it = vFiles.begin(); it != vFiles.end(); ++it) {
         string filename = *it;
-        parser.parseFile(new FileLine(FileLine::commandLineFilename(), 0),
+        parser.parseFile(new FileLine(FileLine::commandLineFilename()),
                          filename, false,
                          "Cannot find file containing module: ");
     }
@@ -144,7 +144,7 @@ void V3Global::readFiles() {
     const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
     for (V3StringSet::const_iterator it = libraryFiles.begin(); it != libraryFiles.end(); ++it) {
         string filename = *it;
-        parser.parseFile(new FileLine(FileLine::commandLineFilename(), 0),
+        parser.parseFile(new FileLine(FileLine::commandLineFilename()),
                          filename, true,
                          "Cannot find file containing library module: ");
     }
@@ -593,7 +593,7 @@ int main(int argc, char** argv, char** env) {
     // Command option parsing
     v3Global.opt.bin(argv[0]);
     string argString = V3Options::argString(argc-1, argv+1);
-    v3Global.opt.parseOpts(new FileLine(FileLine::commandLineFilename(), 0),
+    v3Global.opt.parseOpts(new FileLine(FileLine::commandLineFilename()),
                            argc-1, argv+1);
     if (!v3Global.opt.outFormatOk()
         && !v3Global.opt.preprocOnly()
@@ -631,9 +631,10 @@ int main(int argc, char** argv, char** env) {
 
     // Internal tests (after option parsing as need debug() setting,
     // and after removing files as may make debug output)
-    VHashSha1::selfTest();
     AstBasicDTypeKwd::selfTest();
     if (v3Global.opt.debugSelfTest()) {
+        VHashSha1::selfTest();
+        VSpellCheck::selfTest();
         V3Graph::selfTest();
         V3TSP::selfTest();
         V3ScoreboardBase::selfTest();

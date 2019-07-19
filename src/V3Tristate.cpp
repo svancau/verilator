@@ -390,7 +390,7 @@ class TristateVisitor : public TristateBaseVisitor {
                                       invarp);
             UINFO(9,"       newenv "<<newp<<endl);
             if (!m_modp) { invarp->v3error("Unsupported: Creating tristate signal not underneath a module: "
-                                           <<invarp->prettyName()); }
+                                           <<invarp->prettyNameQ()); }
             else m_modp->addStmtp(newp);
             invarp->user1p(newp);  // find envar given invarp
         }
@@ -406,7 +406,7 @@ class TristateVisitor : public TristateBaseVisitor {
                                       invarp);
             UINFO(9,"       newout "<<newp<<endl);
             if (!m_modp) { invarp->v3error("Unsupported: Creating tristate signal not underneath a module: "
-                                           <<invarp->prettyName()); }
+                                           <<invarp->prettyNameQ()); }
             else m_modp->addStmtp(newp);
             invarp->user4p(newp);  // find outvar given invarp
         }
@@ -457,7 +457,7 @@ class TristateVisitor : public TristateBaseVisitor {
             if (oldpullp->direction() != pullp->direction()) {
                 pullp->v3error("Unsupported: Conflicting pull directions.\n"
                                <<pullp->warnContextPrimary()<<endl
-                               <<oldpullp->warnMore()<<"... Location of conflicting pull.\n"
+                               <<oldpullp->warnOther()<<"... Location of conflicting pull.\n"
                                <<oldpullp->warnContextSecondary());
             }
         }

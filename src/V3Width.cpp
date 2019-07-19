@@ -421,7 +421,8 @@ private:
         if (m_vup->final()) {
             if (!nodep->dtypep()->widthSized()) {
                 // See also error in V3Number
-                nodep->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in concatenations.");
+                nodeForUnsizedWarning(nodep)
+                    ->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in concatenations.");
             }
         }
     }
@@ -436,7 +437,8 @@ private:
         if (m_vup->final()) {
             if (!nodep->dtypep()->widthSized()) {
                 // See also error in V3Number
-                nodep->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in concatenations.");
+                nodeForUnsizedWarning(nodep)
+                    ->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in concatenations.");
             }
         }
     }
@@ -470,7 +472,8 @@ private:
         if (m_vup->final()) {
             if (!nodep->dtypep()->widthSized()) {
                 // See also error in V3Number
-                nodep->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in replications.");
+                nodeForUnsizedWarning(nodep)
+                    ->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in replications.");
             }
         }
     }
@@ -491,7 +494,8 @@ private:
         if (m_vup->final()) {
             if (!nodep->dtypep()->widthSized()) {
                 // See also error in V3Number
-                nodep->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in replications.");
+                nodeForUnsizedWarning(nodep)
+                    ->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in replications.");
             }
         }
     }
@@ -518,7 +522,8 @@ private:
         if (m_vup->final()) {
             if (!nodep->dtypep()->widthSized()) {
                 // See also error in V3Number
-                nodep->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in streams.");
+                nodeForUnsizedWarning(nodep)
+                    ->v3warn(WIDTHCONCAT, "Unsized numbers/parameters not allowed in streams.");
             }
         }
     }
@@ -829,12 +834,15 @@ private:
                 V3Const::constifyParamsEdit(nodep->ticksp());  // ticksp may change
                 const AstConst* constp = VN_CAST(nodep->ticksp(), Const);
                 if (!constp || constp->toSInt() < 1) {
-                    nodep->v3error("$past tick value must be constant and >= 1 (IEEE 2017 16.9.3)");
+                    nodep->v3error("$past tick value must be constant (IEEE 2017 16.9.3)");
+                    nodep->ticksp()->unlinkFrBack()->deleteTree();
+                } else if (constp->toSInt() < 1) {
+                    constp->v3error("$past tick value must be >= 1 (IEEE 2017 16.9.3)");
                     nodep->ticksp()->unlinkFrBack()->deleteTree();
                 } else {
                     if (constp->toSInt() > 10) {
-                        nodep->v3warn(TICKCOUNT, "$past tick value of "<<constp->toSInt()
-                                      <<" may have a large performance cost");
+                        constp->v3warn(TICKCOUNT, "$past tick value of "<<constp->toSInt()
+                                       <<" may have a large performance cost");
                     }
                 }
             }
@@ -1220,7 +1228,7 @@ private:
         if (nodep->didWidth()) return;
         if (nodep->doingWidth()) {  // Early exit if have circular parameter definition
             UASSERT_OBJ(nodep->valuep(), nodep, "circular, but without value");
-            nodep->v3error("Variable's initial value is circular: "<<nodep->prettyName());
+            nodep->v3error("Variable's initial value is circular: "<<nodep->prettyNameQ());
             pushDeletep(nodep->valuep()->unlinkFrBack());
             nodep->valuep(new AstConst(nodep->fileline(), AstConst::LogicTrue()));
             nodep->dtypeFrom(nodep->valuep());
@@ -1318,7 +1326,7 @@ private:
         if (!nodep->varp()) {
             if (m_paramsOnly && VN_IS(nodep, VarXRef)) {
                 checkConstantOrReplace(nodep, "Parameter-resolved constants must not use dotted references: "
-                                       +nodep->prettyName()); VL_DANGLING(nodep);
+                                       +nodep->prettyNameQ()); VL_DANGLING(nodep);
                 return;
             } else {
                 nodep->v3fatalSrc("Unlinked varref");
@@ -1336,13 +1344,13 @@ private:
         }
         //if (debug()>=9) nodep->dumpTree(cout, "  VRout ");
         if (nodep->lvalue() && nodep->varp()->direction() == VDirection::CONSTREF) {
-            nodep->v3error("Assigning to const ref variable: "<<nodep->prettyName());
+            nodep->v3error("Assigning to const ref variable: "<<nodep->prettyNameQ());
         }
         else if (nodep->lvalue() && nodep->varp()->isConst()
             && !m_paramsOnly
             && !m_initialp) {  // Too loose, but need to allow our generated first assignment
             //                 // Move this to a property of the AstInitial block
-            nodep->v3error("Assigning to const variable: "<<nodep->prettyName());
+            nodep->v3error("Assigning to const variable: "<<nodep->prettyNameQ());
         }
         nodep->didWidth(true);
     }
@@ -1395,9 +1403,9 @@ private:
             // Look for duplicates
             if (inits.find(num) != inits.end()) {  // IEEE says illegal
                 AstNode* otherp = inits.find(num)->second;
-                itemp->v3error("Overlapping enumeration value: "<<itemp->prettyName()<<endl
+                itemp->v3error("Overlapping enumeration value: "<<itemp->prettyNameQ()<<endl
                                <<itemp->warnContextPrimary()<<endl
-                               <<otherp->warnMore()
+                               <<otherp->warnOther()
                                <<"... Location of original declaration\n"
                                <<otherp->warnContextSecondary());
             } else {
@@ -1561,7 +1569,7 @@ private:
             // No need to width-resolve the class, as it was done when we did the child
             memberp = adtypep->findMember(nodep->name());
             if (!memberp) {
-                nodep->v3error("Member '"<<nodep->prettyName()<<"' not found in structure");
+                nodep->v3error("Member "<<nodep->prettyNameQ()<<" not found in structure");
             }
         }
         else if (VN_IS(fromDtp, EnumDType)) {
@@ -1698,7 +1706,7 @@ private:
                                                            0, selwidth));
                 nodep->replaceWith(newp); nodep->deleteTree(); VL_DANGLING(nodep);
             } else {
-                nodep->v3error("Unknown built-in enum method '"<<nodep->prettyName()<<"'");
+                nodep->v3error("Unknown built-in enum method "<<nodep->prettyNameQ());
             }
         }
         else if (AstUnpackArrayDType* arrayType = VN_CAST(fromDtp, UnpackArrayDType)) {
@@ -1737,7 +1745,7 @@ private:
                 nodep->deleteTree(); VL_DANGLING(nodep);
             }
             else {
-                nodep->v3error("Unknown built-in array method '"<<nodep->prettyName()<<"'");
+                nodep->v3error("Unknown built-in array method "<<nodep->prettyNameQ());
             }
         }
         else if (basicp && basicp->isString()) {
@@ -1759,7 +1767,7 @@ private:
             } else if (nodep->name() == "realtoa") {
                 replaceWithSFormat(nodep, "%g"); VL_DANGLING(nodep);
             } else {
-                nodep->v3error("Unsupported: built-in string method '"<<nodep->prettyName()<<"'");
+                nodep->v3error("Unsupported: built-in string method "<<nodep->prettyNameQ());
             }
         }
         else {
@@ -2458,7 +2466,7 @@ private:
                 userIterateAndNext(nodep->exprp(), WidthVP(subDTypep, FINAL).p());
             } else {
                 if (nodep->modVarp()->direction() == VDirection::REF) {
-                    nodep->v3error("Ref connection '"<<nodep->modVarp()->prettyName()<<"'"
+                    nodep->v3error("Ref connection "<<nodep->modVarp()->prettyNameQ()
                                    <<" requires matching types;"
                                    <<" ref requires "<<pinDTypep->prettyTypeName()
                                    <<" but connection is "
@@ -2521,8 +2529,9 @@ private:
                 // We've resolved parameters and hit a module that we couldn't resolve.  It's
                 // finally time to report it.
                 // Note only here in V3Width as this is first visitor after V3Dead.
-                nodep->v3error("Cannot find file containing module: "<<nodep->modName());
-                v3Global.opt.filePathLookedMsg(nodep->fileline(), nodep->modName());
+                nodep->modNameFileline()
+                    ->v3error("Cannot find file containing module: '"<<nodep->modName()<<"'");
+                v3Global.opt.filePathLookedMsg(nodep->modNameFileline(), nodep->modName());
             }
             if (nodep->rangep()) {
                 m_cellRangep = nodep->rangep();
@@ -2710,13 +2719,13 @@ private:
                 if (portp->direction() == VDirection::REF
                     && !similarDTypeRecurse(portp->dtypep(), pinp->dtypep())) {
                     pinp->v3error("Ref argument requires matching types;"
-                                  <<" port '"<<portp->prettyName()<<"'"
+                                  <<" port "<<portp->prettyNameQ()
                                   <<" requires "<<portp->prettyTypeName()
                                   <<" but connection is "<<pinp->prettyTypeName()<<".");
                 } else if (portp->isWritable()
                            && pinp->width() != portp->width()) {
-                    pinp->v3error("Unsupported: Function output argument '"
-                                  <<portp->prettyName()<<"'"
+                    pinp->v3error("Unsupported: Function output argument "
+                                  <<portp->prettyNameQ()
                                   <<" requires "<<portp->width()
                                   <<" bits, but connection's "<<pinp->prettyTypeName()
                                   <<" generates "<<pinp->width()<<" bits.");
@@ -4068,6 +4077,17 @@ private:
             nodep->replaceWith(new AstConst(nodep->fileline(), AstConst::Unsized32(), 1));
             pushDeletep(nodep); VL_DANGLING(nodep);
         }
+    }
+    AstNode* nodeForUnsizedWarning(AstNode* nodep) {
+        // Return a nodep to use for unsized warnings, reporting on child if can
+        if (nodep->op1p() && nodep->op1p()->dtypep()
+            && !nodep->op1p()->dtypep()->widthSized()) {
+            return nodep->op1p();
+        } else if (nodep->op2p() && nodep->op2p()->dtypep()
+                   && !nodep->op2p()->dtypep()->widthSized()) {
+            return nodep->op2p();
+        }
+        return nodep;  // By default return this
     }
 
     //----------------------------------------------------------------------

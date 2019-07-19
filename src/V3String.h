@@ -41,6 +41,9 @@ public:
     static string downcase(const string& str);
     // Replace any %'s with %%
     static string quotePercent(const string& str);
+    // Replace any unprintable with space
+    // This includes removing tabs, so column tracking is correct
+    static string spaceUnprintable(const string& str);
 };
 
 //######################################################################
@@ -109,6 +112,50 @@ public:
     // Length at which to start hashing, 0=disable
     static void maxLength(size_t flag) { s_maxLength = flag; }
     static size_t maxLength() { return s_maxLength; }
+};
+
+//######################################################################
+// VSpellCheck - Find near-match spelling suggestions given list of possibilities
+
+class VSpellCheck {
+    // CONSTANTS
+    enum { NUM_CANDIDATE_LIMIT = 10000 };  // Avoid searching huge netlists
+    enum { LENGTH_LIMIT = 100 };  // Maximum string length to seach
+    // TYPES
+    typedef unsigned int EditDistance;
+    typedef std::vector<string> Candidates;
+    // MEMBERS
+    Candidates m_candidates;  // Strings we try to match
+public:
+    // CONSTRUCTORS
+    explicit VSpellCheck() {}
+    ~VSpellCheck() {}
+    // METHODS
+    // Push a symbol table value to be considered as a candidate
+    // The first item pushed has highest priority, all else being equal
+    void pushCandidate(const string& s) {
+        if (m_candidates.size() < NUM_CANDIDATE_LIMIT) m_candidates.push_back(s);
+    }
+    // Return candidate is closest to provided string, or "" for none
+    string bestCandidate(const string& goal) {
+        EditDistance dist;
+        return bestCandidateInfo(goal, dist/*ref*/);
+    }
+    // Return friendly message
+    string bestCandidateMsg(const string& goal) {
+        string candidate = bestCandidate(goal);
+        if (candidate.empty()) return "";
+        else return string("... Suggested alternative: '")+candidate+"'";
+    }
+    static void selfTest();
+private:
+    static EditDistance editDistance(const string& s, const string& t);
+    static EditDistance cutoffDistance(size_t goal_len, size_t candidate_len);
+    string bestCandidateInfo(const string& goal, EditDistance& distancer);
+    static void selfTestDistanceOne(const string& a, const string& b,
+                                    EditDistance expected);
+    static void selfTestSuggestOne(bool matches, const string& c, const string& goal,
+                                   EditDistance dist);
 };
 
 //######################################################################
