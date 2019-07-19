@@ -594,17 +594,49 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename, getLine(obj));
 
         AstNodeDType *nodedtype = NULL;
-        if ((type_kind_t)obj["kind"].GetInt() == T_ENUM) {
-            nodedtype = new AstEnumDType(fl, VFlagChildDType(), new AstBasicDType(fl, AstBasicDTypeKwd::INT), NULL);
-            Value::ConstArray enum_val = obj["enum_val"].GetArray();
-            unsigned int indexValue = 0;
-            for(Value::ConstValueIterator m = enum_val.Begin(); m != enum_val.End(); ++m) {
-                AstEnumItem *enumItem = new AstEnumItem(fl, m->GetString(), NULL, new AstConst(fl, indexValue));
-                symt.reinsert(enumItem);
-                ((AstEnumDType*)nodedtype)->addValuesp(enumItem);
-                indexValue ++;
+        switch ((type_kind_t)obj["kind"].GetInt()) {
+            case T_ENUM:
+            {
+                nodedtype = new AstEnumDType(fl, VFlagChildDType(),
+                    new AstBasicDType(fl, AstBasicDTypeKwd::INT), NULL);
+                Value::ConstArray enum_val = obj["enum_val"].GetArray();
+                unsigned int indexValue = 0;
+                for(Value::ConstValueIterator m = enum_val.Begin();
+                    m != enum_val.End(); ++m) {
+                    AstEnumItem *enumItem = new AstEnumItem(fl, m->GetString(), NULL,
+                        new AstConst(fl, indexValue));
+                    symt.reinsert(enumItem);
+                    ((AstEnumDType*)nodedtype)->addValuesp(enumItem);
+                    indexValue ++;
+                }
+                break;
             }
+
+            case T_CARRAY:
+            {
+                AstNodeDType *basedtp = translateType(fl, obj["of"].GetObject());
+                AstNodeRange *rangep = nullptr;
+                Value::ConstArray range_arr = obj["dims"].GetArray();
+
+                for(Value::ConstValueIterator m = range_arr.Begin();
+                    m != range_arr.End(); ++m) {
+                        if (!rangep) {
+                            rangep = VN_CAST(translateObject(m->GetObject()), NodeRange);
+                        }
+                        else {
+                            rangep->addNext(VN_CAST(translateObject(m->GetObject()), NodeRange));
+                        }
+                }
+                nodedtype = createArray(basedtp, rangep, true);
+                break;
+            }
+
+            default:
+                v3fatalSrc("Failed to translate type definition" << endl);
+                break;
+
         }
+
         AstNode *tdef = new AstTypedef(fl, obj["name"].GetString(), NULL, VFlagChildDType(), nodedtype);
         symt.reinsert(tdef);
         RET_NODE(tdef);
