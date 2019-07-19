@@ -629,6 +629,23 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
                 break;
             }
 
+            case T_RECORD:
+            {
+                AstStructDType *sdt = new AstStructDType(fl, AstNumeric(AstNumeric::en::NOSIGN));
+                symt.pushNew(sdt);
+                Value::ConstArray fields = obj["fields"].GetArray();
+                for(Value::ConstValueIterator m = fields.Begin(); m != fields.End(); ++m) {
+                    Value::ConstObject memberObj = m->GetObject();
+                    AstNode *member = new AstMemberDType(fl, memberObj["name"].GetString(),
+                        translateType(fl, memberObj["type"].GetObject()));
+                    symt.reinsert(member);
+                    sdt->addMembersp(member);
+                }
+                symt.popScope(sdt);
+                nodedtype = sdt;
+                break;
+            }
+
             default:
                 v3fatalSrc("Failed to translate type definition" << endl);
                 break;
