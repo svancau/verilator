@@ -65,10 +65,14 @@ private:
                         rval = new AstReplicate(base_val->fileline(), base_val->unlinkFrBack(),
                             new AstConst(base_val->fileline(), left_width));
                     }
+                    else { // Otherwise keep as is
+                        rval = base_val->unlinkFrBack();
+                    }
                     if (!lval) {
                         lval = target->unlinkFrBack();
                     }
-                    UINFO(9, "VHDL conversion r=" << rval << " l="<< lval << endl);
+                    UINFO(9, "VHDL conversion r=" << rval << " " << base_val
+                        <<  " l="<< lval << endl);
                     if(VN_IS(assign, Assign)) {
                         translatedAssign = new AstAssign(assign->fileline(), lval, rval);
                     }
