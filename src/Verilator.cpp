@@ -198,6 +198,9 @@ void process() {
     V3Dead::deadifyModules(v3Global.rootp());
     v3Global.checkTree();
 
+    // Translate VHDL For Constructs
+    V4VhdlFor::translateVhdlFor(v3Global.rootp());
+
     // Calculate and check widths, edit tree to TRUNC/EXTRACT any width mismatches
     V3Width::width(v3Global.rootp());
 

@@ -34,4 +34,10 @@ public:
     static void translateVhdlAggregates(AstNetlist* nodep);
 };
 
+class V4VhdlFor {
+public:
+    static void translateVhdlFor(AstNetlist* nodep);
+};
+
+
 #endif  // Guard

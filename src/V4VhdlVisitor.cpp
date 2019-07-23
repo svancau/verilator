@@ -35,7 +35,6 @@
 #include <vector>
 
 //######################################################################
-// Link state, as a visitor of each AstNode
 
 class VhdlAggregateVisitor : public AstNVisitor {
 private:
@@ -101,6 +100,58 @@ public:
     virtual ~VhdlAggregateVisitor() {}
 };
 
+class VhdlForVisitor : public AstNVisitor {
+private:
+    // NODE STATE
+
+    // STATE
+
+    // METHODS
+    VL_DEBUG_FUNC;  // Declare debug()
+
+    // VISITs
+    // Result handing
+    virtual void visit(AstVHDLFor *nodep) {
+        AstNodeVarRef *target = VN_CAST(nodep->varp()->unlinkFrBack(), NodeVarRef);
+        AstRange *rangeL = VN_CAST(nodep->rangep()->unlinkFrBack(), Range);
+        AstNodeAssign *init_stmt = new AstAssign(nodep->fileline(), target,
+            rangeL->msbp()->cloneTree(true));
+        AstNodeVarRef *target_rhs = target->cloneTree(true); target_rhs->lvalue(false);
+
+        int increment = 0;
+        AstNode *end_cond = nullptr;
+        if(rangeL->littleEndian()) {
+            increment = -1;
+            end_cond = new AstGt(nodep->fileline(), target_rhs,
+                rangeL->lsbp()->cloneTree(true));
+        }
+        else {
+            increment = 1;
+            end_cond = new AstLt(nodep->fileline(), target_rhs,
+                rangeL->lsbp()->cloneTree(true));
+        }
+
+        AstNode *incr = new AstAssign(nodep->fileline(), target->cloneTree(true),
+             new AstAdd(nodep->fileline(), target_rhs->cloneTree(true), new AstConst(nodep->fileline(), increment)));
+        AstWhile *whl = new AstWhile(nodep->fileline(), end_cond, nodep->bodysp()->unlinkFrBack(), incr);
+        init_stmt->addNextStmt(whl, nullptr);
+        nodep->replaceWith(init_stmt);
+    }
+
+    virtual void visit(AstNode* nodep) {
+        // Default: Just iterate
+        iterateChildren(nodep);
+    }
+
+public:
+    // CONSTUCTORS
+    VhdlForVisitor(AstNode* nodep, bool start) {
+        iterate(nodep);
+    }
+    virtual ~VhdlForVisitor() {}
+};
+
+
 //######################################################################
 // Link class functions
 
@@ -110,4 +161,12 @@ void V4VhdlAggregate::translateVhdlAggregates(AstNetlist* nodep) {
         VhdlAggregateVisitor visitor(nodep, false);
     }  // Destruct before checking
     V3Global::dumpCheckGlobalTree("vhdlaggregates", 0, v3Global.opt.dumpTreeLevel(__FILE__) >= 6);
+}
+
+void V4VhdlFor::translateVhdlFor(AstNetlist* nodep) {
+    UINFO(4,__FUNCTION__<<": "<<endl);
+    {
+        VhdlForVisitor visitor(nodep, false);
+    }  // Destruct before checking
+    V3Global::dumpCheckGlobalTree("vhdlfor", 0, v3Global.opt.dumpTreeLevel(__FILE__) >= 6);
 }
