@@ -904,6 +904,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename); fl->lineno(getLine(obj));
         AstRange *range = new AstRange(fl, translateObject(obj["l"].GetObject()),
             translateObject(obj["r"].GetObject()));
+        range->littleEndian(obj["dir"].GetString() == "to");
         RET_NODE(range);
 
     } else if (obj["cls"] == "return") {
