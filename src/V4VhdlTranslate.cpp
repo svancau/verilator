@@ -407,17 +407,19 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         AstAlways *process = new AstAlways(fl, VAlwaysKwd::en::ALWAYS, st, NULL);
         symt.pushNew(process);
         current_process = process;
+        AstBegin *block = new AstBegin(fl, "", NULL);
+        process->addStmtp(block);
         Value::ConstArray decls = obj["decls"].GetArray();
 
         for (Value::ConstValueIterator m = decls.Begin(); m != decls.End(); ++m) {
             AstNode * res = translateObject(m->GetObject());
-            if(res) process->addStmtp(res);
+            if(res) block->addStmtsp(res);
         }
 
         Value::ConstArray stmts = obj["stmts"].GetArray();
         for (Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
             AstNode * res = translateObject(m->GetObject());
-            if(res) process->addStmtp(res);
+            if(res) block->addStmtsp(res);
         }
 
         current_process = NULL;
