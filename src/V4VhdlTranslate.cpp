@@ -150,10 +150,21 @@ AstNodeDType *V4VhdlTranslate::translateType(FileLine *fl, Value::ConstObject it
     UINFO(9, "[" << fl->filebasename() << ":" << fl->lineno()
         << "] Type " << type_name << endl);
 
-    if (type_name == "STD_LOGIC") {
+    if (type_name == "STD_LOGIC" or type_name == "STD_ULOGIC") {
         RET_NODE(new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT));
-    } else if (type_name == "STD_LOGIC_VECTOR" or type_name == "UNSIGNED" or type_name == "SIGNED") {
+    } else if (type_name == "STD_LOGIC_VECTOR" or type_name == "STD_ULOGIC_VECTOR"
+        or type_name == "UNSIGNED" or type_name == "SIGNED") {
         AstNodeDType *base_type = new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        if (type_name == "SIGNED") {
+            ((AstBasicDType*)base_type)->setSignedState(signedst_SIGNED);
+        }
+        else if (type_name == "UNSIGNED") {
+            ((AstBasicDType*)base_type)->setSignedState(signedst_UNSIGNED);
+        }
+        else {
+            ((AstBasicDType*)base_type)->setSignedState(signedst_NOSIGN);
+        }
+
         AstNodeRange *range = NULL;
         if (item.HasMember("range")) {
             Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
@@ -467,7 +478,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
                 RET_NODE(new AstConst(fl, AstConst::LogicTrue()));
             }
             else if (refname[1] == 'U' or refname[1] == 'X') {
-                RET_NODE(new AstConst(fl, AstConst::StringToParse(), "1'bX"));
+                RET_NODE(new AstConst(fl, AstConst::StringToParse(), "1'sbX"));
             }
         } else if (refname == "TRUE") {
             RET_NODE(new AstConst(fl, AstConst::LogicTrue()));
@@ -667,7 +678,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         FileLine *fl = new FileLine(currentFilename); fl->lineno(getLine(obj));
         string value = obj["val"].GetString();
         stringstream ss;
-        ss << value.length() << "'b" << value;
+        ss << value.length() << "'sb" << value;
         RET_NODE(new AstConst(fl, V3Number(V3Number::FileLined(), fl, ss.str().c_str())));
 
     } else if (obj["cls"] == "aggregate") {
