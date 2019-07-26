@@ -20,16 +20,25 @@ string V4VhdlFrontend::getTempName() {
   return tempFilename;
 }
 
+void V4VhdlFrontend::parseFile(const string &filename) {
+  V3StringList sl;
+  sl.push_back(filename);
+  parseFiles(sl);
+}
+
 void V4VhdlFrontend::parseFiles() {
-  const V3StringList& vhdFiles = v3Global.opt.vhdFiles();
+  parseFiles(v3Global.opt.vhdFiles());
+}
+
+void V4VhdlFrontend::parseFiles(const V3StringList &fileList) {
   // Skip if there are no VHDL files to analyze
-  if (!vhdFiles.size())
+  if (!fileList.size())
     return;
 
   allocateTemp();
   ostringstream oss;
   oss << "nvc -a ";
-  for (V3StringList::const_iterator it = vhdFiles.begin(); it != vhdFiles.end(); ++it) {
+  for (V3StringList::const_iterator it = fileList.begin(); it != fileList.end(); ++it) {
     string filename = *it;
     oss << filename << " ";
   }

@@ -10,7 +10,9 @@ using namespace std;
 class V4VhdlFrontend {
 public:
   V4VhdlFrontend(V3ParseSym &symtable);
+  void parseFile(const string &filename);
   void parseFiles();
+  void parseFiles(const V3StringList &fileList);
 private:
   string tempFilename;
   void allocateTemp();

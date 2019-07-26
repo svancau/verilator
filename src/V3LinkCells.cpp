@@ -36,6 +36,7 @@
 #include "V3Parse.h"
 #include "V3Ast.h"
 #include "V3Graph.h"
+#include "V4VhdlFrontend.h"
 
 #include <algorithm>
 #include <cstdarg>
@@ -140,10 +141,18 @@ private:
             // If file not found, make AstNotFoundModule, rather than error out.
             // We'll throw the error when we know the module will really be needed.
             string prettyName = AstNode::prettyName(modName);
-            V3Parse parser (v3Global.rootp(), m_filterp, m_parseSymp);
-            // true below -> other simulators treat modules in link-found files as library cells
-            parser.parseFile(nodep->fileline(), prettyName, true, "");
-            V3Error::abortIfErrors();
+            string filename = v3Global.opt.filePath(nodep->fileline(), prettyName, ".",
+                "Failed to resolve module");
+            if (v3Global.opt.isVHDL(filename)) {
+                V4VhdlFrontend vhdFrontend(*m_parseSymp);
+                vhdFrontend.parseFile(filename);
+            }
+            else {
+                V3Parse parser (v3Global.rootp(), m_filterp, m_parseSymp);
+                // true below -> other simulators treat modules in link-found files as library cells
+                parser.parseFile(nodep->fileline(), prettyName, true, "");
+                V3Error::abortIfErrors();
+            }
             // We've read new modules, grab new pointers to their names
             readModNames();
             // Check again
