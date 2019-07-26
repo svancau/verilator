@@ -255,6 +255,23 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     else if (fname == "IEEE.NUMERIC_STD.TO_INTEGER") {
         RET_NODE_NODBG(new AstCast(fl, params[0], new AstBasicDType(fl, AstBasicDTypeKwd::INT)));
     }
+    else if (fname == "IEEE.NUMERIC_STD.TO_UNSIGNED") {
+        AstNodeDType *base_type = new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        ((AstBasicDType*)base_type)->setSignedState(signedst_UNSIGNED);
+        AstRange *range = new AstRange(fl, params[1], new AstConst(fl, 0));
+        AstNodeDType *arr = createArray(base_type, range, true);
+        RET_NODE_NODBG(new AstCast(fl, params[0], arr));
+    }
+    else if (fname == "IEEE.NUMERIC_STD.TO_SIGNED") {
+        AstNodeDType *base_type = new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        ((AstBasicDType*)base_type)->setSignedState(signedst_SIGNED);
+        AstRange *range = new AstRange(fl, params[1], new AstConst(fl, 0));
+        AstNodeDType *arr = createArray(base_type, range, true);
+        RET_NODE_NODBG(new AstCast(fl, params[0], arr));
+    }
+    else if (fname == "IEEE.NUMERIC_STD.RESIZE") {
+        RET_NODE_NODBG(new AstVHDResize(fl, params[0], params[1]));
+    }
     else if (fname == "IEEE.MATH_REAL.CEIL") {
         RET_NODE_NODBG(new AstCeilD(fl, params[0]));
     }

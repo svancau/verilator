@@ -6200,6 +6200,21 @@ public:
     ASTNODE_NODE_FUNCS(VHDPredefinedAttr)
 };
 
+class AstVHDResize : public AstNode {
+    // Resize
+    // Parents:  Module
+    // item Children: MATH  (Null condition used for default block)
+    // expr Children: MATH Actual Value
+public:
+    AstVHDResize(FileLine* fileline, AstNode* ofp, AstNode* lenp)
+        : AstNode(fileline) {
+        setOp1p(ofp);
+        setOp2p(lenp);
+    }
+    ASTNODE_NODE_FUNCS(VHDResize)
+};
+
+
 class AstVHDLFor : public AstNodeStmt {
 public:
     AstVHDLFor(FileLine* fileline, AstNode* varp, AstNode* rangep, AstNode* bodysp)
