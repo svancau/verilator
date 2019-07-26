@@ -297,7 +297,8 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
     else {
         AstNode *functask = symt.findEntUpward(fname);
         if (not functask) {
-            v3fatal("No reference to task or function " + fname);
+            v3fatal("No reference to task or function " + fname + " in file "+ currentFilename
+                + ":" << item["ln"].GetInt());
             RET_NODE_NODBG((AstNode*)nullptr);
         } else if (VN_CAST(functask, Func)) {
             AstFuncRef *ref = new AstFuncRef(fl, fname, NULL);
@@ -312,7 +313,8 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
             }
             RET_NODE_NODBG(ref);
         } else {
-            v3fatal(fname + " is not a task or function");
+            v3fatal(fname + " is not a task or function in file "+ currentFilename + ":"
+                << item["ln"].GetInt());
             RET_NODE_NODBG((AstNode*)nullptr);
         }
     }
