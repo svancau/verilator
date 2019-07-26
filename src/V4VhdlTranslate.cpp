@@ -800,10 +800,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "assert") {
         RET_NODE((AstNode*)nullptr);
 
-    } else if (obj["cls"] == "fdecl" or obj["cls"] == "pdecl") { // No need to translate Function Declaration
-        RET_NODE((AstNode*)nullptr);
-
-    } else if (obj["cls"] == "fbody") {
+    } else if (obj["cls"] == "fbody" or obj["cls"] == "fdecl") {
         FileLine *fl = new FileLine(currentFilename); fl->lineno(getLine(obj));
         AstNode *rettype = translateType(fl, obj["ret_type"].GetObject());
         AstFunc *func = new AstFunc(fl, obj["name"].GetString(), NULL, rettype);
@@ -830,15 +827,22 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             PINNUMINC();
         }
         pinnum = 0;
-        Value::ConstObject body = obj["stmts"].GetObject();
-        Value::ConstArray body_decl = body["decl"].GetArray();
-        for(Value::ConstValueIterator m = body_decl.Begin(); m != body_decl.End(); ++m) {
-            func->addStmtsp(translateObject(m->GetObject()));
+        if (obj.HasMember("stmts")) {
+            Value::ConstObject body = obj["stmts"].GetObject();
+            Value::ConstArray body_decl = body["decl"].GetArray();
+            for(Value::ConstValueIterator m = body_decl.Begin(); m != body_decl.End(); ++m) {
+                func->addStmtsp(translateObject(m->GetObject()));
+            }
+            Value::ConstArray body_stmts = body["stmts"].GetArray();
+                    for(Value::ConstValueIterator m = body_stmts.Begin(); m != body_stmts.End(); ++m) {
+                func->addStmtsp(translateObject(m->GetObject()));
+            }
+            func->prototype(false);
         }
-        Value::ConstArray body_stmts = body["stmts"].GetArray();
-                for(Value::ConstValueIterator m = body_stmts.Begin(); m != body_stmts.End(); ++m) {
-            func->addStmtsp(translateObject(m->GetObject()));
+        else {
+            func->prototype(true);
         }
+
         symt.reinsert(func);
         RET_NODE(func);
 
@@ -851,7 +855,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         }
         RET_NODE(funcref);
 
-    } else if (obj["cls"] == "pbody") {
+    } else if (obj["cls"] == "pbody" or obj["cls"] == "pdecl") {
         FileLine *fl = new FileLine(currentFilename); fl->lineno(getLine(obj));
         AstTask *task = new AstTask(fl, obj["name"].GetString(), NULL);
         auto port_array = obj["ports"].GetArray();
@@ -877,14 +881,20 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             PINNUMINC();
         }
         pinnum = 0;
-        Value::ConstObject body = obj["stmts"].GetObject();
-        Value::ConstArray body_decl = body["decl"].GetArray();
-        for(Value::ConstValueIterator m = body_decl.Begin(); m != body_decl.End(); ++m) {
-            task->addStmtsp(translateObject(m->GetObject()));
+        if (obj.HasMember("stmts")) {
+            Value::ConstObject body = obj["stmts"].GetObject();
+            Value::ConstArray body_decl = body["decl"].GetArray();
+            for(Value::ConstValueIterator m = body_decl.Begin(); m != body_decl.End(); ++m) {
+                task->addStmtsp(translateObject(m->GetObject()));
+            }
+            Value::ConstArray body_stmts = body["stmts"].GetArray();
+                    for(Value::ConstValueIterator m = body_stmts.Begin(); m != body_stmts.End(); ++m) {
+                task->addStmtsp(translateObject(m->GetObject()));
+            }
+            task->prototype(false);
         }
-        Value::ConstArray body_stmts = body["stmts"].GetArray();
-                for(Value::ConstValueIterator m = body_stmts.Begin(); m != body_stmts.End(); ++m) {
-            task->addStmtsp(translateObject(m->GetObject()));
+        else {
+            task->prototype(true);
         }
         symt.reinsert(task);
         RET_NODE(task);
