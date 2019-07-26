@@ -179,10 +179,11 @@ AstNodeDType *V4VhdlTranslate::translateType(FileLine *fl, Value::ConstObject it
         RET_NODE(new AstBasicDType(fl, AstBasicDTypeKwd::STRING));
     } else if (type_name == "REAL") {
         RET_NODE(new AstBasicDType(fl, AstBasicDTypeKwd::DOUBLE));
+    } else if (type_name == "BOOLEAN") {
+        RET_NODE(new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT));
     } else {
         RET_NODE(new AstRefDType(fl, type_name));
     }
-
 }
 
 AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
