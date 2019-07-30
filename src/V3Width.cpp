@@ -1241,7 +1241,10 @@ private:
         nodep->dtypep(iterateEditDTypep(nodep, nodep->dtypep()));
         UASSERT_OBJ(nodep->dtypep(), nodep, "No dtype determined for var");
         if (VN_IS(nodep->dtypeSkipRefp(), UnsizedArrayDType)) {
-            if (!(m_ftaskp && m_ftaskp->dpiImport())) {
+            if (nodep->valuep()) {
+                userIterateAndNext(nodep->valuep(), WidthVP(nodep->dtypep(), PRELIM).p());
+            }
+            else if (!(m_ftaskp && m_ftaskp->dpiImport())) {
                 nodep->v3error("Unsized/open arrays ('[]') are only supported in DPI imports");
             }
         }
