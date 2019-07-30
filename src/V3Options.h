@@ -228,7 +228,6 @@ class V3Options {
     void addParameter(const string& paramline, bool allowPlus);
     void addLangExt(const string& langext, const V3LangCode& lc);
     void addLibExtV(const string& libext);
-    void addLibExtVHDL(const string& libext);
     void optimize(int level);
     void showVersion(bool verbose);
     void coverage(bool flag) { m_coverageLine = m_coverageToggle = m_coverageUser = flag; }
@@ -319,7 +318,6 @@ class V3Options {
     bool vpi() const { return m_vpi; }
     bool xInitialEdge() const { return m_xInitialEdge; }
     bool xmlOnly() const { return m_xmlOnly; }
-    bool isVHDL(string &filename);
 
     int convergeLimit() const { return m_convergeLimit; }
     int dumpTree() const { return m_dumpTree; }
@@ -422,7 +420,6 @@ class V3Options {
 
     // METHODS (file utilities using these options)
     string fileExists(const string& filename);
-    string fileExists(const string& filename, bool caseInsensitive);
     string filePath(FileLine* fl, const string& modname,
                     const string& lastpath, const string& errmsg);
     void filePathLookedMsg(FileLine* fl, const string& modname);

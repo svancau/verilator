@@ -61,9 +61,6 @@ public:
     std::map<string,V3LangCode> m_langExts;             // Language extension map
     std::list<string>   m_libExtVs;     // Library extensions (ordered)
     std::set<string>    m_libExtVSet;   // Library extensions (for removing duplicates)
-    std::list<string>   m_libExtVHDLs;  // Library extensions case insensitive VHDL (ordered)
-    std::set<string>    m_libExtVHDLSet;// Library extensions case insensitive VHDL
-                                        // (for removing duplicates)
     DirMap              m_dirMap;       // Directory listing
 
     // ACCESSOR METHODS
@@ -95,14 +92,6 @@ public:
             m_libExtVs.push_back(libext);
         }
     }
-
-    void addLibExtVHDL(const string& libext) {
-        if (m_libExtVHDLSet.find(libext) == m_libExtVHDLSet.end()) {
-            m_libExtVHDLSet.insert(libext);
-            m_libExtVHDLs.push_back(libext);
-        }
-    }
-
     V3OptionsImp() {}
     ~V3OptionsImp() {}
 };
@@ -118,9 +107,6 @@ void V3Options::addLangExt(const string& langext, const V3LangCode& lc) {
 }
 void V3Options::addLibExtV(const string& libext) {
     m_impp->addLibExtV(libext);
-}
-void V3Options::addLibExtVHDL(const string& libext) {
-    m_impp->addLibExtVHDL(libext);
 }
 void V3Options::addDefine(const string& defline, bool allowPlus) {
     // Split +define+foo=value into the appropriate parts and parse
@@ -308,36 +294,13 @@ void V3Options::fileNfsFlush(const string& filename) {
     }
 }
 
-bool V3Options::isVHDL(string &filename) {
-    for (std::list<string>::iterator extIter=m_impp->m_libExtVHDLs.begin();
-        extIter != m_impp->m_libExtVHDLs.end(); ++extIter) {
-            if (suffixed(filename, extIter->c_str())) {
-                return true;
-            }
-    }
-    return false;
-}
-
 string V3Options::fileExists(const string& filename) {
-    return fileExists(filename, false);
-}
-
-string V3Options::fileExists(const string& filename, bool caseInsensitive) {
     // Surprisingly, for VCS and other simulators, this process
     // is quite slow; presumably because of re-reading each directory
     // many times.  So we read a whole dir at once and cache it
 
     string dir = V3Os::filenameDir(filename);
-    string inputBasename = V3Os::filenameNonDir(filename);
-    string basename = "";
-    if (caseInsensitive) {
-        for(int i = 0; i < inputBasename.length(); ++i) {
-            basename.append(string(1, tolower(inputBasename[i])));
-        }
-    }
-    else {
-        basename = inputBasename;
-    }
+    string basename = V3Os::filenameNonDir(filename);
 
     V3OptionsImp::DirMap::iterator diriter = m_impp->m_dirMap.find(dir);
     if (diriter == m_impp->m_dirMap.end()) {
@@ -357,28 +320,9 @@ string V3Options::fileExists(const string& filename, bool caseInsensitive) {
     }
     // Find it
     std::set<string>* filesetp = &(diriter->second);
-    if (caseInsensitive) {
-        int filesFound = 0;
-        std::set<string>::iterator fileiter;
-        for(fileiter = filesetp->begin(); fileiter != filesetp->end(); ++fileiter) {
-            string filename = "";
-            for(int i = 0; i < fileiter->length(); ++i) {
-                filename.append(string(1, tolower((*fileiter)[i])));
-            }
-            if (basename == filename) {
-                filesFound++;
-                basename = *fileiter;
-            }
-        }
-        if(filesFound > 1) {
-            v3fatalSrc("Found multiple files matching module having filename " << filename);
-        }
-    }
-    else {
-        std::set<string>::iterator fileiter = filesetp->find(basename);
-        if (fileiter == filesetp->end()) {
-            return "";  // Not found
-        }
+    std::set<string>::iterator fileiter = filesetp->find(basename);
+    if (fileiter == filesetp->end()) {
+        return "";  // Not found
     }
     // Check if it is a directory, ignore if so
     string filenameOut = V3Os::filenameFromDirBase(dir, basename);
@@ -391,16 +335,6 @@ string V3Options::filePathCheckOneDir(const string& modname, const string& dirna
          extIter != m_impp->m_libExtVs.end(); ++extIter) {
         string fn = V3Os::filenameFromDirBase(dirname, modname+*extIter);
         string exists = fileExists(fn);
-        if (exists!="") {
-            // Strip ./, it just looks ugly
-            if (exists.substr(0, 2)=="./") exists.erase(0, 2);
-            return exists;
-        }
-    }
-    for (std::list<string>::iterator extIter=m_impp->m_libExtVHDLs.begin();
-         extIter != m_impp->m_libExtVHDLs.end(); ++extIter) {
-        string fn = V3Os::filenameFromDirBase(dirname, modname+*extIter);
-        string exists = fileExists(fn, true);
         if (exists!="") {
             // Strip ./, it just looks ugly
             if (exists.substr(0, 2)=="./") exists.erase(0, 2);
@@ -454,23 +388,12 @@ void V3Options::filePathLookedMsg(FileLine* fl, const string& modname) {
                 string fn = V3Os::filenameFromDirBase(*dirIter, modname+*extIter);
                 std::cerr<<V3Error::warnMore()<<"     "<<fn<<endl;
             }
-            for (std::list<string>::iterator extIter=m_impp->m_libExtVHDLs.begin();
-                 extIter != m_impp->m_libExtVHDLs.end(); ++extIter) {
-                string fn = V3Os::filenameFromDirBase(*dirIter, modname+*extIter+" [Case Insensitive]");
-                std::cerr<<V3Error::warnMore()<<"     "<<fn<<endl;
-            }
         }
-
         for (std::list<string>::iterator dirIter=m_impp->m_incDirFallbacks.begin();
              dirIter!=m_impp->m_incDirFallbacks.end(); ++dirIter) {
             for (std::list<string>::iterator extIter=m_impp->m_libExtVs.begin();
                  extIter != m_impp->m_libExtVs.end(); ++extIter) {
                 string fn = V3Os::filenameFromDirBase(*dirIter, modname+*extIter);
-                std::cerr<<V3Error::warnMore()<<"     "<<fn<<endl;
-            }
-            for (std::list<string>::iterator extIter=m_impp->m_libExtVHDLs.begin();
-                 extIter != m_impp->m_libExtVHDLs.end(); ++extIter) {
-                string fn = V3Os::filenameFromDirBase(*dirIter, modname+*extIter+" [Case Insensitive]");
                 std::cerr<<V3Error::warnMore()<<"     "<<fn<<endl;
             }
         }
@@ -721,15 +644,6 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                     exts = exts.substr(pos+1);
                 }
                 addLibExtV(exts);
-            }
-            else if (!strncmp (sw, "+libextVHDL+", 8)) {
-                string exts = string(sw+strlen("+libextVHDL+"));
-                string::size_type pos;
-                while ((pos = exts.find('+')) != string::npos) {
-                    addLibExtVHDL(exts.substr(0, pos));
-                    exts = exts.substr(pos+1);
-                }
-                addLibExtVHDL(exts);
             }
             else if (!strcmp(sw, "+librescan")) {  // NOP
             }
@@ -1204,13 +1118,12 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                      || suffixed(filename, ".so")) {
                 V3Options::addLdLibs(filename);
             }
+            else if (suffixed(filename, ".vhd")
+                     || suffixed(filename, ".vhdl")) {
+                V3Options::addVHDLFile(filename);
+            }
             else {
-                if (isVHDL(filename)) {
-                    V3Options::addVHDLFile(filename);
-                } else {
-                    V3Options::addVFile(filename);
-                }
-
+                V3Options::addVFile(filename);
             }
             shift;
         }
@@ -1453,8 +1366,6 @@ V3Options::V3Options() {
     addLibExtV("");  // So include "filename.v" will find the same file
     addLibExtV(".v");
     addLibExtV(".sv");
-    addLibExtVHDL(".vhd");
-    addLibExtVHDL(".vhdl");
     // Default -I
     addIncDirFallback(".");  // Looks better than {long_cwd_path}/...
 }
