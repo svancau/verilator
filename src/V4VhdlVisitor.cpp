@@ -78,7 +78,7 @@ private:
                     else if(VN_IS(assign, AssignDly)) {
                         translatedAssign = new AstAssignDly(assign->fileline(), lval, rval);
                     }
-                } while(itemp = VN_CAST(itemp->nextp(), VHDAggregateItem));
+                } while ((itemp = VN_CAST(itemp->nextp(), VHDAggregateItem)));
                 assign->replaceWith(translatedAssign);
             }
         }
