@@ -13,7 +13,25 @@ V4VhdlFrontend::V4VhdlFrontend(V3ParseSym &symtable) : symt(symtable) {
 }
 
 void V4VhdlFrontend::allocateTemp() {
-  tempFilename = string(tmpnam(NULL));
+  const int length = 32;
+  auto randchar = []() -> char
+  {
+    const char charset[] =
+    "0123456789"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz";
+    const size_t max_index = (sizeof(charset) - 1);
+    return charset[ rand() % max_index ];
+  };
+  struct stat buffer;
+  do {
+    stringstream ss;
+    ss << "/tmp/nvc.";
+    for (int i = 0; i < length; ++i) {
+      ss << randchar();
+    }
+    tempFilename = ss.str();
+  } while(stat(tempFilename.c_str(), &buffer) == 0);
 }
 
 string V4VhdlFrontend::getTempName() {

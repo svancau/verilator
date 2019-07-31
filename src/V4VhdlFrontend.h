@@ -2,6 +2,7 @@
 #define _V4VHDLPARSER_H_
 
 #include <string>
+#include <sys/stat.h>
 #include "tiny-process-library/process.hpp"
 #include "V3ParseSym.h"
 
