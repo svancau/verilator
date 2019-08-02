@@ -59,8 +59,6 @@ void V4VhdlFrontend::parseFiles() {
     cout << string(bytes, n);
   }, [](const char *bytes, size_t n) {
     cout << string(bytes, n);
-    if (bytes[n-1] != '\n')
-      cout << endl;
   });
 
   // Check for missing sim or parse error
