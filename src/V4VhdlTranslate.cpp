@@ -181,6 +181,18 @@ AstNodeDType *V4VhdlTranslate::translateType(FileLine *fl, Value::ConstObject it
         RET_NODE(new AstBasicDType(fl, AstBasicDTypeKwd::DOUBLE));
     } else if (type_name == "BOOLEAN") {
         RET_NODE(new AstBasicDType(fl, AstBasicDTypeKwd::LOGIC_IMPLICIT));
+    } else if (type_name == "BIT") {
+        RET_NODE(new AstBasicDType(fl, AstBasicDTypeKwd::BIT));
+    } else if (type_name == "BIT_VECTOR") {
+        AstNodeDType *base_type = new AstBasicDType(fl, AstBasicDTypeKwd::BIT);
+        AstNodeRange *range = NULL;
+        if (item.HasMember("range")) {
+            Value::ConstObject range_o = item["range"].GetArray()[0].GetObject();
+            range = new AstRange(fl, translateObject(range_o["l"].GetObject()), translateObject(range_o["r"].GetObject()));
+        } else {
+            range = new AstUnsizedRange(fl);
+        }
+        RET_NODE(createArray(base_type, range, true));
     } else {
         RET_NODE(new AstRefDType(fl, type_name));
     }
