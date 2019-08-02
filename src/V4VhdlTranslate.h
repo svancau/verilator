@@ -11,6 +11,7 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include "V3FileLine.h"
 #include "rapidjson/include/rapidjson/document.h"
 #include "rapidjson/include/rapidjson/istreamwrapper.h"
 
@@ -29,6 +30,7 @@ private:
     VDirection  m_varIO;        // Direction for next signal declaration (reg/wire/etc)
     AstVar*	m_varAttrp;	// Current variable for attribute adding
     string currentFilename; // current filename being translated
+    FileLine *m_fl; // Current fileline position
     bool allTracingOn(FileLine* fl) {
 	return v3Global.opt.trace() && fl->tracingOn();
     }
@@ -43,6 +45,8 @@ private:
     V3ParseSym &symt;
     string indentString();
     long getLine(Value::ConstObject obj);
+    void updateFL(Value::ConstObject obj);
+    FileLine *fl();
 public:
     V4VhdlTranslate(V3ParseSym &symtable);
     ~V4VhdlTranslate();
