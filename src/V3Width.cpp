@@ -1243,6 +1243,7 @@ private:
         if (VN_IS(nodep->dtypeSkipRefp(), UnsizedArrayDType)) {
             if (nodep->valuep()) {
                 userIterateAndNext(nodep->valuep(), WidthVP(nodep->dtypep(), PRELIM).p());
+                nodep->dtypeFrom(nodep->valuep()->dtypep()); // HACK HERE, suppose valid input
             }
             else if (!(m_ftaskp && m_ftaskp->dpiImport())) {
                 nodep->v3error("Unsized/open arrays ('[]') are only supported in DPI imports");
