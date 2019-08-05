@@ -414,7 +414,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             AstVar *port_var = createVariable(fl(), port->name(), NULL, NULL);
             symt.reinsert(port_var);
             if (port_obj.HasMember("val"))
-                port_var->valuep(translateObject(obj["val"].GetObject()));
+                port_var->valuep(translateObject(port_obj["val"].GetObject()));
             mod->addStmtp(port_var);
         }
         pinnum = 0;
