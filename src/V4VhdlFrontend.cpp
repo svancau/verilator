@@ -46,7 +46,7 @@ void V4VhdlFrontend::parseFiles() {
 
   allocateTemp();
   ostringstream oss;
-  oss << "nvc -a ";
+  oss << "nvc -a --relax=prefer-explicit ";
   for (V3StringList::const_iterator it = vhdFiles.begin(); it != vhdFiles.end(); ++it) {
     string filename = *it;
     oss << filename << " ";
