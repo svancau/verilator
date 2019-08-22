@@ -14,6 +14,8 @@ The contributors that suggested a given feature are shown in []. Thanks!
 
 ****  Show included-from filenames in warnings, bug1439. [Todd Strader]
 
+****  Fix elaboration time errors, bug1429. [Udi Finkelstein]
+
 ****  Fix not reporting some duplicate signals/ports, bug1462. [Peter Gerst]
 
 ****  Fix not in array context on non-power-of-two slices, msg2946. [Yu Sheng Lin]
@@ -22,8 +24,10 @@ The contributors that suggested a given feature are shown in []. Thanks!
 
 ****  Fix enum values not being sized based on parent, bug1442. [Dan Petrisko]
 
+****  Fix internal error on gate optimization of assign, bug1475. [Oyvind Harboe]
 
-* Verilator 4.016 2016-06-16
+
+* Verilator 4.016 2019-06-16
 
 ***   Add --quiet-exit, bug1436. [Todd Strader]
 

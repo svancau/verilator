@@ -145,6 +145,13 @@ void V3Hashed::erase(iterator it) {
     nodep->user4p(NULL);  // So we don't allow removeNode again
 }
 
+void V3Hashed::check() {
+    for (HashMmap::iterator it = begin(); it != end(); ++it) {
+        AstNode* nodep = it->second;
+        UASSERT_OBJ(nodep->user4p(), nodep, "V3Hashed check failed, non-hashed node");
+    }
+}
+
 void V3Hashed::dumpFilePrefixed(const string& nameComment, bool tree) {
     if (v3Global.opt.dumpTree()) {
         dumpFile(v3Global.debugFilename(nameComment)+".hash", tree);
@@ -193,27 +200,16 @@ void V3Hashed::dumpFile(const string& filename, bool tree) {
     }
 }
 
-V3Hashed::iterator V3Hashed::findDuplicate(AstNode* nodep) {
-    UINFO(8,"   findD "<<nodep<<endl);
-    UASSERT_OBJ(nodep->user4p(), nodep, "Called findDuplicate on non-hashed node");
-    std::pair<HashMmap::iterator,HashMmap::iterator> eqrange = mmap().equal_range(nodeHash(nodep));
-    for (HashMmap::iterator eqit = eqrange.first; eqit != eqrange.second; ++eqit) {
-        AstNode* node2p = eqit->second;
-        if (nodep != node2p && sameNodes(nodep, node2p)) {
-            return eqit;
-        }
-    }
-    return end();
-}
-
-V3Hashed::iterator V3Hashed::findDuplicate(AstNode* nodep, V3HashedUserCheck* checkp) {
+V3Hashed::iterator V3Hashed::findDuplicate(AstNode* nodep, V3HashedUserSame* checkp) {
     UINFO(8,"   findD "<<nodep<<endl);
     UASSERT_OBJ(nodep->user4p(), nodep, "Called findDuplicate on non-hashed node");
     std::pair<HashMmap::iterator,HashMmap::iterator> eqrange
         = mmap().equal_range(nodeHash(nodep));
     for (HashMmap::iterator eqit = eqrange.first; eqit != eqrange.second; ++eqit) {
         AstNode* node2p = eqit->second;
-        if (nodep != node2p && checkp->check(nodep, node2p) && sameNodes(nodep, node2p)) {
+        if (nodep != node2p
+            && (!checkp || checkp->isSame(nodep, node2p))
+            && sameNodes(nodep, node2p)) {
             return eqit;
         }
     }

@@ -1139,7 +1139,7 @@ void AstNode::v3errorEnd(std::ostringstream& str) const {
 void AstNode::dtypeChgSigned(bool flag) {
     UASSERT_OBJ(dtypep(), this, "No dtype when changing to (un)signed");
     dtypeChgWidthSigned(dtypep()->width(), dtypep()->widthMin(),
-                        flag ? AstNumeric::SIGNED : AstNumeric::UNSIGNED);
+                        AstNumeric::fromBool(flag));
 }
 void AstNode::dtypeChgWidth(int width, int widthMin) {
     UASSERT_OBJ(dtypep(), this,
@@ -1150,7 +1150,7 @@ void AstNode::dtypeChgWidth(int width, int widthMin) {
 void AstNode::dtypeChgWidthSigned(int width, int widthMin, AstNumeric numeric) {
     if (!dtypep()) {
         // We allow dtypep() to be null, as before/during widthing dtypes are not resolved
-        dtypeSetLogicSized(width, widthMin, numeric);
+        dtypeSetLogicUnsized(width, widthMin, numeric);
     } else {
         if (width==dtypep()->width()
             && widthMin==dtypep()->widthMin()
@@ -1160,7 +1160,7 @@ void AstNode::dtypeChgWidthSigned(int width, int widthMin, AstNumeric numeric) {
         // work OK but this assumption may break in the future.
         // Note we can't just clone and do a widthForce, as if it's a BasicDType
         // the msb() indications etc will be incorrect.
-        dtypeSetLogicSized(width, widthMin, numeric);
+        dtypeSetLogicUnsized(width, widthMin, numeric);
     }
 }
 

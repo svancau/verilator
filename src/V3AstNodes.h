@@ -55,10 +55,10 @@ private:
         } else if (m_num.isString()) {
             dtypeSetString();
         } else {
-            dtypeSetLogicSized(m_num.width(), (m_num.sized() ? 0 : m_num.widthMin()),
-                               m_num.isSigned() ? AstNumeric::SIGNED
-                               : AstNumeric::UNSIGNED);
+            dtypeSetLogicUnsized(m_num.width(), (m_num.sized() ? 0 : m_num.widthMin()),
+                                 AstNumeric::fromBool(m_num.isSigned()));
         }
+        m_num.nodep(this);
     }
 public:
     AstConst(FileLine* fl, const V3Number& num)
@@ -70,6 +70,12 @@ public:
     AstConst(FileLine* fl, WidthedValue, int width, uint32_t value)
         : AstNodeMath(fl)
         , m_num(this, width, value) {
+        initWithNumber();
+    }
+    class DtypedValue{};  // for creator type-overload selection
+    AstConst(FileLine* fl, DtypedValue, AstNodeDType* nodedtypep, uint32_t value)
+        : AstNodeMath(fl)
+        , m_num(this, nodedtypep->width(), value, nodedtypep->widthSized()) {
         initWithNumber();
     }
     class StringToParse {};  // for creator type-overload selection
@@ -87,21 +93,21 @@ public:
     AstConst(FileLine* fl, uint32_t num)
         : AstNodeMath(fl)
         , m_num(this, 32, num) {
-        dtypeSetLogicSized(m_num.width(), 0, AstNumeric::UNSIGNED);
+        dtypeSetLogicUnsized(m_num.width(), 0, AstNumeric::UNSIGNED);
     }
     class Unsized32 {};  // for creator type-overload selection
     AstConst(FileLine* fl, Unsized32, uint32_t num)  // Unsized 32-bit integer of specified value
         : AstNodeMath(fl)
         , m_num(this, 32, num) {
         m_num.width(32, false);
-        dtypeSetLogicSized(32, m_num.widthMin(), AstNumeric::UNSIGNED);
+        dtypeSetLogicUnsized(32, m_num.widthMin(), AstNumeric::UNSIGNED);
     }
     class Signed32 {};  // for creator type-overload selection
     AstConst(FileLine* fl, Signed32, int32_t num)  // Signed 32-bit integer of specified value
         : AstNodeMath(fl)
         , m_num(this, 32, num) {
         m_num.width(32, 32);
-        dtypeSetLogicSized(32, m_num.widthMin(), AstNumeric::SIGNED);
+        dtypeSetLogicUnsized(32, m_num.widthMin(), AstNumeric::SIGNED);
     }
     class RealDouble {};  // for creator type-overload selection
     AstConst(FileLine* fl, RealDouble, double num)
@@ -1001,7 +1007,6 @@ public:
         m_declElWidth = 1;
         if (VN_IS(widthp, Const)) {
             dtypeSetLogicSized(VN_CAST(widthp, Const)->toUInt(),
-                               VN_CAST(widthp, Const)->toUInt(),
                                AstNumeric::UNSIGNED);
         }
     }
@@ -1009,7 +1014,7 @@ public:
         : AstNodeTriop(fl, fromp,
                       new AstConst(fl, lsb), new AstConst(fl, bitwidth)) {
         m_declElWidth = 1;
-        dtypeSetLogicSized(bitwidth, bitwidth, AstNumeric::UNSIGNED);
+        dtypeSetLogicSized(bitwidth, AstNumeric::UNSIGNED);
     }
     ASTNODE_NODE_FUNCS(Sel)
     virtual void dump(std::ostream& str);
@@ -1219,7 +1224,7 @@ public:
         , m_name(name), m_origName(name) {
         init();
         combineType(type);
-        dtypeSetLogicSized(wantwidth, wantwidth, AstNumeric::UNSIGNED);
+        dtypeSetLogicSized(wantwidth, AstNumeric::UNSIGNED);
         m_declKwd = AstBasicDTypeKwd::LOGIC;
     }
     AstVar(FileLine* fl, AstVarType type, const string& name, VFlagBitPacked, int wantwidth)
@@ -1227,7 +1232,7 @@ public:
         , m_name(name), m_origName(name) {
         init();
         combineType(type);
-        dtypeSetLogicSized(wantwidth, wantwidth, AstNumeric::UNSIGNED);
+        dtypeSetLogicSized(wantwidth, AstNumeric::UNSIGNED);
         m_declKwd = AstBasicDTypeKwd::BIT;
     }
     AstVar(FileLine* fl, AstVarType type, const string& name, AstVar* examplep)
@@ -2675,6 +2680,35 @@ public:
     void filep(AstNodeVarRef* nodep) { setNOp3p(nodep); }
 };
 
+class AstElabDisplay : public AstNode {
+    // Parents: stmtlist
+    // Children: SFORMATF to generate print string
+private:
+    AstDisplayType m_displayType;
+public:
+    AstElabDisplay(FileLine* fileline, AstDisplayType dispType, AstNode* exprsp)
+        : AstNode(fileline) {
+        setOp1p(new AstSFormatF(fileline, AstSFormatF::NoFormat(), exprsp));
+        m_displayType = dispType;
+    }
+    ASTNODE_NODE_FUNCS(ElabDisplay)
+    virtual const char* broken() const { BROKEN_RTN(!fmtp()); return NULL; }
+    virtual string verilogKwd() const { return (string("$")+string(displayType().ascii())); }
+    virtual bool isGateOptimizable() const { return false; }
+    virtual bool isPredictOptimizable() const { return false; }
+    virtual bool isPure() const { return false; }  // SPECIAL: $display has 'visual' ordering
+    virtual bool isOutputter() const { return true; }  // SPECIAL: $display makes output
+    virtual bool isUnlikely() const { return true; }
+    virtual V3Hash sameHash() const { return V3Hash(displayType()); }
+    virtual bool same(const AstNode* samep) const {
+        return displayType()==static_cast<const AstElabDisplay*>(samep)->displayType(); }
+    virtual int instrCount() const { return instrCountPli(); }
+    AstDisplayType displayType() const { return m_displayType; }
+    void displayType(AstDisplayType type) { m_displayType = type; }
+    void fmtp(AstSFormatF* nodep) { addOp1p(nodep); }  // op1 = To-String formatter
+    AstSFormatF* fmtp() const { return VN_CAST(op1p(), SFormatF); }
+};
+
 class AstSFormat : public AstNodeStmt {
     // Parents: statement container
     // Children: string to load
@@ -3838,7 +3872,7 @@ class AstExtend : public AstNodeUniop {
 public:
     AstExtend(FileLine* fl, AstNode* lhsp) : AstNodeUniop(fl, lhsp) {}
     AstExtend(FileLine* fl, AstNode* lhsp, int width) : AstNodeUniop(fl, lhsp) {
-        dtypeSetLogicSized(width, width, AstNumeric::UNSIGNED); }
+        dtypeSetLogicSized(width, AstNumeric::UNSIGNED); }
     ASTNODE_NODE_FUNCS(Extend)
     virtual void numberOperate(V3Number& out, const V3Number& lhs) { out.opAssign(lhs); }
     virtual string emitVerilog() { return "%l"; }
@@ -3854,7 +3888,7 @@ public:
     AstExtendS(FileLine* fl, AstNode* lhsp) : AstNodeUniop(fl, lhsp) {}
     AstExtendS(FileLine* fl, AstNode* lhsp, int width) : AstNodeUniop(fl, lhsp) {
         // Important that widthMin be correct, as opExtend requires it after V3Expand
-        dtypeSetLogicSized(width, width, AstNumeric::UNSIGNED); }
+        dtypeSetLogicSized(width, AstNumeric::UNSIGNED); }
     ASTNODE_NODE_FUNCS(ExtendS)
     virtual void numberOperate(V3Number& out, const V3Number& lhs) {
         out.opExtendS(lhs, lhsp()->widthMinV());
@@ -4092,7 +4126,7 @@ public:
         m_size = setwidth;
         if (setwidth) {
             if (minwidth==-1) minwidth = setwidth;
-            dtypeSetLogicSized(setwidth, minwidth, AstNumeric::UNSIGNED);
+            dtypeSetLogicUnsized(setwidth, minwidth, AstNumeric::UNSIGNED);
         }
     }
     AstCCast(FileLine* fl, AstNode* lhsp, AstNode* typeFromp) : AstNodeUniop(fl, lhsp) {
@@ -4868,7 +4902,7 @@ class AstShiftL : public AstNodeBiop {
 public:
     AstShiftL(FileLine* fl, AstNode* lhsp, AstNode* rhsp, int setwidth=0)
         : AstNodeBiop(fl, lhsp, rhsp) {
-        if (setwidth) { dtypeSetLogicSized(setwidth, setwidth, AstNumeric::UNSIGNED); }
+        if (setwidth) { dtypeSetLogicSized(setwidth, AstNumeric::UNSIGNED); }
     }
     ASTNODE_NODE_FUNCS(ShiftL)
     virtual AstNode* cloneType(AstNode* lhsp, AstNode* rhsp) { return new AstShiftL(this->fileline(), lhsp, rhsp); }
@@ -4886,7 +4920,7 @@ class AstShiftR : public AstNodeBiop {
 public:
     AstShiftR(FileLine* fl, AstNode* lhsp, AstNode* rhsp, int setwidth=0)
         : AstNodeBiop(fl, lhsp, rhsp) {
-        if (setwidth) { dtypeSetLogicSized(setwidth, setwidth, AstNumeric::UNSIGNED); }
+        if (setwidth) { dtypeSetLogicSized(setwidth, AstNumeric::UNSIGNED); }
     }
     ASTNODE_NODE_FUNCS(ShiftR)
     virtual AstNode* cloneType(AstNode* lhsp, AstNode* rhsp) { return new AstShiftR(this->fileline(), lhsp, rhsp); }
@@ -4908,7 +4942,7 @@ public:
     AstShiftRS(FileLine* fl, AstNode* lhsp, AstNode* rhsp, int setwidth=0)
         : AstNodeBiop(fl, lhsp, rhsp) {
         // Important that widthMin be correct, as opExtend requires it after V3Expand
-        if (setwidth) { dtypeSetLogicSized(setwidth, setwidth, AstNumeric::SIGNED); }
+        if (setwidth) { dtypeSetLogicSized(setwidth, AstNumeric::SIGNED); }
     }
     ASTNODE_NODE_FUNCS(ShiftRS)
     virtual AstNode* cloneType(AstNode* lhsp, AstNode* rhsp) { return new AstShiftRS(this->fileline(), lhsp, rhsp); }
@@ -5285,7 +5319,6 @@ public:
     AstConcat(FileLine* fl, AstNode* lhsp, AstNode* rhsp) : AstNodeBiop(fl, lhsp, rhsp) {
         if (lhsp->dtypep() && rhsp->dtypep()) {
             dtypeSetLogicSized(lhsp->dtypep()->width()+rhsp->dtypep()->width(),
-                               lhsp->dtypep()->width()+rhsp->dtypep()->width(),
                                AstNumeric::UNSIGNED);
         }
     }
@@ -5328,7 +5361,6 @@ private:
         if (lhsp()) {
             if (const AstConst* constp = VN_CAST(rhsp(), Const)) {
                 dtypeSetLogicSized(lhsp()->width()*constp->toUInt(),
-                                   lhsp()->width()*constp->toUInt(),
                                    AstNumeric::UNSIGNED);
             }
         }
@@ -5972,7 +6004,7 @@ public:
     AstCMath(FileLine* fl, const string& textStmt, int setwidth, bool cleanOut=true)
         : AstNodeMath(fl), m_cleanOut(cleanOut) {
         addNOp1p(new AstText(fl, textStmt, true));
-        if (setwidth) { dtypeSetLogicSized(setwidth, setwidth, AstNumeric::UNSIGNED); }
+        if (setwidth) { dtypeSetLogicSized(setwidth, AstNumeric::UNSIGNED); }
     }
     ASTNODE_NODE_FUNCS(CMath)
     virtual bool isGateOptimizable() const { return false; }
@@ -6074,11 +6106,7 @@ public:
 class AstTypeTable : public AstNode {
     // Container for hash of standard data types
     // Children:  NODEDTYPEs
-    typedef std::map<std::pair<int,int>,AstBasicDType*> LogicMap;
     AstBasicDType* m_basicps[AstBasicDTypeKwd::_ENUM_MAX];
-    //
-    enum { IDX0_LOGIC, IDX0_BIT, _IDX0_MAX };
-    LogicMap m_logicMap[_IDX0_MAX][AstNumeric::_ENUM_MAX];  // uses above IDX enums
     //
     typedef std::map<VBasicTypeKey,AstBasicDType*> DetailedMap;
     DetailedMap m_detailedMap;

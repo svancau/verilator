@@ -368,7 +368,7 @@ private:
                 int width  = std::max(nodep->expr1p()->width(),    nodep->expr2p()->width());
                 int mwidth = std::max(nodep->expr1p()->widthMin(), nodep->expr2p()->widthMin());
                 bool issigned = nodep->expr1p()->isSigned() && nodep->expr2p()->isSigned();
-                nodep->dtypeSetLogicSized(width, mwidth, AstNumeric::fromBool(issigned));
+                nodep->dtypeSetLogicUnsized(width, mwidth, AstNumeric::fromBool(issigned));
             }
         }
         if (m_vup->final()) {
@@ -390,9 +390,9 @@ private:
         if (m_vup->prelim()) {
             iterateCheckSizedSelf(nodep, "LHS", nodep->lhsp(), SELF, BOTH);
             iterateCheckSizedSelf(nodep, "RHS", nodep->rhsp(), SELF, BOTH);
-            nodep->dtypeSetLogicSized(nodep->lhsp()->width() + nodep->rhsp()->width(),
-                                      nodep->lhsp()->widthMin() + nodep->rhsp()->widthMin(),
-                                      AstNumeric::UNSIGNED);
+            nodep->dtypeSetLogicUnsized(nodep->lhsp()->width() + nodep->rhsp()->width(),
+                                        nodep->lhsp()->widthMin() + nodep->rhsp()->widthMin(),
+                                        AstNumeric::UNSIGNED);
             // Cleanup zero width Verilog2001 {x,{0{foo}}} now,
             // otherwise having width(0) will cause later assertions to fire
             if (AstReplicate* repp = VN_CAST(nodep->lhsp(), Replicate)) {
@@ -464,9 +464,9 @@ private:
                 pushDeletep(nodep); VL_DANGLING(nodep);
                 return;
             } else {
-                nodep->dtypeSetLogicSized((nodep->lhsp()->width() * times),
-                                          (nodep->lhsp()->widthMin() * times),
-                                          AstNumeric::UNSIGNED);
+                nodep->dtypeSetLogicUnsized((nodep->lhsp()->width() * times),
+                                            (nodep->lhsp()->widthMin() * times),
+                                            AstNumeric::UNSIGNED);
             }
         }
         if (m_vup->final()) {
@@ -515,9 +515,9 @@ private:
                 uint32_t sliceSize = constp->toUInt();
                 if (!sliceSize) { nodep->v3error("Slice size cannot be zero."); return; }
             }
-            nodep->dtypeSetLogicSized((nodep->lhsp()->width()),
-                                      (nodep->lhsp()->widthMin()),
-                                      AstNumeric::UNSIGNED);
+            nodep->dtypeSetLogicUnsized(nodep->lhsp()->width(),
+                                        nodep->lhsp()->widthMin(),
+                                        AstNumeric::UNSIGNED);
         }
         if (m_vup->final()) {
             if (!nodep->dtypep()->widthSized()) {
@@ -587,7 +587,7 @@ private:
                 nodep->v3error("Unsupported: MSB < LSB of bit extract: "
                                <<nodep->msbConst()<<"<"<<nodep->lsbConst());
                 width = (nodep->lsbConst() - nodep->msbConst() + 1);
-                nodep->dtypeSetLogicSized(width, width, AstNumeric::UNSIGNED);
+                nodep->dtypeSetLogicSized(width, AstNumeric::UNSIGNED);
                 nodep->widthp()->replaceWith(new AstConst(nodep->widthp()->fileline(),
                                                           width));
                 nodep->lsbp()->replaceWith(new AstConst(nodep->lsbp()->fileline(), 0));
@@ -856,7 +856,7 @@ private:
     virtual void visit(AstUCFunc* nodep) {
         // Give it the size the user wants.
         if (m_vup && m_vup->prelim()) {
-            nodep->dtypeSetLogicSized(32, 1, AstNumeric::UNSIGNED);  // We don't care
+            nodep->dtypeSetLogicUnsized(32, 1, AstNumeric::UNSIGNED);  // We don't care
             // All arguments seek their natural sizes
             userIterateChildren(nodep, WidthVP(SELF, BOTH).p());
         }
@@ -939,7 +939,7 @@ private:
             iterateCheckSizedSelf(nodep, "LHS", nodep->lhsp(), SELF, BOTH);
             // If it's a 32 bit number, we need a 6 bit number as we need to return '32'.
             int selwidth = V3Number::log2b(nodep->lhsp()->width())+1;
-            nodep->dtypeSetLogicSized(selwidth, selwidth, AstNumeric::UNSIGNED);  // Spec doesn't indicate if an integer
+            nodep->dtypeSetLogicSized(selwidth, AstNumeric::UNSIGNED);  // Spec doesn't indicate if an integer
         }
     }
     virtual void visit(AstCvtPackString* nodep) {
@@ -1000,7 +1000,7 @@ private:
         }
         default: {
             // Everything else resolved earlier
-            nodep->dtypeSetLogicSized(32, 1, AstNumeric::UNSIGNED);  // Approximation, unsized 32
+            nodep->dtypeSetLogicUnsized(32, 1, AstNumeric::UNSIGNED);  // Approximation, unsized 32
             UINFO(1,"Missing ATTR type case node: "<<nodep<<endl);
             nodep->v3fatalSrc("Missing ATTR type case");
             break;
@@ -1312,7 +1312,7 @@ private:
             }
         }
         else if (bdtypep && bdtypep->implicit()) {  // Implicits get converted to size 1
-            nodep->dtypeSetLogicSized(1, 1, bdtypep->numeric()); VL_DANGLING(bdtypep);
+            nodep->dtypeSetLogicSized(1, bdtypep->numeric()); VL_DANGLING(bdtypep);
         }
         if (nodep->valuep() && !didchk) {
             //if (debug()) nodep->dumpTree(cout, "  final: ");
@@ -1927,9 +1927,9 @@ private:
                         else {
                             AstConcat* concatp = new AstConcat(patp->fileline(), newp, valuep);
                             newp = concatp;
-                            newp->dtypeSetLogicSized(concatp->lhsp()->width()+concatp->rhsp()->width(),
-                                                     concatp->lhsp()->width()+concatp->rhsp()->width(),
-                                                     nodep->dtypep()->numeric());
+                            newp->dtypeSetLogicSized(
+                                concatp->lhsp()->width() + concatp->rhsp()->width(),
+                                nodep->dtypep()->numeric());
                         }
                     }
                     if (newpatp) { pushDeletep(newpatp); VL_DANGLING(newpatp); }
@@ -1997,7 +1997,6 @@ private:
                                 newp = concatp;
                                 newp->dtypeSetLogicSized(
                                     concatp->lhsp()->width()+concatp->rhsp()->width(),
-                                    concatp->lhsp()->width()+concatp->rhsp()->width(),
                                     nodep->dtypep()->numeric());
                             }
                         }
@@ -2057,7 +2056,6 @@ private:
                                 AstConcat* concatp = new AstConcat(patp->fileline(), newp, valuep);
                                 newp = concatp;
                                 newp->dtypeSetLogicSized(
-                                    concatp->lhsp()->width()+concatp->rhsp()->width(),
                                     concatp->lhsp()->width()+concatp->rhsp()->width(),
                                     nodep->dtypep()->numeric());
                             }
@@ -2309,6 +2307,30 @@ private:
         // Just let all arguments seek their natural sizes
         userIterateChildren(nodep, WidthVP(SELF, BOTH).p());
     }
+    virtual void visit(AstElabDisplay* nodep) {
+        assertAtStatement(nodep);
+        // Just let all arguments seek their natural sizes
+        userIterateChildren(nodep, WidthVP(SELF, BOTH).p());
+        if (!m_paramsOnly) {
+            V3Const::constifyParamsEdit(nodep->fmtp());  // fmtp may change
+            switch (nodep->displayType()) {
+            case AstDisplayType::DT_INFO:
+                nodep->v3warn(USERINFO, nodep->fmtp()->text());
+                break;
+            case AstDisplayType::DT_ERROR:
+                nodep->v3warn(USERERROR, nodep->fmtp()->text());
+                break;
+            case AstDisplayType::DT_WARNING:
+                nodep->v3warn(USERWARN, nodep->fmtp()->text());
+                break;
+            case AstDisplayType::DT_FATAL:
+                nodep->v3warn(USERFATAL, nodep->fmtp()->text());
+                break;
+            default: UASSERT_OBJ(false, nodep, "Unexpected elaboration display type");
+            }
+            nodep->unlinkFrBack()->deleteTree(); VL_DANGLING(nodep);
+        }
+    }
     virtual void visit(AstFOpen* nodep) {
         // Although a system function in IEEE, here a statement which sets the file pointer (MCD)
         assertAtStatement(nodep);
@@ -2323,7 +2345,7 @@ private:
     virtual void visit(AstFEof* nodep) {
         if (m_vup->prelim()) {
             iterateCheckFileDesc(nodep, nodep->filep(), BOTH);
-            nodep->dtypeSetLogicSized(32, 1, AstNumeric::SIGNED);  // Spec says integer return
+            nodep->dtypeSetLogicUnsized(32, 1, AstNumeric::SIGNED);  // Spec says integer return
         }
     }
     virtual void visit(AstFFlush* nodep) {
@@ -2335,7 +2357,7 @@ private:
     virtual void visit(AstFGetC* nodep) {
         if (m_vup->prelim()) {
             iterateCheckFileDesc(nodep, nodep->filep(), BOTH);
-            nodep->dtypeSetLogicSized(32, 8, AstNumeric::SIGNED);  // Spec says integer return
+            nodep->dtypeSetLogicUnsized(32, 8, AstNumeric::SIGNED);  // Spec says integer return
         }
     }
     virtual void visit(AstFGetS* nodep) {
