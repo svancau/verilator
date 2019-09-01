@@ -536,7 +536,8 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             } else if (VN_IS(refNode, Var)) {
                 RET_NODE(new AstVarRef(fl(), name, false));
             } else {
-                v3fatal("Failed to find reference to " << name);
+                v3fatal("[" << currentFilename << ":" << obj["ln"].GetInt() <<
+                    "] Failed to find reference to " << name);
             }
             RET_NODE((AstNode*)nullptr);
         }
