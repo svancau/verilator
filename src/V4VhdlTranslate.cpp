@@ -810,12 +810,14 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     } else if (obj["cls"] == "if_generate") {
         updateFL(obj);
         AstGenerate *gen = new AstGenerate(fl(), NULL);
+        AstBegin *beginp = new AstBegin(fl(), "", NULL, true);
         AstIf *ifp = new AstIf(fl(), translateObject(obj["cond"].GetObject()), NULL);
         Value::ConstArray stmts = obj["stmts"].GetArray();
         for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
             ifp->addIfsp(translateObject(m->GetObject()));
         }
-        gen->addStmtp(ifp);
+        beginp->addStmtsp(ifp);
+        gen->addStmtp(beginp);
         RET_NODE(gen);
 
     } else if (obj["cls"] == "assert") {
