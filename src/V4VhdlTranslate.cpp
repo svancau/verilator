@@ -940,7 +940,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         begin->addStmtsp(iterateVar);
         symt.reinsert(iterateVar);
         AstVHDLFor *forp = new AstVHDLFor(fl(), varref,
-            translateObject((obj["range"].GetObject())), NULL);
+            translateObject((obj["range"].GetObject())), NULL, false);
         for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
             forp->addBodysp(translateObject(m->GetObject()));
         }
@@ -951,14 +951,25 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
     } else if (obj["cls"] == "for_generate") {
         updateFL(obj);
-        AstVarRef *varref = new AstVarRef(fl(), obj["name"].GetString(), true);
+        AstGenerate *genp = new AstGenerate(fl(), NULL);
+        AstBegin *beginp = new AstBegin(fl(), "", NULL, true);
+        genp->addStmtp(beginp);
+        symt.pushNew(beginp);
+        string varname = obj["name"].GetString();
+        VARRESET_NONLIST(GENVAR);
+        VARDTYPE(new AstBasicDType(fl(), AstBasicDTypeKwd::INT));
+        AstVar *iterateVar = createVariable(fl(), convertName(varname), NULL, NULL);
+        symt.reinsert(iterateVar);
+        AstVarRef *varref = new AstVarRef(fl(), varname, true);
         AstVHDLFor *forp = new AstVHDLFor(fl(), varref,
-            translateObject(obj["range"].GetObject()), NULL);
+            translateObject(obj["range"].GetObject()), NULL, true);
         Value::ConstArray stmts = obj["stmts"].GetArray();
         for(Value::ConstValueIterator m = stmts.Begin(); m != stmts.End(); ++m) {
             forp->addBodysp(translateObject(m->GetObject()));
         }
-        RET_NODE(forp);
+        symt.popScope(beginp);
+        beginp->addStmtsp(forp);
+        RET_NODE(genp);
 
     } else if (obj["cls"] == "range") {
         updateFL(obj);

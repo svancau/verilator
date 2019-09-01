@@ -6246,8 +6246,8 @@ public:
 
 class AstVHDLFor : public AstNodeStmt {
 public:
-    AstVHDLFor(FileLine* fileline, AstNode* varp, AstNode* rangep, AstNode* bodysp)
-        : AstNodeStmt(fileline) {
+    AstVHDLFor(FileLine* fileline, AstNode* varp, AstNode* rangep, AstNode* bodysp, bool generate)
+        : AstNodeStmt(fileline), m_generate(generate) {
         setOp1p(varp); setOp2p(rangep); addNOp3p(bodysp);
     }
     ASTNODE_NODE_FUNCS(VHDLFor)
@@ -6257,13 +6257,15 @@ public:
     void setVarp(AstNode* newp) { setOp1p(newp); }
     void setRangep(AstNode* newp) { setOp2p(newp); }
     void addBodysp(AstNode* newp) { addOp3p(newp); }
-
+    bool isGenerate() { return m_generate; }
     virtual bool isGateOptimizable() const { return false; }
     virtual int instrCount() const { return instrCountBranch(); }
     virtual V3Hash sameHash() const { return V3Hash(); }
     virtual bool same(const AstNode* samep) const { return true; }
     virtual void addBeforeStmt(AstNode* newp, AstNode* belowp);  // Stop statement searchback here
     virtual void addNextStmt(AstNode* newp, AstNode* belowp);  // Stop statement searchback here
+private:
+    bool m_generate;
 };
 
 //######################################################################
