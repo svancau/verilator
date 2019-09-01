@@ -46,6 +46,7 @@ private:
     string indentString();
     long getLine(Value::ConstObject obj);
     void updateFL(Value::ConstObject obj);
+    void initFileLine(string &filename);
     FileLine *fl();
 public:
     V4VhdlTranslate(V3ParseSym &symtable);

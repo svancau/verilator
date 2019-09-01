@@ -359,6 +359,11 @@ FileLine *V4VhdlTranslate::fl() {
     return m_fl->copyOrSameFileLine();
 }
 
+void V4VhdlTranslate::initFileLine(string &filename) {
+        m_fl = new FileLine(filename);
+        m_fl->newContent();
+}
+
 AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
     Value::ConstObject obj = item;
     string object_name = "";
@@ -373,12 +378,10 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         V3Config::addIgnore(V3ErrorCode("COMBDLY"), false, "*", 0, 0);
         string module_name = convertName(obj["name"].GetString());
         currentFilename = obj["filename"].GetString();
-        m_fl = new FileLine(currentFilename);
-        m_fl->newContent();
+        initFileLine(currentFilename);
         updateFL(obj);
         AstModule *mod = new AstModule(fl(), module_name);
         symt.pushNew(mod);
-
         auto gen_array = obj["generic"].GetArray();
         for(Value::ConstValueIterator m = gen_array.Begin(); m != gen_array.End(); ++m) {
             auto gen_obj = m->GetObject();
@@ -424,6 +427,8 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
     } else if (obj["cls"] == "architecture") {
         currentFilename = obj["filename"].GetString();
+        initFileLine(currentFilename);
+        updateFL(obj);
         AstModule *entity_mod = (AstModule*)symt.findEntUpward(convertName(obj["of"].GetString()));
         symt.pushNew(entity_mod);
         if(entity_mod != NULL) {
@@ -444,6 +449,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
 
     } else if (obj["cls"] == "pkg") {
         currentFilename = obj["filename"].GetString();
+        initFileLine(currentFilename);
         string package_name = convertName(obj["name"].GetString());
         updateFL(obj);
         AstPackage *pkg = new AstPackage(fl(), package_name);
