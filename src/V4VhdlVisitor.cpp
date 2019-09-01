@@ -133,8 +133,8 @@ private:
 
         AstNode *incr = new AstAssign(nodep->fileline(), target->cloneTree(true),
              new AstAdd(nodep->fileline(), target_rhs->cloneTree(true), new AstConst(nodep->fileline(), increment)));
-        AstWhile *whl = new AstWhile(nodep->fileline(), end_cond, nodep->bodysp()->unlinkFrBack(), incr);
         if (!nodep->isGenerate()) {
+            AstWhile *whl = new AstWhile(nodep->fileline(), end_cond, nodep->bodysp()->unlinkFrBack(), incr);
             init_stmt->addNextStmt(whl, nullptr);
             nodep->replaceWith(init_stmt);
         }
