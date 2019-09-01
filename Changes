@@ -2,7 +2,10 @@ Revision history for Verilator
 
 The contributors that suggested a given feature are shown in []. Thanks!
 
-* Verilator 4.017 devel
+* Verilator 4.019 devel
+
+
+* Verilator 4.018 2019-08-29
 
 **    When showing an error, show source code and offer suggestions of replacements.
 
@@ -11,6 +14,8 @@ The contributors that suggested a given feature are shown in []. Thanks!
 ***   Add --rr, bug1481. [Todd Strader]
 
 ***   Change MULTITOP to warning to help linting, see manual.
+
+***   Add XSim support to driver.pl, bug1493. [Todd Strader]
 
 ****  Show included-from filenames in warnings, bug1439. [Todd Strader]
 
@@ -25,6 +30,8 @@ The contributors that suggested a given feature are shown in []. Thanks!
 ****  Fix enum values not being sized based on parent, bug1442. [Dan Petrisko]
 
 ****  Fix internal error on gate optimization of assign, bug1475. [Oyvind Harboe]
+
+****  Add --dpi-hdr-only, bug1491. [Todd Strader]
 
 
 * Verilator 4.016 2019-06-16
