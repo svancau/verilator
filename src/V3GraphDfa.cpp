@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Graph optimizations
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -384,7 +384,11 @@ void DfaGraph::nfaToDfa() {
 class DfaGraphReduce : GraphAlg<> {
 private:
     // METHODS
+#ifdef VL_CPPCHECK
+    static int debug() { return 9; }
+#else
     static int debug() { return 0; }
+#endif
     DfaGraph* graphp() { return static_cast<DfaGraph*>(m_graphp); }
 
     bool isDead(DfaVertex* vertexp) {
@@ -522,7 +526,7 @@ void DfaGraph::dfaReduce() {
 // this so we just create a edge for each case and mark it "complemented."
 //
 // 3. Delete temp vertex (old accept/new reject) and related edges.
-// The user's old accept is now the new accept.  This is imporant as
+// The user's old accept is now the new accept.  This is important as
 // we want the virtual type of it to be intact.
 
 class DfaGraphComplement : GraphAlg<> {

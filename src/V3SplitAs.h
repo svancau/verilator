@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Break always into separate statements to reduce temps
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3SPLITAS_H_
 #define _V3SPLITAS_H_ 1
 

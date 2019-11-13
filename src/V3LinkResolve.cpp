@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Resolve module/signal name references
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -27,7 +27,7 @@
 //              Convert normal var to FILE* type
 //          SenItems: Convert pos/negedge of non-simple signals to temporaries
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -458,7 +458,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit LinkResolveVisitor(AstNetlist* rootp) {
         m_ftaskp = NULL;
         m_modp = NULL;
@@ -506,7 +506,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit LinkBotupVisitor(AstNetlist* rootp) {
         m_modp = NULL;
         //

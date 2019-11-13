@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Dead code elimination
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -37,7 +37,7 @@
 // here after scoping to allow more dead node
 // removal.
 // *************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -295,7 +295,7 @@ private:
     bool mightElimVar(AstVar* nodep) {
         return (!nodep->isSigPublic()  // Can't elim publics!
                 && !nodep->isIO()
-                && (nodep->isTemp()
+                && ((nodep->isTemp() && !nodep->isTrace())
                     || (nodep->isParam() && !nodep->isTrace())
                     || m_elimUserVars));  // Post-Trace can kill most anything
     }
@@ -407,7 +407,7 @@ public:
         iterate(nodep);
 
         deadCheckVar();
-        // We only elimate scopes when in a flattened structure
+        // We only eliminate scopes when in a flattened structure
         // Otherwise we have no easy way to know if a scope is used
         if (elimScopes) deadCheckScope();
         if (elimCells) deadCheckCells();

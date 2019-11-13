@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Break always into separate statements to reduce temps
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -24,7 +24,7 @@
 //      Replicate the Always, and remove mis-colored duplicate code.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -65,7 +65,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit SplitAsFindVisitor(AstAlways* nodep) {
         m_splitVscp = NULL;
         iterate(nodep);
@@ -125,7 +125,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     SplitAsCleanVisitor(AstAlways* nodep, AstVarScope* vscp, bool modeMatch) {
         m_splitVscp = vscp;
         m_modeMatch = modeMatch;
@@ -146,8 +146,8 @@ private:
     AstUser1InUse       m_inuser1;
 
     // STATE
-    V3Double0   m_statSplits;   // Statistic tracking
-    AstVarScope* m_splitVscp;   // Variable we want to split
+    VDouble0 m_statSplits;  // Statistic tracking
+    AstVarScope* m_splitVscp;  // Variable we want to split
 
     // METHODS
     void splitAlways(AstAlways* nodep) {
@@ -201,7 +201,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit SplitAsVisitor(AstNetlist* nodep) {
         m_splitVscp = NULL;
         AstNode::user1ClearTree();  // user1p() used on entire tree

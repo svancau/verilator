@@ -39,8 +39,8 @@ profcfunc($Opt_File);
 #----------------------------------------------------------------------
 
 sub usage {
-    pod2usage(-verbose=>2, -exitval=>2, -output=>\*STDOUT);
-    exit(1);
+    pod2usage(-verbose=>2, -exitval=>0, -output=>\*STDOUT);
+    exit(1);  # Unreachable
 }
 
 sub debug {
@@ -228,7 +228,7 @@ Displays this message and program version and exits.
 
 =head1 DISTRIBUTION
 
-The latest version is available from L<http://www.veripool.org/>.
+The latest version is available from L<https://verilator.org>.
 
 Copyright 2007-2019 by Wilson Snyder.  Verilator is free software; you can
 redistribute it and/or modify it under the terms of either the GNU Lesser

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: LValue module/signal name references
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -21,7 +21,7 @@
 //      Top-down traversal
 //          Set lvalue() attributes on appropriate VARREFs.
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -268,7 +268,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     LinkLValueVisitor(AstNode* nodep, bool start) {
         m_setRefLvalue = start;
         m_ftaskp = NULL;

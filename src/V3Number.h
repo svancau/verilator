@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Large 4-state numbers
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3NUMBER_H_
 #define _V3NUMBER_H_ 1
 
@@ -214,10 +214,7 @@ public:
     bool isString() const { return m_isString; }
     void isString(bool flag)  { m_isString = flag; }
     bool isNegative() const { return bitIs1(width()-1); }
-    bool isFourState() const {
-        for (int i=0;i<words();i++) { if (m_valueX[i]) return true; }
-        return false;
-    }
+    bool isFourState() const;
     bool hasZ() const {
         for(int i=0;i<words();i++) { if ((~m_value[i]) & m_valueX[i]) return true; }
         return false;

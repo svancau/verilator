@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Hash AST trees to find duplicates
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3HASHED_H_
 #define _V3HASHED_H_ 1
 #include "config_build.h"

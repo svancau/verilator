@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Branch prediction
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -26,7 +26,7 @@
 //      Then, if FTASK is called only once, add inline attribute
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -87,10 +87,10 @@ private:
             int elseUnlikely = m_unlikely;
             // Compute
             int likeness = ifLikely - ifUnlikely - (elseLikely - elseUnlikely);
-            if (likeness>0) {
-                nodep->branchPred(AstBranchPred::BP_LIKELY);
-            } else if (likeness<0) {
-                nodep->branchPred(AstBranchPred::BP_UNLIKELY);
+            if (likeness > 0) {
+                nodep->branchPred(VBranchPred::BP_LIKELY);
+            } else if (likeness < 0) {
+                nodep->branchPred(VBranchPred::BP_UNLIKELY);
             }  // else leave unknown
         }
         m_likely = lastLikely;
@@ -122,7 +122,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit BranchVisitor(AstNetlist* nodep) {
         reset();
         iterateChildren(nodep);

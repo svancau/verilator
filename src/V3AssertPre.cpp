@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Collect and print statistics
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -20,7 +20,7 @@
 //  Pre steps:
 //      Attach clocks to each assertion
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -95,7 +95,7 @@ private:
     virtual void visit(AstNodePslCoverOrAssert* nodep) {
         if (nodep->sentreep()) return;  // Already processed
         clearAssertInfo();
-        // Find PslClocking's burried under nodep->exprsp
+        // Find PslClocking's buried under nodep->exprsp
         iterateChildren(nodep);
         nodep->sentreep(newSenTree(nodep));
         clearAssertInfo();

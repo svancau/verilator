@@ -3,7 +3,7 @@
 // DESCRIPTION: Verilator: Implementation of Christofides' algorithm to
 //              approximate the solution to the traveling salesman problem.
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -18,7 +18,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3TSP_H_
 #define _V3TSP_H_ 1
 

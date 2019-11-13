@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Break always into sensitivity active domains
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -26,7 +26,7 @@
 //          Move SenTree the global SenTree
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -139,7 +139,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit ActiveTopVisitor(AstNetlist* nodep) {
         m_topscopep = NULL;
         iterate(nodep);

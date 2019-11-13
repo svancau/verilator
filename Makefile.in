@@ -3,7 +3,7 @@
 #
 # This file is part of Verilator.
 #
-# Code available from: http://www.veripool.org/verilator
+# Code available from: https://verilator.org
 #
 #*****************************************************************************
 #
@@ -104,12 +104,20 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 SHELL = /bin/sh
 
 SUBDIRS = src test_regress \
-	examples/hello_world_c  examples/hello_world_sc \
-	examples/tracing_c  examples/tracing_sc \
+	examples/cmake_hello_c \
+	examples/cmake_hello_sc \
+	examples/cmake_tracing_c \
+	examples/cmake_tracing_sc \
+	examples/cmake_protect_lib \
+	examples/make_hello_c \
+	examples/make_hello_sc \
+	examples/make_tracing_c \
+	examples/make_tracing_sc \
+	examples/make_protect_lib \
 
-INFOS = README README.html README.pdf internals.txt internals.html \
-        internals.pdf verilator.txt verilator.html verilator.pdf \
-	$(VL_INST_MAN_FILES)
+INFOS = verilator.txt verilator.html verilator.pdf
+
+INFOS_OLD = README README.html README.pdf
 
 # Files that can be generated, but should be up to date for a distribution.
 DISTDEP = info Makefile
@@ -120,6 +128,9 @@ DISTFILES_INC = $(INFOS) .gitignore \
 	Changes \
 	LICENSE \
 	MANIFEST.SKIP \
+	README.adoc \
+	verilator-config.cmake.in \
+	verilator-config-version.cmake.in \
 	bin/verilator \
 	bin/verilator_coverage \
 	bin/verilator_difftree \
@@ -127,11 +138,14 @@ DISTFILES_INC = $(INFOS) .gitignore \
 	bin/verilator_includer \
 	bin/verilator_profcfunc \
 	docs/.gitignore \
+	docs/CONTRIBUTING.adoc \
 	docs/CONTRIBUTORS \
 	docs/Makefile.in \
 	docs/TODO \
 	docs/doxygen-mainpage \
 	docs/doxygen.config \
+	docs/install.adoc \
+	docs/internals.adoc \
 	docs/verilator_logo.png \
 	install-sh configure *.pod \
 	include/*.[chv]* \
@@ -146,9 +160,15 @@ DISTFILES_INC = $(INFOS) .gitignore \
 	src/.gdbinit \
 	src/*.pl src/*.pod \
 	examples/*/.*ignore examples/*/Makefile* \
-	examples/*/*.[chv]* examples/*/*.pl \
+	examples/*/*.[chv]* examples/*/vl_* \
+	examples/*/CMakeLists.txt \
 	test_*/.*ignore test_*/Makefile* test_*/*.cpp \
 	test_*/*.pl test_*/*.v test_*/*.vc test_*/*.vh \
+	test_regress/*.pl \
+	test_regress/Makefile \
+	test_regress/Makefile_obj \
+	test_regress/input.vc \
+	test_regress/CMakeLists.txt \
 	test_regress/t/t*/*.sv* \
 	test_regress/t/t*/*.v* \
 	test_regress/t/t*/*/*.sv* \
@@ -181,8 +201,8 @@ INST_PROJ_BIN_FILES = \
 DISTFILES := $(DISTFILES_INC)
 
 EXAMPLES_FIRST = \
-	examples/hello_world_c \
-	examples/hello_world_sc \
+	examples/make_hello_c \
+	examples/make_hello_sc \
 
 EXAMPLES = $(EXAMPLES_FIRST) $(filter-out $(EXAMPLES_FIRST), $(sort $(wildcard examples/*)))
 
@@ -191,6 +211,9 @@ ifneq ($(OBJCACHE_HOSTS),)
 export OBJCACHE_JOBS := -j $(shell objcache --jobs "$(OBJCACHE_HOSTS)")
 endif
 endif
+
+# See uninstall also - don't put wildcards in this variable, it might uninstall other stuff
+VL_INST_MAN_FILES = verilator.1 verilator_coverage.1 verilator_gantt.1 verilator_profcfunc.1
 
 default: all
 all: all_nomsg msg_test
@@ -214,7 +237,9 @@ msg_test: all_nomsg
 
 .PHONY: test
 ifeq ($(CFG_WITH_LONGTESTS),yes)	# Local... Else don't burden users
-test: smoke-test examples test_regress
+test: smoke-test test_regress
+# examples is part of test_regress's test_regress/t/t_a2_examples.pl
+# (because that allows it to run in parallel with other test_regress's)
 else
 test: smoke-test examples
 endif
@@ -225,8 +250,8 @@ endif
 	@echo
 
 smoke-test: all_nomsg
-	test_regress/t/t_a_first_cc.pl
-	test_regress/t/t_a_first_sc.pl
+	test_regress/t/t_a1_first_cc.pl
+	test_regress/t/t_a2_first_sc.pl
 
 test_regress: all_nomsg
 	$(MAKE) -C test_regress
@@ -259,46 +284,11 @@ verilator.pdf: ${srcdir}/bin/verilator Makefile $(POD2LATEXFIX)
 	pdflatex verilator.tex
 	-rm -f verilator.toc verilator.aux verilator.idx verilator.out
 
-README: README.pod
-	-rm -f $@
-	$(POD2TEXT) --loose $< > $@
-
-README.html: README.pod
-	pod2html $< >$@
-
-# PDF needs DIST variables; but having configure.ac as dependency isn't detected
-README.pdf: README.pod Makefile $(POD2LATEXFIX)
-	pod2latex --full --out README.tex $<
-	$(PERL) $(POD2LATEXFIX) "$(DISTTITLE) README File" "${DISTDATE}" < README.tex > README2.tex
-	mv README2.tex README.tex
-	pdflatex README.tex
-	pdflatex README.tex
-	-rm -f README.toc README.aux README.idx README.out
-
-internals.txt: internals.pod
-	-rm -f $@
-	$(POD2TEXT) --loose $< > $@
-
-internals.html: internals.pod
-	pod2html $< >$@
-
-# PDF needs DIST variables; but having configure.ac as dependency isn't detected
-internals.pdf: internals.pod Makefile $(POD2LATEXFIX)
-	pod2latex --full --out internals.tex $<
-	$(PERL) $(POD2LATEXFIX) "$(DISTTITLE) Internals Manual" "${DISTDATE}" < internals.tex > internals2.tex
-	mv internals2.tex internals.tex
-	pdflatex internals.tex
-	pdflatex internals.tex
-	-rm -f internals.toc internals.aux internals.idx internals.out
-
 # See uninstall also - don't put wildcards in this variable, it might uninstall other stuff
 VL_INST_BIN_FILES = verilator verilator_bin verilator_bin_dbg verilator_coverage_bin_dbg \
 	verilator_coverage verilator_gantt verilator_includer verilator_profcfunc
 # Some scripts go into both the search path and pkgdatadir,
 # so they can be found by the user, and under $VERILATOR_ROOT.
-
-# See uninstall also - don't put wildcards in this variable, it might uninstall other stuff
-VL_INST_MAN_FILES = verilator.1 verilator_coverage.1 verilator_gantt.1 verilator_profcfunc.1
 
 VL_INST_INC_BLDDIR_FILES = \
 	include/verilated_config.h \
@@ -312,6 +302,7 @@ VL_INST_INC_SRCDIR_FILES = \
 
 VL_INST_DATA_SRCDIR_FILES = \
 	examples/*/*.[chv]*  examples/*/Makefile* \
+	examples/*/CMakeLists.txt
 
 installbin:
 	$(MKINSTALLDIRS) $(DESTDIR)$(bindir)
@@ -343,16 +334,24 @@ installdata:
 	; for p in $(VL_INST_INC_SRCDIR_FILES) ; do \
 	  $(INSTALL_DATA) $$p $(DESTDIR)$(pkgdatadir)/$$p; \
 	done
-	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/hello_world_c
-	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/hello_world_sc
-	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/tracing_c
-	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/tracing_sc
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/make_hello_c
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/make_hello_sc
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/make_tracing_c
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/make_tracing_sc
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/make_protect_lib
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/cmake_hello_c
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/cmake_hello_sc
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/cmake_tracing_c
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/cmake_tracing_sc
+	$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/examples/cmake_protect_lib
 	cd $(srcdir) \
 	; for p in $(VL_INST_DATA_SRCDIR_FILES) ; do \
 	  $(INSTALL_DATA) $$p $(DESTDIR)$(pkgdatadir)/$$p; \
 	done
 	$(MKINSTALLDIRS) $(DESTDIR)$(pkgconfigdir)
 	$(INSTALL_DATA) verilator.pc $(DESTDIR)$(pkgconfigdir)
+	$(INSTALL_DATA) verilator-config.cmake $(DESTDIR)$(pkgdatadir)
+	$(INSTALL_DATA) verilator-config-version.cmake $(DESTDIR)$(pkgdatadir)
 
 # We don't trust rm -rf, so rmdir instead as it will fail if user put in other files
 uninstall:
@@ -363,15 +362,24 @@ uninstall:
 	-cd $(DESTDIR)$(pkgdatadir) && rm -f $(VL_INST_INC_SRCDIR_FILES)
 	-cd $(DESTDIR)$(pkgdatadir) && rm -f $(VL_INST_DATA_SRCDIR_FILES)
 	-rm $(DESTDIR)$(pkgconfigdir)/verilator.pc
+	-rm $(DESTDIR)$(pkgdatadir)/verilator-config.cmake
+	-rm $(DESTDIR)$(pkgdatadir)/verilator-config-version.cmake
 	-rmdir $(DESTDIR)$(pkgdatadir)/bin
 	-rmdir $(DESTDIR)$(pkgdatadir)/include/gtkwave
 	-rmdir $(DESTDIR)$(pkgdatadir)/include/vltstd
 	-rmdir $(DESTDIR)$(pkgdatadir)/include
-	-rmdir $(DESTDIR)$(pkgdatadir)/examples/hello_world_c
-	-rmdir $(DESTDIR)$(pkgdatadir)/examples/hello_world_sc
-	-rmdir $(DESTDIR)$(pkgdatadir)/examples/tracing_c
-	-rmdir $(DESTDIR)$(pkgdatadir)/examples/tracing_sc
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/make_hello_c
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/make_hello_sc
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/make_tracing_c
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/make_tracing_sc
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/make_protect_lib
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/cmake_hello_c
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/cmake_hello_sc
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/cmake_tracing_c
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/cmake_tracing_sc
+	-rmdir $(DESTDIR)$(pkgdatadir)/examples/cmake_protect_lib
 	-rmdir $(DESTDIR)$(pkgdatadir)/examples
+	-rmdir $(DESTDIR)$(pkgdatadir)/cmake
 	-rmdir $(DESTDIR)$(pkgdatadir)
 	-rmdir $(DESTDIR)$(pkgconfigdir)
 
@@ -426,7 +434,8 @@ CPPCHECK_H = $(wildcard \
 	$(srcdir)/src/*.h )
 CPPCHECK = src/cppcheck_filtered
 CPPCHECK_FLAGS = --enable=all --inline-suppr \
-	--suppress=unusedScopedObject --suppress=cstyleCast --suppress=useInitializationList
+	--suppress=unusedScopedObject --suppress=cstyleCast --suppress=useInitializationList \
+	--suppress=nullPointerRedundantCheck
 CPPCHECK_FLAGS += --xml
 CPPCHECK_DEP = $(subst .cpp,.cppcheck,$(CPPCHECK_CPP))
 CPPCHECK_INC = -I$(srcdir)/include -I$(srcdir)/src/obj_dbg -I$(srcdir)/src
@@ -463,7 +472,7 @@ install-msg:
 	@echo "Installed examples to $(DESTDIR)$(pkgdatadir)/examples"
 	@echo
 	@echo "For documentation see 'man verilator' or 'verilator --help'"
-	@echo "For forums and to report bugs see http://www.veripool.org/verilator"
+	@echo "For forums and to report bugs see https://verilator.org"
 	@echo
 
 IN_WILD := ${srcdir}/*.in ${srcdir}/*/*.in
@@ -502,12 +511,12 @@ clean mostlyclean distclean maintainer-clean::
 	rm -f *.pg *.pgs *.toc *.tp *.tps *.vr *.vrs *.idx
 	rm -f *.ev *.evs *.ov *.ovs *.cv *.cvs *.ma *.mas
 	rm -f *.tex
-	rm -rf examples/*/obj_dir examples/*/logs
+	rm -rf examples/*/obj_dir* examples/*/logs
 	rm -rf test_*/obj_dir
 	rm -rf nodist/obj_dir
 
 distclean maintainer-clean::
-	rm -f *.info* *.1 $(INFOS)
+	rm -f *.info* *.1 $(INFOS) $(INFOS_OLD) $(VL_INST_MAN_FILES)
 	rm -f Makefile config.status config.cache config.log TAGS
 	rm -f verilator_bin* verilator_coverage_bin*
 	rm -f bin/verilator_bin* bin/verilator_coverage_bin*

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Parse syntax tree
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 
 #include "V3Ast.h"  // This must be before V3ParseBison.cpp, as we don't want #defines to conflict
 
@@ -79,7 +79,7 @@ void V3ParseGrammar::argWrapList(AstNodeFTaskRef* nodep) {
     if (outp) nodep->addPinsp(outp);
 }
 
-AstNode* V3ParseGrammar::createSupplyExpr(FileLine* fileline, string name, int value) {
+AstNode* V3ParseGrammar::createSupplyExpr(FileLine* fileline, const string& name, int value) {
     return new AstAssignW(fileline, new AstVarRef(fileline, name, true),
                           new AstConst(fileline, AstConst::StringToParse(),
                                        (value ? "'1" : "'0")));
@@ -88,11 +88,16 @@ AstNode* V3ParseGrammar::createSupplyExpr(FileLine* fileline, string name, int v
 AstRange* V3ParseGrammar::scrubRange(AstNodeRange* nrangep) {
     // Remove any UnsizedRange's from list
     for (AstNodeRange* nodep = nrangep, *nextp; nodep; nodep = nextp) {
-        nextp = VN_CAST(nrangep->nextp(), NodeRange);
+        nextp = VN_CAST(nodep->nextp(), NodeRange);
         if (!VN_IS(nodep, Range)) {
             nodep->v3error("Unsupported or syntax error: Unsized range in cell or other declaration");
             nodep->unlinkFrBack(); nodep->deleteTree(); VL_DANGLING(nodep);
         }
+    }
+    if (nrangep && nrangep->nextp()) {
+        // Not supported by at least 2 of big 3
+        nrangep->nextp()->v3error("Unsupported: Multidimensional cells/interfaces.");
+        nrangep->nextp()->unlinkFrBackWithNext()->deleteTree();
     }
     return VN_CAST(nrangep, Range);
 }
@@ -126,7 +131,7 @@ AstNodeDType* V3ParseGrammar::createArray(AstNodeDType* basep,
     return arrayp;
 }
 
-AstVar* V3ParseGrammar::createVariable(FileLine* fileline, string name,
+AstVar* V3ParseGrammar::createVariable(FileLine* fileline, const string& name,
                                        AstNodeRange* arrayp, AstNode* attrsp) {
     AstNodeDType* dtypep = GRAMMARP->m_varDTypep;
     UINFO(5,"  creVar "<<name<<"  decl="<<GRAMMARP->m_varDecl

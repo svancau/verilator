@@ -66,7 +66,7 @@ run(verilator_coverage_bin()
 #----------------------------------------------------------------------
 
 sub usage {
-    pod2usage(-verbose=>2, -exitval=>2, -output=>\*STDOUT);
+    pod2usage(-verbose=>2, -exitval=>0, -output=>\*STDOUT);
 }
 
 sub debug {
@@ -134,7 +134,12 @@ sub run {
                 warn "%Error: Verilator_coverage threw signal $status.\n" if !$Debug;
             }
         }
-        die "%Error: Command Failed $command\n";
+        if ($status != 256 || $Debug) {  # i.e. not normal exit(1)
+            warn "%Error: Command Failed $command\n";
+        }
+        exit $! if $!;  # errno
+        exit $? >> 8 if $? >> 8;  # child exit status
+        exit 255;  # last resort
     }
 }
 
@@ -264,7 +269,7 @@ Specifies a module search directory.
 
 =head1 DISTRIBUTION
 
-The latest version is available from L<http://www.veripool.org/>.
+The latest version is available from L<https://verilator.org>.
 
 Copyright 2003-2019 by Wilson Snyder.  Verilator is free software; you can
 redistribute it and/or modify the Verilator internals under the terms of

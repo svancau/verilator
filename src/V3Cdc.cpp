@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Clock Domain Crossing Lint
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -24,7 +24,7 @@
 // Trace back to previous flop
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -154,7 +154,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     CdcDumpVisitor(AstNode* nodep, std::ofstream* ofp, const string& prefix) {
         m_ofp = ofp;
         m_prefix = prefix;
@@ -181,7 +181,7 @@ private:
         }
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit CdcWidthVisitor(AstNode* nodep) {
         m_maxLineno = 0;
         m_maxFilenameLen = 0;
@@ -682,7 +682,7 @@ private:
     }
     virtual void visit(AstSenGate* nodep) {
         // First handle the clock part will be handled in a minute by visit AstSenItem
-        // The logic gating term is delt with as logic
+        // The logic gating term is dealt with as logic
         iterateNewStmt(nodep);
     }
     virtual void visit(AstAssignAlias* nodep) {
@@ -729,7 +729,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit CdcVisitor(AstNode* nodep) {
         m_logicVertexp = NULL;
         m_scopep = NULL;

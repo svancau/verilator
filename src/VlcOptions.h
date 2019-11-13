@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: verilator_coverage: Command line options
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _VLCOPTIONS_H_
 #define _VLCOPTIONS_H_ 1
 

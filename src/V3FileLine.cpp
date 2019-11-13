@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Error handling
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -102,7 +102,6 @@ void VFileContent::pushText(const string& text) {
     string leftover = m_lines.back() + text; m_lines.pop_back();
 
     // Insert line-by-line
-    string::size_type pos = 0;
     string::size_type line_start = 0;
     while (1) {
         string::size_type line_end = leftover.find("\n", line_start);
@@ -176,7 +175,7 @@ void FileLine::lineDirective(const char* textp, int& enterExitRef) {
     while (*textp && (isspace(*textp) || *textp=='"')) textp++;
 
     // Grab linenumber
-    const char *ln = textp;
+    const char* ln = textp;
     while (*textp && !isspace(*textp)) textp++;
     if (isdigit(*ln)) {
         lineno(atoi(ln));
@@ -184,7 +183,7 @@ void FileLine::lineDirective(const char* textp, int& enterExitRef) {
     while (*textp && (isspace(*textp) || *textp=='"')) textp++;
 
     // Grab filename
-    const char *fn = textp;
+    const char* fn = textp;
     while (*textp && !(isspace(*textp) || *textp=='"')) textp++;
     if (textp != fn) {
         string strfn = fn;
@@ -374,12 +373,12 @@ string FileLine::warnContext(bool secondary) const {
         // Don't show super-long lines as can fill screen and unlikely to help user
         if (!sourceLine.empty()
             && sourceLine.length() < SHOW_SOURCE_MAX_LENGTH
-            && sourceLine.length() >= (lastColumn()-1)) {
+            && sourceLine.length() >= (size_t)(lastColumn()-1)) {
             out += sourceLine+"\n";
             out += string((firstColumn()-1), ' ')+'^';
             // Can't use UASSERT_OBJ used in warnings already inside the error end handler
-            UASSERT_STATIC(lastColumn() >= firstColumn(), "Column numbers backwards");
-            if (lastColumn() != firstColumn()) {
+            if (lastColumn() > firstColumn()) {
+                // Note lastColumn() can be <= firstColumn() in some weird preproc expansions
                 out += string((lastColumn()-firstColumn()-1), '~');
             }
             out += "\n";

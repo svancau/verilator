@@ -7,7 +7,7 @@
 //         in perfectMatching(). True minimum-weight perfect matching
 //         would produce a better result. How much better is TBD.
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -505,7 +505,6 @@ void V3TSP::tspSort(const V3TSP::StateVec& states, V3TSP::StateVec* resultp) {
 
         if (max_cost_idx == resultp->size() - 1) {
             // List is already rotated for minimum cost. stop.
-            UASSERT(resultp->size() == resultp->size(), "sizes should match");
             return;
         }
 
@@ -545,7 +544,7 @@ public:
     }
     virtual int cost(const TspTestState* otherp) const {
         // For test purposes, each TspTestState is merely a point
-        // on the cartesian plane; cost is the linear distance
+        // on the Cartesian plane; cost is the linear distance
         // between two points.
         unsigned xabs, yabs;
         xabs = diff(otherp->m_xpos, m_xpos);

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Inlining of modules
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3TASK_H_
 #define _V3TASK_H_ 1
 
@@ -41,6 +41,11 @@ public:
     static void taskAll(AstNetlist* nodep);
     /// Return vector of [port, pin-connects-to]  (SLOW)
     static V3TaskConnects taskConnects(AstNodeFTaskRef* nodep, AstNode* taskStmtsp);
+    static string assignInternalToDpi(AstVar* portp, bool isRtn, bool isPtr,
+                                      const string& frSuffix, const string& toSuffix,
+                                      const string& frPrefix="");
+    static bool dpiToInternalFrStmt(AstVar* portp, const string& frName, bool cvt,
+                                    string& frstmt);
 };
 
 #endif  // Guard

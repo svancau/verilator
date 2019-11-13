@@ -20,10 +20,9 @@
 ///     all C++ files it generates.  It contains standard macros and
 ///     classes required by the Verilated code.
 ///
-/// Code available from: http://www.veripool.org/verilator
+/// Code available from: https://verilator.org
 ///
 //*************************************************************************
-
 
 #ifndef _VERILATED_H_
 #define _VERILATED_H_ 1  ///< Header Guard
@@ -141,7 +140,7 @@ class VL_CAPABILITY("mutex") VerilatedMutex {
     bool try_lock() VL_TRY_ACQUIRE(true) { return m_mutex.try_lock(); }
 };
 
-/// Lock guard for mutex (ala std::lock_guard), wrapped to allow -fthread_safety checks
+/// Lock guard for mutex (ala std::unique_lock), wrapped to allow -fthread_safety checks
 class VL_SCOPED_CAPABILITY VerilatedLockGuard {
     VL_UNCOPYABLE(VerilatedLockGuard);
   private:
@@ -154,6 +153,8 @@ class VL_SCOPED_CAPABILITY VerilatedLockGuard {
     ~VerilatedLockGuard() VL_RELEASE() {
         m_mutexr.unlock();
     }
+    void lock() VL_ACQUIRE() { m_mutexr.lock(); }
+    void unlock() VL_RELEASE() { m_mutexr.unlock(); }
 };
 
 #else  // !VL_THREADED
@@ -171,6 +172,8 @@ class VerilatedLockGuard {
 public:
     explicit VerilatedLockGuard(VerilatedMutex&) {}
     ~VerilatedLockGuard() {}
+    void lock() {}
+    void unlock() {}
 };
 
 #endif  // VL_THREADED
@@ -203,6 +206,8 @@ public:
 //=========================================================================
 /// Base class for all Verilated module classes
 
+class VerilatedScope;
+
 class VerilatedModule {
     VL_UNCOPYABLE(VerilatedModule);
 private:
@@ -216,13 +221,6 @@ public:
 //=========================================================================
 // Declare nets
 
-#ifndef VL_ST_SIG
-# define VL_ST_SIG8(name, msb,lsb)      CData name              ///< Declare signal, 1-8 bits
-# define VL_ST_SIG16(name, msb,lsb)     SData name              ///< Declare signal, 9-16 bits
-# define VL_ST_SIG64(name, msb,lsb)     QData name              ///< Declare signal, 33-64 bits
-# define VL_ST_SIG(name, msb,lsb)       IData name              ///< Declare signal, 17-32 bits
-# define VL_ST_SIGW(name,msb,lsb,words) WData name[words]       ///< Declare signal, 65+ bits
-#endif
 #ifndef VL_SIG
 # define VL_SIG8(name, msb,lsb)         CData name              ///< Declare signal, 1-8 bits
 # define VL_SIG16(name, msb,lsb)        SData name              ///< Declare signal, 9-16 bits
@@ -290,6 +288,11 @@ public:  // But for internal use only
 /// This class is initialized by main thread only. Reading post-init is thread safe.
 
 class VerilatedScope {
+public:
+    typedef enum {
+        SCOPE_MODULE, SCOPE_OTHER
+    } Type;  // Type of a scope, currently module is only interesting
+private:
     // Fastpath:
     VerilatedSyms*      m_symsp;        ///< Symbol table
     void**              m_callbacksp;   ///< Callback table pointer (Fastpath)
@@ -297,16 +300,20 @@ class VerilatedScope {
     // 4 bytes padding (on -m64), for rent.
     VerilatedVarNameMap* m_varsp;       ///< Variable map
     const char*         m_namep;        ///< Scope name (Slowpath)
+    const char*         m_identifierp;  ///< Identifier of scope (with escapes removed)
+    Type                m_type;         ///< Type of the scope
 
 public:  // But internals only - called from VerilatedModule's
     VerilatedScope();
     ~VerilatedScope();
-    void configure(VerilatedSyms* symsp, const char* prefixp, const char* suffixp) VL_MT_UNSAFE;
+    void configure(VerilatedSyms* symsp, const char* prefixp, const char* suffix,
+                   const char* identifier, const Type type) VL_MT_UNSAFE;
     void exportInsert(int finalize, const char* namep, void* cb) VL_MT_UNSAFE;
     void varInsert(int finalize, const char* namep, void* datap,
                    VerilatedVarType vltype, int vlflags, int dims, ...) VL_MT_UNSAFE;
     // ACCESSORS
     const char* name() const { return m_namep; }
+    const char* identifier() const { return m_identifierp; }
     inline VerilatedSyms* symsp() const { return m_symsp; }
     VerilatedVar* varFind(const char* namep) const VL_MT_SAFE_POSTINIT;
     VerilatedVarNameMap* varsp() const VL_MT_SAFE_POSTINIT { return m_varsp; }
@@ -322,6 +329,12 @@ public:  // But internals only - called from VerilatedModule's
             return scopep->exportFindError(funcnum);  // LCOV_EXCL_LINE
         }
     }
+    Type type() const { return m_type; }
+};
+
+class VerilatedHierarchy {
+public:
+    void add(VerilatedScope* fromp, VerilatedScope* top);
 };
 
 //===========================================================================
@@ -332,7 +345,7 @@ class Verilated {
     // Slow path variables
     static VerilatedMutex m_mutex;  ///< Mutex for s_s/s_ns members, when VL_THREADED
 
-    static VerilatedVoidCb  s_flushCb;  ///< Flush callback function
+    static VerilatedVoidCb s_flushCb;  ///< Flush callback function
 
     static struct Serialized {  // All these members serialized/deserialized
         // Fast path
@@ -396,9 +409,9 @@ public:
     /// 1 = Set all bits to one
     /// 2 = Randomize all bits
     static void randReset(int val) VL_MT_SAFE;
-    static int  randReset() VL_MT_SAFE { return s_s.s_randReset; }  ///< Return randReset value
+    static int randReset() VL_MT_SAFE { return s_s.s_randReset; }  ///< Return randReset value
     static void randSeed(int val) VL_MT_SAFE;
-    static int  randSeed() VL_MT_SAFE { return s_s.s_randSeed; }  ///< Return randSeed value
+    static int randSeed() VL_MT_SAFE { return s_s.s_randSeed; }  ///< Return randSeed value
 
     /// Enable debug of internal verilated code
     static void debug(int level) VL_MT_SAFE;
@@ -736,7 +749,7 @@ extern double sc_time_stamp();
 # define SP_AUTO_COVER3(what,file,line)
 #endif
 
-
+
 //=========================================================================
 // Functional macros/routines
 // These all take the form
@@ -1637,7 +1650,7 @@ static inline IData VL_REPLICATE_III(int, int lbits, int, IData ld, IData rep) V
         returndata = returndata << lbits;
         returndata |= ld;
     }
-    return (returndata);
+    return returndata;
 }
 static inline QData VL_REPLICATE_QII(int, int lbits, int, IData ld, IData rep) VL_PURE {
     QData returndata = ld;
@@ -1645,7 +1658,7 @@ static inline QData VL_REPLICATE_QII(int, int lbits, int, IData ld, IData rep) V
         returndata = returndata << lbits;
         returndata |= static_cast<QData>(ld);
     }
-    return (returndata);
+    return returndata;
 }
 static inline WDataOutP VL_REPLICATE_WII(int obits, int lbits, int,
                                          WDataOutP owp, IData ld, IData rep) VL_MT_SAFE {

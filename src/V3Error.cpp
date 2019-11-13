@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Error handling
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "V3Error.h"
 #ifndef _V3ERROR_NO_GLOBAL_
 # include "V3Ast.h"
@@ -141,7 +141,7 @@ void V3Error::vlAbort() {
         std::cerr<<msgPrefix()<<"Aborting since under --debug"<<endl;
         abort();
     } else {
-        exit(10);
+        exit(1);
     }
 }
 
@@ -228,7 +228,7 @@ void V3Error::v3errorEnd(std::ostringstream& sstr, const string& locationStr) {
             if (!inFatal) {
                 inFatal = true;
                 if (s_tellManual==1) {
-                    std::cerr<<warnMore()<<"... See the manual and http://www.veripool.org/verilator for more assistance."<<endl;
+                    std::cerr<<warnMore()<<"... See the manual and https://verilator.org for more assistance."<<endl;
                     s_tellManual = 2;
                 }
 #ifndef _V3ERROR_NO_GLOBAL_

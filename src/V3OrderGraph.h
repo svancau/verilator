@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Block code ordering
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -39,7 +39,7 @@
 //          OrderPostCutEdge
 //          OrderPreCutEdge
 //*************************************************************************
-
+
 
 #ifndef _V3ORDERGRAPH_H_
 #define _V3ORDERGRAPH_H_

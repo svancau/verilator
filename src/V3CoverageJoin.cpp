@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Netlist (top level) functions
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -20,7 +20,7 @@
 // COVERAGEJOIN TRANSFORMATIONS:
 //      If two COVERTOGGLEs have same VARSCOPE, combine them
 //*************************************************************************
-
+
 
 #include "config_build.h"
 #include "verilatedos.h"
@@ -50,7 +50,7 @@ private:
     // STATE
     ToggleList          m_toggleps;     // List of of all AstCoverToggle's
 
-    V3Double0           m_statToggleJoins;  // Statistic tracking
+    VDouble0            m_statToggleJoins;  // Statistic tracking
 
     // METHODS
     VL_DEBUG_FUNC;  // Declare debug()
@@ -119,7 +119,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit CoverageJoinVisitor(AstNetlist* nodep) {
         iterate(nodep);
     }

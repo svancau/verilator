@@ -2,7 +2,72 @@ Revision history for Verilator
 
 The contributors that suggested a given feature are shown in []. Thanks!
 
-* Verilator 4.019 devel
+* Verilator 4.023 devel
+
+
+* Verilator 4.022 2019-11-10
+
+**    Add --protect-lib, bug1490. [Todd Strader]
+
+**    Add cmake support, bug1363. [Patrick Stewart]
+
+***   Examples have been renamed.
+
+***   Add --protect-ids to obscure information in objects, bug1521. [Todd Strader]
+
+***   Add --trace-coverage.
+
+***   Add --xml-output.
+
+***   Support multithreading on Windows. [Patrick Stewart]
+
+***   Suppress 'command failed' on normal errors.
+
+***   Support some unpacked arrays in parameters, bug1315. [Marshal Qiao]
+
+***   Add interface port visibility in traces, bug1594. [Todd Strader]
+
+****  Increase case duplicate/incomplete to 16 bit tables, bug1545. [Yossi Nivin]
+
+****  Support quoted arguments in -f files, bug1535. [Yves Mathieu]
+
+****  Optimize modulus by power-of-two constants, and masked conditionals.
+
+****  Fix detecting missing reg types, bug1570. [Jacko Dirks]
+
+****  Fix multithreaded yield behavior when no work.  [Patrick Stewart]
+
+****  Fix bad-syntax crashes, bug1548, bug1550-1553, bug1557-1560, bug1563,
+      bug1573-1577, bug1579, bug1582-1591. [Eric Rippey]
+
+****  Fix false CMPCONST/UNSIGNED warnings on "inside", bug1581. [Mitch Hayenga]
+
+
+* Verilator 4.020 2019-10-06
+
+***   Support $fseek, $ftell, $frewind, bug1496. [Howard Su]
+
+***   Add --public-flat-rw, bug1511. [Stefan Wallentowitz]
+
+***   Support vpiModule, bug1469. [Stefan Wallentowitz]
+
+****  Make Syms file honor --output-split-cfuncs, bug1499. [Todd Strader]
+
+****  Fix make test with no VERILATOR_ROOT, bug1494. [Ahmed El-Mahmoudy]
+
+****  Fix error on multidimensional cells, bug1505. [Anderson Ignacio Da Silva]
+
+****  Fix config_rev revision detection on old versions.
+
+****  Fix false warning on backward indexing, bug1507. [Hao Shi]
+
+****  Fix vpiType accessor, bug1509, bug1510. [Stefan Wallentowitz]
+
+****  Fix ugly error on interface misuse, bug1525. [Bogdan Vukobratovic]
+
+****  Fix misc bad-syntax crashes, bug1529-bug1533. [Eric Rippey]
+
+****  Fix case statements with strings, bug1536. [Philipp Wagner]
 
 
 * Verilator 4.018 2019-08-29
@@ -3314,7 +3379,7 @@ of input ports exists for tracing.
 * Verilator 0.0 1994/7/8
 
 **** First code written.
-
+
 ----------------------------------------------------------------------
 
 This uses outline mode in Emacs.  See C-h m [M-x describe-mode].

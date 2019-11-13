@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Expression width calculations
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -66,7 +66,7 @@
 // See notes in internal.txt about misuse of iterateAndNext and use of
 // iterateSubtreeReturnEdits.
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -166,7 +166,7 @@ class WidthClearVisitor {
         }
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit WidthClearVisitor(AstNetlist* nodep) {
         clearWidthRecurse(nodep);
     }
@@ -755,7 +755,8 @@ private:
                                    <<" outside data type's '"<< adtypep->declRange() << "'");
                 }
                 else if ((nodep->declRange().littleEndian()
-                          != adtypep->declRange().littleEndian())) {
+                          != adtypep->declRange().littleEndian())
+                         && nodep->declRange().hi() != nodep->declRange().lo()) {
                     nodep->v3error("Slice selection '"<< nodep->declRange() << "'"
                                    <<" has backward indexing versus data type's '"
                                    <<adtypep->declRange() << "'");
@@ -951,6 +952,7 @@ private:
         AstAttrOf* oldAttr = m_attrp;
         m_attrp = nodep;
         userIterateAndNext(nodep->fromp(), WidthVP(SELF, BOTH).p());
+        if (nodep->dimp()) userIterateAndNext(nodep->dimp(), WidthVP(SELF, BOTH).p());
         // Don't iterate children, don't want to lose VarRef.
         switch (nodep->attrType()) {
         case AstAttrType::VAR_BASE:
@@ -980,9 +982,13 @@ private:
                         "Unsized expression");
             std::pair<uint32_t,uint32_t> dim
                 = nodep->fromp()->dtypep()->skipRefp()->dimensions(true);
-            uint32_t msbdim = dim.first+dim.second;
-            if (!nodep->dimp() || VN_IS(nodep->dimp(), Const) || msbdim<1) {
-                int dim = !nodep->dimp() ? 1 : VN_CAST(nodep->dimp(), Const)->toSInt();
+            uint32_t msbdim = dim.first + dim.second;
+            if (!nodep->dimp() || msbdim < 1) {
+                int dim = 1;
+                AstConst* newp = dimensionValue(nodep->fromp()->dtypep(), nodep->attrType(), dim);
+                nodep->replaceWith(newp); nodep->deleteTree(); VL_DANGLING(nodep);
+            } else if (VN_IS(nodep->dimp(), Const)) {
+                int dim = VN_CAST(nodep->dimp(), Const)->toSInt();
                 AstConst* newp = dimensionValue(nodep->fromp()->dtypep(), nodep->attrType(), dim);
                 nodep->replaceWith(newp); nodep->deleteTree(); VL_DANGLING(nodep);
             }
@@ -1444,6 +1450,9 @@ private:
         }
         nodep->dtypeFrom(nodep->itemp());
     }
+    virtual void visit(AstInitItem* nodep) {
+        userIterateChildren(nodep, m_vup);
+    }
     virtual void visit(AstInitArray* nodep) {
         // InitArray has type of the array; children are array values
         if (m_vup->prelim()) {  // First stage evaluation
@@ -1486,13 +1495,15 @@ private:
             AstNode* inewp;
             if (AstInsideRange* irangep = VN_CAST(itemp, InsideRange)) {
                 // Similar logic in V3Case
-                inewp = new AstAnd(itemp->fileline(),
-                                   new AstGte(itemp->fileline(),
-                                              nodep->exprp()->cloneTree(true),
-                                              irangep->lhsp()->unlinkFrBack()),
-                                   new AstLte(itemp->fileline(),
-                                              nodep->exprp()->cloneTree(true),
-                                              irangep->rhsp()->unlinkFrBack()));
+                AstNode* ap = new AstGte(itemp->fileline(),
+                                         nodep->exprp()->cloneTree(true),
+                                         irangep->lhsp()->unlinkFrBack());
+                AstNode* bp = new AstLte(itemp->fileline(),
+                                         nodep->exprp()->cloneTree(true),
+                                         irangep->rhsp()->unlinkFrBack());
+                ap->fileline()->modifyWarnOff(V3ErrorCode::UNSIGNED, true);
+                bp->fileline()->modifyWarnOff(V3ErrorCode::CMPCONST, true);
+                inewp = new AstAnd(itemp->fileline(), ap, bp);
             } else {
                 inewp = new AstEqWild(itemp->fileline(),
                                       nodep->exprp()->cloneTree(true),
@@ -1566,6 +1577,7 @@ private:
         userIterateChildren(nodep, WidthVP(SELF, BOTH).p());
         if (debug()>=9) nodep->dumpTree("-mbs-ic: ");
         // Find the fromp dtype - should be a class
+        if (!nodep->fromp()->dtypep()) nodep->fromp()->v3fatalSrc("Unlinked data type");
         AstNodeDType* fromDtp = nodep->fromp()->dtypep()->skipRefToEnump();
         UINFO(9,"     from dt "<<fromDtp<<endl);
         AstMemberDType* memberp = NULL;  // NULL=error below
@@ -1789,9 +1801,12 @@ private:
             nodep->dtypep(m_vup->dtypep());
         }
         AstNodeDType* vdtypep = nodep->dtypep();
-        if (!vdtypep) nodep->v3error("Unsupported/Illegal: Assignment pattern"
-                                     " member not underneath a supported construct: "
-                                     <<nodep->backp()->prettyTypeName());
+        if (!vdtypep) {
+            nodep->v3error("Unsupported/Illegal: Assignment pattern"
+                           " member not underneath a supported construct: "
+                           <<nodep->backp()->prettyTypeName());
+            return;
+        }
         {
             vdtypep = vdtypep->skipRefp();
             nodep->dtypep(vdtypep);
@@ -1983,13 +1998,9 @@ private:
                             if (!newp) {
                                 AstInitArray* newap
                                     = new AstInitArray(nodep->fileline(), arrayp, NULL);
-                                newap->addValuep(valuep);
                                 newp = newap;
-                            } else {
-                                // We iterate hi()..lo() as that is what packed needs,
-                                // but INITARRAY needs lo() first
-                                VN_CAST(newp, InitArray)->addFrontValuep(valuep);
                             }
+                            VN_CAST(newp, InitArray)->addIndexValuep(ent - range.lo(), valuep);
                         } else {  // Packed. Convert to concat for now.
                             if (!newp) newp = valuep;
                             else {
@@ -2354,6 +2365,20 @@ private:
             iterateCheckFileDesc(nodep, nodep->filep(), BOTH);
         }
     }
+    virtual void visit(AstFRewind* nodep) {
+        iterateCheckFileDesc(nodep, nodep->filep(), BOTH);
+        nodep->dtypeSetLogicUnsized(32, 1, AstNumeric::SIGNED);  // Spec says integer return
+    }
+    virtual void visit(AstFTell* nodep) {
+        iterateCheckFileDesc(nodep, nodep->filep(), BOTH);
+        nodep->dtypeSetLogicUnsized(32, 1, AstNumeric::SIGNED);  // Spec says integer return
+    }
+    virtual void visit(AstFSeek* nodep) {
+        iterateCheckFileDesc(nodep, nodep->filep(), BOTH);
+        iterateCheckSigned32(nodep, "$fseek offset", nodep->offset(), BOTH);
+        iterateCheckSigned32(nodep, "$fseek operation", nodep->operation(), BOTH);
+        nodep->dtypeSetLogicUnsized(32, 1, AstNumeric::SIGNED);  // Spec says integer return
+    }
     virtual void visit(AstFGetC* nodep) {
         if (m_vup->prelim()) {
             iterateCheckFileDesc(nodep, nodep->filep(), BOTH);
@@ -2464,6 +2489,7 @@ private:
             userIterateAndNext(nodep->exprp(), WidthVP(nodep->modVarp()->dtypep(), PRELIM).p());
             AstNodeDType* pinDTypep = nodep->modVarp()->dtypep();
             AstNodeDType* conDTypep = nodep->exprp()->dtypep();
+            if (!conDTypep) nodep->v3fatalSrc("Unlinked pin data type");
             AstNodeDType* subDTypep = pinDTypep;
             int pinwidth = pinDTypep->width();
             int conwidth = conDTypep->width();
@@ -3475,7 +3501,12 @@ private:
         UASSERT_OBJ(stage == FINAL, nodep, "Bad state to iterateCheck");
         UASSERT_OBJ(underp && underp->dtypep(), nodep,
                     "Node has no type");  // Perhaps forgot to do a prelim visit on it?
-        if (expDTypep == underp->dtypep()) {  // Perfect
+        if (VN_IS(underp, NodeDType)) {  // Note the node itself, not node's data type
+            // Must be near top of these checks as underp->dtypep() will look normal
+            underp->v3error(ucfirst(nodep->prettyOperatorName())
+                            <<" expected non-datatype "<<side
+                            <<" but '"<<underp->name()<<"' is a datatype.");
+        } else if (expDTypep == underp->dtypep()) {  // Perfect
             underp = userIterateSubtreeReturnEdits(underp, WidthVP(SELF, FINAL).p());
         } else if (expDTypep->isDouble() && underp->isDouble()) {  // Also good
             underp = userIterateSubtreeReturnEdits(underp, WidthVP(SELF, FINAL).p());
@@ -3516,6 +3547,12 @@ private:
                 // Note the check uses the expected size, not the child's subDTypep as we want the
                 // child node's width to end up correct for the assignment (etc)
                 widthCheckSized(nodep, side, underp, expDTypep, extendRule, warnOn);
+            }
+            else if (!VN_IS(expDTypep, IfaceRefDType)
+                     && VN_IS(underp->dtypep(), IfaceRefDType)) {
+                underp->v3error(ucfirst(nodep->prettyOperatorName())
+                                <<" expected non-interface on "<<side
+                                <<" but '"<<underp->name()<<"' is an interface.");
             }
             else {
                 // Hope it just works out
@@ -4169,7 +4206,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     WidthVisitor(bool paramsOnly,  // [in] TRUE if we are considering parameters only.
                  bool doGenerate) {  // [in] TRUE if we are inside a generate statement and
         //                           // don't wish to trigger errors
@@ -4228,7 +4265,7 @@ AstNode* V3Width::widthParamsEdit(AstNode* nodep) {
 //! trigger warnings when we deal with the width. It is possible that
 //! these are spurious, existing within sub-expressions that will not
 //! actually be generated. Since such occurrences, must be constant, in
-//! order to be someting a generate block can depend on, we can wait until
+//! order to be something a generate block can depend on, we can wait until
 //! later to do the width check.
 //! @return  Pointer to the edited node.
 AstNode* V3Width::widthGenerateParamsEdit(

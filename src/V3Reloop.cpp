@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Recreate loops to help pack caches
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -32,7 +32,7 @@
 //   Likewise vector assign to the same constant converted to a loop.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -58,8 +58,8 @@ private:
     AstUser1InUse       m_inuser1;
 
     // STATE
-    V3Double0           m_statReloops;  // Statistic tracking
-    V3Double0           m_statReItems;  // Statistic tracking
+    VDouble0            m_statReloops;  // Statistic tracking
+    VDouble0            m_statReItems;  // Statistic tracking
     AstCFunc*           m_cfuncp;       // Current block
 
     AssVec              m_mgAssignps;   // List of assignments merging
@@ -233,7 +233,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit ReloopVisitor(AstNetlist* nodep) {
         m_cfuncp = NULL;
         m_mgCfuncp = NULL;

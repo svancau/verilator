@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilog::Preproc: Internal implementation of default preprocessor
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -46,7 +46,7 @@
 
 //*************************************************************************
 
-class V3Define {
+class VDefine {
     // Define class.  One for each define.
     //string    m_name;         // Name of the define (list is keyed by this)
     FileLine*   m_fileline;     // Where it was declared
@@ -54,7 +54,7 @@ class V3Define {
     string      m_params;       // Parameters
     bool        m_cmdline;      // Set on command line, don't `undefineall
 public:
-    V3Define(FileLine* fl, const string& value, const string& params, bool cmdline)
+    VDefine(FileLine* fl, const string& value, const string& params, bool cmdline)
         : m_fileline(fl), m_value(value), m_params(params), m_cmdline(cmdline) {}
     FileLine* fileline() const { return m_fileline; }
     string value() const { return m_value; }
@@ -64,7 +64,7 @@ public:
 
 //*************************************************************************
 
-class V3DefineRef {
+class VDefineRef {
     // One for each pending define substitution
     string      m_name;         // Define last name being defined
     string      m_params;       // Define parameter list for next expansion
@@ -80,9 +80,9 @@ public:
     int parenLevel() const { return m_parenLevel; }
     void parenLevel(int value) { m_parenLevel = value; }
     std::vector<string>& args() { return m_args; }
-    V3DefineRef(const string& name, const string& params)
+    VDefineRef(const string& name, const string& params)
         : m_name(name), m_params(params), m_parenLevel(0) {}
-    ~V3DefineRef() {}
+    ~VDefineRef() {}
 };
 
 //*************************************************************************
@@ -106,8 +106,8 @@ public:
 class V3PreProcImp : public V3PreProc {
 public:
     // TYPES
-    typedef std::map<string,V3Define> DefinesMap;
-    typedef V3InFilter::StrList StrList;
+    typedef std::map<string,VDefine> DefinesMap;
+    typedef VInFilter::StrList StrList;
 
     // debug() -> see V3PreShellImp::debug; use --debugi-V3PreShell
 
@@ -118,6 +118,8 @@ public:
     V3PreProc* m_preprocp;  ///< Object we're holding data for
     V3PreLex* m_lexp;  ///< Current lexer state (NULL = closed)
     std::stack<V3PreLex*> m_includeStack;  ///< Stack of includers above current m_lexp
+    int m_lastLineno;  // Last line number (stall detection)
+    int m_tokensOnLine;  // Number of tokens on line (stall detection)
 
     enum ProcState { ps_TOP,
                      ps_DEFNAME_UNDEF, ps_DEFNAME_DEFINE,
@@ -136,6 +138,7 @@ public:
 
     std::stack<ProcState> m_states;  ///< Current state of parser
     int         m_off;          ///< If non-zero, ifdef level is turned off, don't dump text
+    bool        m_incError;     ///< Include error found
     string      m_lastSym;      ///< Last symbol name found.
     string      m_formals;      ///< Last formals found
 
@@ -156,7 +159,7 @@ public:
     string      m_strify;       ///< Text to be stringified
 
     // For defines
-    std::stack<V3DefineRef> m_defRefs;  ///< Pending definine substitution
+    std::stack<VDefineRef> m_defRefs;  ///< Pending define substitution
     std::stack<VPreIfEntry> m_ifdefStack;   ///< Stack of true/false emitting evaluations
     unsigned    m_defDepth;     ///< How many `defines deep
     bool        m_defPutJoin;   ///< Insert `` after substitution
@@ -179,7 +182,7 @@ public:
 private:
     // Internal methods
     void endOfOneFile();
-    string defineSubst(V3DefineRef* refp);
+    string defineSubst(VDefineRef* refp);
 
     bool defExists(const string& name);
     string defValue(const string& name);
@@ -227,8 +230,9 @@ private:
 
 public:
     // METHODS, called from upper level shell
-    void openFile(FileLine* fl, V3InFilter* filterp, const string& filename);
+    void openFile(FileLine* fl, VInFilter* filterp, const string& filename);
     bool isEof() const { return m_lexp->curStreamp()->m_eof; }
+    void forceEof() { m_lexp->curStreamp()->m_eof = true; }
     string getline();
     void insertUnreadback(const string& text) { m_lineCmt += text; }
     void insertUnreadbackAtBol(const string& text);
@@ -250,6 +254,7 @@ public:
         m_debug = 0;
         m_states.push(ps_TOP);
         m_off = 0;
+        m_incError = false;
         m_lineChars = "";
         m_lastSym = "";
         m_lineAdd = 0;
@@ -263,6 +268,8 @@ public:
         m_finFilelinep = NULL;
         m_lexp = NULL;
         m_preprocp = NULL;
+        m_lastLineno = 0;
+        m_tokensOnLine = 0;
     }
     void configure(FileLine* filelinep) {
         // configure() separate from constructor to avoid calling abstract functions
@@ -341,7 +348,7 @@ void V3PreProcImp::define(FileLine* fl, const string& name, const string& value,
         }
         undef(name);
     }
-    m_defines.insert(make_pair(name, V3Define(fl, value, params, cmdline)));
+    m_defines.insert(make_pair(name, VDefine(fl, value, params, cmdline)));
 }
 
 string V3PreProcImp::removeDefines(const string& text) {
@@ -495,6 +502,7 @@ const char* V3PreProcImp::tokenName(int tok) {
     case VP_ELSIF       : return("ELSIF");
     case VP_ENDIF       : return("ENDIF");
     case VP_EOF         : return("EOF");
+    case VP_EOF_ERROR   : return("EOF_ERROR");
     case VP_ERROR       : return("ERROR");
     case VP_IFDEF       : return("IFDEF");
     case VP_IFNDEF      : return("IFNDEF");
@@ -557,14 +565,14 @@ string V3PreProcImp::trimWhitespace(const string& strg, bool trailing) {
     return out;
 }
 
-string V3PreProcImp::defineSubst(V3DefineRef* refp) {
+string V3PreProcImp::defineSubst(VDefineRef* refp) {
     // Substitute out defines in a define reference.
     // (We also need to call here on non-param defines to handle `")
     // We could push the define text back into the lexer, but that's slow
     // and would make recursive definitions and parameter handling nasty.
     //
     // Note we parse the definition parameters and value here.  If a
-    // parametrized define is used many, many times, we could cache the
+    // parameterized define is used many, many times, we could cache the
     // parsed result.
     UINFO(4,"defineSubstIn  `"<<refp->name()<<" "<<refp->params()<<endl);
     for (unsigned i=0; i<refp->args().size(); i++) {
@@ -598,7 +606,7 @@ string V3PreProcImp::defineSubst(V3DefineRef* refp) {
                     // Parse it
                     if (argName!="") {
                         if (refp->args().size() > numArgs) {
-                            // A call `def( a ) must be equivelent to `def(a ), so trimWhitespace
+                            // A call `def( a ) must be equivalent to `def(a ), so trimWhitespace
                             // At one point we didn't trim trailing
                             // whitespace, but this confuses `"
                             string arg = trimWhitespace(refp->args()[numArgs], true);
@@ -746,8 +754,9 @@ string V3PreProcImp::defineSubst(V3DefineRef* refp) {
 //**********************************************************************
 // Parser routines
 
-void V3PreProcImp::openFile(FileLine* fl, V3InFilter* filterp, const string& filename) {
+void V3PreProcImp::openFile(FileLine* fl, VInFilter* filterp, const string& filename) {
     // Open a new file, possibly overriding the current one which is active.
+    if (m_incError) return;
     V3File::addSrcDepend(filename);
 
     // Read a list<string> with the whole file.
@@ -761,8 +770,11 @@ void V3PreProcImp::openFile(FileLine* fl, V3InFilter* filterp, const string& fil
     if (!m_preprocp->isEof()) {  // IE not the first file.
         // We allow the same include file twice, because occasionally it pops
         // up, with guards preventing a real recursion.
-        if (m_lexp->m_streampStack.size()>V3PreProc::INCLUDE_DEPTH_MAX) {
+        if (m_lexp->m_streampStack.size() > V3PreProc::INCLUDE_DEPTH_MAX) {
             error("Recursive inclusion of file: "+filename);
+            // Include might be a tree of includes that is O(n^2) or worse.
+            // Once hit this error then, ignore all further includes so can unwind.
+            m_incError = true;
             return;
         }
         // There's already a file active.  Push it to work on the new one.
@@ -853,7 +865,7 @@ int V3PreProcImp::getRawToken() {
             m_rawAtBol = true;
             yyourtext("\n", 1);
             if (debug()>=5) debugToken(VP_WHITE, "LNA");
-            return (VP_WHITE);
+            return VP_WHITE;
         }
         if (m_lineCmt!="") {
             // We have some `line directive or other processed data to return to the user.
@@ -871,20 +883,30 @@ int V3PreProcImp::getRawToken() {
                 goto next_tok;
             } else {
                 if (debug()>=5) debugToken(VP_TEXT, "LCM");
-                return (VP_TEXT);
+                return VP_TEXT;
             }
         }
-        if (isEof()) return (VP_EOF);
+        if (isEof()) return VP_EOF;
 
         // Snarf next token from the file
         m_lexp->curFilelinep()->startToken();
         int tok = m_lexp->lex();
-
         if (debug()>=5) debugToken(tok, "RAW");
 
-        // A EOF on an include, so we can print `line and detect mis-matched "s
-        if (tok==VP_EOF) {
-            goto next_tok;  // find the EOF, after adding needed lines
+        if (m_lastLineno != m_lexp->m_tokFilelinep->lineno()) {
+            m_lastLineno = m_lexp->m_tokFilelinep->lineno();
+            m_tokensOnLine = 0;
+        } else if (++m_tokensOnLine > LINE_TOKEN_MAX) {
+            error("Too many preprocessor tokens on a line (>"+cvtToStr(LINE_TOKEN_MAX)
+                  +"); perhaps recursive `define");
+            tok = VP_EOF_ERROR;
+        }
+
+        if (tok==VP_EOF || tok==VP_EOF_ERROR) {
+            // An error might be in an unexpected point, so stop parsing
+            if (tok==VP_EOF_ERROR) forceEof();
+            // A EOF on an include, stream will find the EOF, after adding needed `lines
+            goto next_tok;
         }
 
         if (yyourleng()) m_rawAtBol = (yyourtext()[yyourleng()-1]=='\n');
@@ -923,7 +945,7 @@ int V3PreProcImp::getStateToken() {
         int tok = getRawToken();
 
         // Most states emit white space and comments between tokens. (Unless collecting a string)
-        if (tok==VP_WHITE && state() !=ps_STRIFY) return (tok);
+        if (tok==VP_WHITE && state() !=ps_STRIFY) return tok;
         if (tok==VP_BACKQUOTE && state() !=ps_STRIFY) { tok = VP_TEXT; }
         if (tok==VP_COMMENT) {
             if (!m_off) {
@@ -933,7 +955,7 @@ int V3PreProcImp::getStateToken() {
                     // Need to ensure "foo/**/bar" becomes two tokens
                     insertUnreadback(" ");
                 } else if (m_lexp->m_keepComments) {
-                    return (tok);
+                    return tok;
                 } else {
                     // Need to ensure "foo/**/bar" becomes two tokens
                     insertUnreadback(" ");
@@ -954,7 +976,7 @@ int V3PreProcImp::getStateToken() {
 
         if (tok==VP_DEFREF_JOIN) {
             // Here's something fun and unspecified as yet:
-            // The existance of non-existance of a base define changes `` expansion
+            // The existence of non-existance of a base define changes `` expansion
             //  `define QA_b zzz
             //  `define Q1 `QA``_b
             //   1Q1 -> zzz
@@ -1048,7 +1070,7 @@ int V3PreProcImp::getStateToken() {
                 else goto next_tok;
             }
             else if (tok==VP_DEFREF) {
-                // IE, `ifdef `MACRO(x): Substitue and come back here when state pops.
+                // IE, `ifdef `MACRO(x): Substitute and come back here when state pops.
                 break;
             }
             else {
@@ -1121,7 +1143,7 @@ int V3PreProcImp::getStateToken() {
                 goto next_tok;
             } else {
                 if (m_defRefs.empty()) fatalSrc("Shouldn't be in DEFPAREN w/o active defref");
-                V3DefineRef* refp = &(m_defRefs.top());
+                VDefineRef* refp = &(m_defRefs.top());
                 error(string("Expecting ( to begin argument list for define reference `")+refp->name()+"\n");
                 statePop();
                 goto next_tok;
@@ -1129,7 +1151,7 @@ int V3PreProcImp::getStateToken() {
         }
         case ps_DEFARG: {
             if (m_defRefs.empty()) fatalSrc("Shouldn't be in DEFARG w/o active defref");
-            V3DefineRef* refp = &(m_defRefs.top());
+            VDefineRef* refp = &(m_defRefs.top());
             refp->nextarg(refp->nextarg()+m_lexp->m_defValue); m_lexp->m_defValue = "";
             UINFO(4,"defarg++ "<<refp->nextarg()<<endl);
             if (tok==VP_DEFARG && yyourleng()==1 && yyourtext()[0]==',') {
@@ -1288,7 +1310,7 @@ int V3PreProcImp::getStateToken() {
             }
             else if (tok==VP_DEFREF) {
                 // Spec says to expand macros inside `"
-                // Substitue it into the stream, then return here
+                // Substitute it into the stream, then return here
                 break;
             }
             else {
@@ -1363,7 +1385,7 @@ int V3PreProcImp::getStateToken() {
                 if (m_off) {
                     goto next_tok;
                 } else {
-                    return (VP_TEXT);
+                    return VP_TEXT;
                 }
             }
             else {
@@ -1371,7 +1393,7 @@ int V3PreProcImp::getStateToken() {
                 if (params=="0" || params=="") {  // Found, as simple substitution
                     string out;
                     if (!m_off) {
-                        V3DefineRef tempref(name, "");
+                        VDefineRef tempref(name, "");
                         out = defineSubst(&tempref);
                     }
                     // Similar code in parenthesized define (Search for END_OF_DEFARG)
@@ -1393,7 +1415,7 @@ int V3PreProcImp::getStateToken() {
                         // Can't subst now, or
                         // `define a x,y
                         // foo(`a,`b)  would break because a contains comma
-                        V3DefineRef* refp = &(m_defRefs.top());
+                        VDefineRef* refp = &(m_defRefs.top());
                         refp->nextarg(refp->nextarg()+m_lexp->m_defValue+out);
                         m_lexp->m_defValue = "";
                     }
@@ -1404,7 +1426,7 @@ int V3PreProcImp::getStateToken() {
                     // The CURRENT macro needs the paren saved, it's not a
                     // property of the child macro
                     if (!m_defRefs.empty()) m_defRefs.top().parenLevel(m_lexp->m_parenLevel);
-                    m_defRefs.push(V3DefineRef(name, params));
+                    m_defRefs.push(VDefineRef(name, params));
                     statePush(ps_DEFPAREN);
                     m_lexp->pushStateDefArg(0);
                     goto next_tok;

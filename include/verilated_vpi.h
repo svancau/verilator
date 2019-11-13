@@ -19,10 +19,10 @@
 ///     This file must be compiled and linked against all objects
 ///     created from Verilator or called by Verilator that use the VPI.
 ///
-/// Code available from: http://www.veripool.org/verilator
+/// Code available from: https://verilator.org
 ///
 //=========================================================================
-
+
 #ifndef _VERILATED_VPI_H_
 #define _VERILATED_VPI_H_ 1  ///< Header Guard
 
@@ -45,6 +45,9 @@ public:
     /// Call value based callbacks
     /// Users should call this from their main loops
     static void callValueCbs() VL_MT_UNSAFE_ONE;
+    /// Call callbacks of arbitrary types
+    /// Users can call this from their application code
+    static bool callCbs(vluint32_t reason) VL_MT_UNSAFE_ONE;
     /// Self test, for internal use only
     static void selfTest() VL_MT_UNSAFE_ONE;
 };

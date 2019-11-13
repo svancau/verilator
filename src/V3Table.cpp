@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Make lookup tables
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -24,7 +24,7 @@
 //      replace with lookup table
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -75,7 +75,7 @@ private:
 
     // STATE
     double      m_totalBytes;           // Total bytes in tables created
-    V3Double0   m_statTablesCre;        // Statistic tracking
+    VDouble0    m_statTablesCre;        // Statistic tracking
 
     //  State cleared on each module
     AstNodeModule*      m_modp;         // Current MODULE
@@ -154,7 +154,7 @@ private:
 
 public:
     void simulateVarRefCb(AstVarRef* nodep) {
-        // Called by TableSimulateVisitor on each unique varref enountered
+        // Called by TableSimulateVisitor on each unique varref encountered
         UINFO(9,"   SimVARREF "<<nodep<<endl);
         AstVarScope* vscp = nodep->varScopep();
         if (nodep->lvalue()) {
@@ -283,7 +283,7 @@ private:
         // Create table
         // There may be a simulation path by which the output doesn't change value.
         // We could bail on these cases, or we can have a "change it" boolean.
-        // We've choosen the later route, since recirc is common in large FSMs.
+        // We've chosen the latter route, since recirc is common in large FSMs.
         for (std::deque<AstVarScope*>::iterator it = m_outVarps.begin();
              it != m_outVarps.end(); ++it) {
             m_outNotSet.push_back(false);

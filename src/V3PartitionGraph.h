@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Threading's graph structures
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3PARTITIONGRAPH_H_
 #define _V3PARTITIONGRAPH_H_
 

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Resolve module/signal name references
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -22,7 +22,7 @@
 //          Sort cells by depth
 //          Create new MODULE TOP with connections to below signals
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -112,6 +112,7 @@ void V3LinkLevel::wrapTop(AstNetlist* rootp) {
     newmodp->addNext(oldmodp);
     newmodp->level(1);
     newmodp->modPublic(true);
+    newmodp->protect(false);
     rootp->addModulep(newmodp);
 
     // TODO the module creation above could be done after linkcells, but
@@ -145,7 +146,7 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
     typedef vl_unordered_set<std::string> NameSet;
     NameSet ioNames;
     NameSet dupNames;
-    // For all modulues, skipping over new top
+    // For all modules, skipping over new top
     for (AstNodeModule* oldmodp = VN_CAST(rootp->modulesp()->nextp(), NodeModule);
          oldmodp && oldmodp->level() <= 2;
          oldmodp = VN_CAST(oldmodp->nextp(), NodeModule)) {
@@ -163,7 +164,7 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
         }
     }
 
-    // For all modulues, skipping over new top
+    // For all modules, skipping over new top
     for (AstNodeModule* oldmodp = VN_CAST(rootp->modulesp()->nextp(), NodeModule);
          oldmodp && oldmodp->level() <= 2;
          oldmodp = VN_CAST(oldmodp->nextp(), NodeModule)) {
@@ -192,6 +193,7 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
 
                     AstVar* varp = oldvarp->cloneTree(false);
                     varp->name(name);
+                    varp->protect(false);
                     newmodp->addStmtp(varp);
                     varp->sigPublic(true);  // User needs to be able to get to it...
                     if (oldvarp->isIO()) {

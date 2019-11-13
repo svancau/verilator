@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Waves tracing
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -190,9 +190,9 @@ private:
     bool                m_finding;      // Pass one of algorithm?
     int                 m_funcNum;      // Function number being built
 
-    V3Double0           m_statChgSigs;  // Statistic tracking
-    V3Double0           m_statUniqSigs; // Statistic tracking
-    V3Double0           m_statUniqCodes;// Statistic tracking
+    VDouble0 m_statChgSigs;  // Statistic tracking
+    VDouble0 m_statUniqSigs;  // Statistic tracking
+    VDouble0 m_statUniqCodes;  // Statistic tracking
 
     // METHODS
     VL_DEBUG_FUNC;  // Declare debug()
@@ -501,7 +501,7 @@ private:
                         else condp = selp;
                     }
                     AstIf* ifp = new AstIf(fl, condp, NULL, NULL);
-                    ifp->branchPred(AstBranchPred::BP_UNLIKELY);
+                    ifp->branchPred(VBranchPred::BP_UNLIKELY);
                     m_chgFuncp->addStmtsp(ifp);
                     lastactp = &actset;
                     ifnodep = ifp;
@@ -684,7 +684,7 @@ private:
                 || nodep == v3Global.rootp()->evalp()) {
                 // Need a non-null place to remember to later add a statement; make one
                 if (!nodep->stmtsp()) nodep->addStmtsp(
-                    new AstComment(nodep->fileline(), "Tracing activity check"));
+                    new AstComment(nodep->fileline(), "Tracing activity check", true));
                 V3GraphVertex* activityVtxp = getActivityVertexp(nodep->stmtsp(), nodep->slow());
                 new V3GraphEdge(&m_graph, activityVtxp, funcVtxp, 1);
             }
@@ -737,7 +737,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit TraceVisitor(AstNetlist* nodep) {
         m_funcp = NULL;
         m_tracep = NULL;
@@ -756,7 +756,6 @@ public:
         m_chgSubStmts = 0;
         m_activityNumber = 0;
         m_code = 0;
-        m_finding = false;
         m_funcNum = 0;
         iterate(nodep);
     }

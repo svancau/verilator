@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Prevent very deep expressions
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -23,7 +23,7 @@
 //      For each deep block, create cfunc including that block.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -123,7 +123,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit DepthBlockVisitor(AstNetlist* nodep) {
         m_modp = NULL;
         m_funcp = NULL;

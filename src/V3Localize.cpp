@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Convert BLOCKTEMPs to local variables
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -25,7 +25,7 @@
 //             if non-public, set before used, and in single CFUNC, make it local
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -107,8 +107,8 @@ private:
     AstUser4InUse       m_inuser4;
 
     // STATE
-    V3Double0   m_statLocVars;  // Statistic tracking
-    AstCFunc*   m_cfuncp;       // Current active function
+    VDouble0 m_statLocVars;  // Statistic tracking
+    AstCFunc* m_cfuncp;  // Current active function
     std::vector<AstVar*> m_varps;  // List of variables to consider for deletion
 
     // METHODS

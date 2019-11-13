@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Add temporaries, such as for unroll nodes
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -27,7 +27,7 @@
 //      Convert remaining FORs to WHILEs
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -56,8 +56,8 @@ private:
     bool                m_varAssignHit;         // Assign var hit
     bool                m_generate;             // Expand single generate For loop
     string              m_beginName;            // What name to give begin iterations
-    V3Double0           m_statLoops;            // Statistic tracking
-    V3Double0           m_statIters;            // Statistic tracking
+    VDouble0            m_statLoops;            // Statistic tracking
+    VDouble0            m_statIters;            // Statistic tracking
 
     // METHODS
     VL_DEBUG_FUNC;  // Declare debug()
@@ -458,13 +458,13 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     UnrollVisitor() { init(false, ""); }
     virtual ~UnrollVisitor() {
         V3Stats::addStatSum("Optimizations, Unrolled Loops", m_statLoops);
         V3Stats::addStatSum("Optimizations, Unrolled Iterations", m_statIters);
     }
-    // METHORS
+    // METHODS
     void init(bool generate, const string& beginName) {
         m_forVarp = NULL;
         m_forVscp = NULL;

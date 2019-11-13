@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Waves tracing
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -52,9 +52,10 @@ private:
     AstVarScope*        m_traVscp;      // Signal being trace constructed
     AstNode*            m_traValuep;    // Signal being traced's value to trace in it
     string              m_traShowname;  // Signal being traced's component name
+    string              m_ifShowname;   // Interface reference being traced's scope name
 
-    V3Double0           m_statSigs;     // Statistic tracking
-    V3Double0           m_statIgnSigs;  // Statistic tracking
+    VDouble0            m_statSigs;     // Statistic tracking
+    VDouble0            m_statIgnSigs;  // Statistic tracking
 
     // METHODS
     VL_DEBUG_FUNC;  // Declare debug()
@@ -130,7 +131,8 @@ private:
     void addIgnore(const char* why) {
         ++m_statIgnSigs;
         m_initSubFuncp->addStmtsp(
-            new AstComment(m_traVscp->fileline(), "Tracing: "+m_traShowname+" // Ignored: "+why));
+            new AstComment(m_traVscp->fileline(),
+                           "Tracing: "+m_traShowname+" // Ignored: "+why, true));
     }
 
     // VISITORS
@@ -147,16 +149,24 @@ private:
     }
     virtual void visit(AstVarScope* nodep) {
         iterateChildren(nodep);
-        // Avoid updating this if (), instead see varp->isTrace()
-        if (!nodep->varp()->isTemp() && !nodep->varp()->isFuncLocal()) {
+        // Prefilter - things that get through this if will either get
+        // traced or get a comment as to why not traced.
+        // Generally this equation doesn't need updating, instead use
+        // varp->isTrace() and/or vscIgnoreTrace.
+        if ((!nodep->varp()->isTemp() || nodep->varp()->isTrace())
+            && !nodep->varp()->isFuncLocal()) {
             UINFO(5, "    vsc "<<nodep<<endl);
             AstVar* varp = nodep->varp();
             AstScope* scopep = nodep->scopep();
             // Compute show name
             // This code assumes SPTRACEVCDC_VERSION >= 1330;
             // it uses spaces to separate hierarchy components.
-            m_traShowname = AstNode::vcdName(scopep->name() + " " + varp->name());
-            if (m_traShowname.substr(0, 4) == "TOP ") m_traShowname.replace(0, 4, "");
+            if (m_ifShowname.empty()) {
+                m_traShowname = AstNode::vcdName(scopep->name() + " " + varp->name());
+                if (m_traShowname.substr(0, 4) == "TOP ") m_traShowname.replace(0, 4, "");
+            } else {
+                m_traShowname = AstNode::vcdName(m_ifShowname + " " + varp->name());
+            }
             UASSERT_OBJ(m_initSubFuncp, nodep, "NULL");
 
             m_traVscp = nodep;
@@ -190,6 +200,24 @@ private:
             iterate(nodep->subDTypep()->skipRefp());
         }
     }
+    virtual void visit(AstIfaceRefDType* nodep) {
+        if (m_traVscp && nodep->ifacep()) {
+            // Stash the signal state because we're going to go through another VARSCOPE
+            AstVarScope* traVscp = m_traVscp;
+            AstNode* traValuep = m_traValuep;
+            {
+                m_traVscp = NULL;
+                m_traValuep = NULL;
+                m_ifShowname = m_traShowname;
+                m_traShowname = "";
+                iterate(nodep->ifacep());
+                m_traShowname = m_ifShowname;
+                m_ifShowname = "";
+            }
+            m_traVscp = traVscp;
+            m_traValuep = traValuep;
+        }
+    }
     virtual void visit(AstUnpackArrayDType* nodep) {
         // Note more specific dtypes above
         if (m_traVscp) {
@@ -197,7 +225,7 @@ private:
                 addIgnore("Wide memory > --trace-max-array ents");
             } else if (VN_IS(nodep->subDTypep()->skipRefp(), BasicDType)  // Nothing lower than this array
                        && m_traVscp->dtypep()->skipRefp() == nodep) {  // Nothing above this array
-                // Simple 1-D array, use exising V3EmitC runtime loop rather than unrolling
+                // Simple 1-D array, use existing V3EmitC runtime loop rather than unrolling
                 // This will put "(index)" at end of signal name for us
                 if (m_traVscp->dtypep()->skipRefp()->isString()) {
                     addIgnore("Unsupported: strings");
@@ -307,7 +335,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit TraceDeclVisitor(AstNetlist* nodep) {
         m_scopetopp = NULL;
         m_initFuncp = NULL;

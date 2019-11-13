@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: File stream wrapper that understands indentation
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3FILE_H_
 #define _V3FILE_H_ 1
 
@@ -29,6 +29,7 @@
 #include <stack>
 #include <set>
 #include <list>
+#include <vector>
 #include <fstream>
 
 //============================================================================
@@ -48,7 +49,7 @@ public:
         return new_ofstream_nodepend(filename, append);
     }
     static std::ofstream* new_ofstream_nodepend(const string& filename, bool append=false) {
-        if (filename != VL_DEV_NULL) createMakeDir();
+        createMakeDirFor(filename);
         if (append) {
             return new std::ofstream(filename.c_str(), std::ios::app);
         } else {
@@ -56,7 +57,7 @@ public:
         }
     }
     static FILE* new_fopen_w(const string& filename) {
-        if (filename != VL_DEV_NULL) createMakeDir();
+        createMakeDirFor(filename);
         addTgtDepend(filename);
         return fopen(filename.c_str(), "w");
     }
@@ -65,31 +66,33 @@ public:
     static void addSrcDepend(const string& filename);
     static void addTgtDepend(const string& filename);
     static void writeDepend(const string& filename);
+    static std::vector<string> getAllDeps();
     static void writeTimes(const string& filename, const string& cmdlineIn);
     static bool checkTimes(const string& filename, const string& cmdlineIn);
 
     // Directory utilities
+    static void createMakeDirFor(const string& filename);
     static void createMakeDir();
 };
 
 //============================================================================
-// V3InFilter: Read a input file, possibly filtering it, and caching contents
+// VInFilter: Read a input file, possibly filtering it, and caching contents
 
-class V3InFilterImp;
+class VInFilterImp;
 
-class V3InFilter {
+class VInFilter {
 public:
     // TYPES
     typedef std::list<string> StrList;
 
 private:
-    V3InFilterImp* m_impp;
+    VInFilterImp* m_impp;
 
     // CONSTRUCTORS
-    VL_UNCOPYABLE(V3InFilter);
+    VL_UNCOPYABLE(VInFilter);
 public:
-    explicit V3InFilter(const string& command);
-    ~V3InFilter();
+    explicit VInFilter(const string& command);
+    ~VInFilter();
 
     // METHODS
     // Read file contents and return it.  Return true on success.
@@ -129,7 +132,6 @@ private:
     int         m_bracketLevel;  // Intenting = { block, indicates number of {'s seen.
 
     int endLevels(const char* strg);
-    const char* indentStr(int num);
     void putcNoTracking(char chr);
 
 public:
@@ -183,9 +185,6 @@ private:
     virtual void putcOutput(char chr) { fputc(chr, m_fp); }
 };
 
-//######################################################################
-// V3OutCFile: A class for abstracting out SystemC/C++ details
-
 class V3OutCFile : public V3OutFile {
     int         m_private;
 public:
@@ -193,10 +192,6 @@ public:
         resetPrivate();
     }
     virtual ~V3OutCFile() {}
-    virtual void putsCellDecl(const string& classname, const string& cellname) {
-        string classStar = classname + "*";
-        this->printf("%-19s\t%s;\n", classStar.c_str(), cellname.c_str());
-    }
     virtual void putsHeader() { puts("// Verilated -*- C++ -*-\n"); }
     virtual void putsIntTopInclude() {
         putsForceIncs();
@@ -253,6 +248,23 @@ public:
     // No automatic indentation yet.
     void puts(const char* strg) { putsNoTracking(strg); }
     void puts(const string& strg) { putsNoTracking(strg); }
+};
+
+//============================================================================
+// VIdProtect: Hash identifier names in output files to protect them
+
+class VIdProtectImp;
+
+class VIdProtect {
+public:
+    // METHODS
+    // Rename to a new encoded string (unless earlier passthru'ed)
+    static string protect(const string& old) { return protectIf(old, true); }
+    static string protectIf(const string& old, bool doIt=true);
+    // Rename words to a new encoded string
+    static string protectWordsIf(const string& old, bool doIt=true);
+    // Write map of renames to output file
+    static void writeMapFile(const string& filename);
 };
 
 #endif  // Guard

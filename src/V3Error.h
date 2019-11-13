@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Error handling
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,12 +17,15 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3ERROR_H_
 #define _V3ERROR_H_ 1
 
 #include "config_build.h"
 #include "verilatedos.h"
+
+// Limited V3 headers here - this is a base class for Vlc etc
+#include "V3String.h"
 
 #include <bitset>
 #include <cassert>
@@ -77,7 +80,7 @@ public:
         ENDLABEL,       // End lable name mismatch
         GENCLK,         // Generated Clock
         IFDEPTH,        // If statements too deep
-        IGNOREDRETURN,  // Ignoring return value (funcation as task)
+        IGNOREDRETURN,  // Ignoring return value (function as task)
         IMPERFECTSCH,   // Imperfect schedule (disabled by default)
         IMPLICIT,       // Implicit wire
         IMPORTSTAR,     // Import::* in $unit
@@ -85,6 +88,7 @@ public:
         INCABSPATH,     // Include has absolute path
         INFINITELOOP,   // Infinite loop
         INITIALDLY,     // Initial delayed statement
+        INSECURE,       // Insecure options
         LITENDIAN,      // Little bit endian vector
         MODDUP,         // Duplicate module
         MULTIDRIVEN,    // Driven from multiple blocks
@@ -142,7 +146,7 @@ public:
             "ENDLABEL", "GENCLK",
             "IFDEPTH", "IGNOREDRETURN",
             "IMPERFECTSCH", "IMPLICIT", "IMPORTSTAR", "IMPURE",
-            "INCABSPATH", "INFINITELOOP", "INITIALDLY",
+            "INCABSPATH", "INFINITELOOP", "INITIALDLY", "INSECURE",
             "LITENDIAN", "MODDUP",
             "MULTIDRIVEN", "MULTITOP",
             "PINMISSING", "PINNOCONNECT", "PINCONNECTEMPTY", "PROCASSWIRE",
@@ -303,8 +307,11 @@ inline void v3errorEndFatal(std::ostringstream& sstr) {
     ::v3errorEndFatal((V3Error::v3errorPrep(V3ErrorCode::EC_FATAL), \
                        (V3Error::v3errorStr()<<msg), V3Error::v3errorStr()));
 
-#define UINFO(level,stmsg) {if (VL_UNCOVERABLE(debug()>=(level))) { cout<<"- "<<V3Error::lineStr(__FILE__,__LINE__)<<stmsg; }}
-#define UINFONL(level,stmsg) {if (VL_UNCOVERABLE(debug()>=(level))) { cout<<stmsg; } }
+#define UINFO(level, stmsg) \
+    { if (VL_UNCOVERABLE(debug() >= (level))) { \
+            cout << "- " << V3Error::lineStr(__FILE__, __LINE__) << stmsg; } }
+#define UINFONL(level, stmsg) \
+    { if (VL_UNCOVERABLE(debug() >= (level))) { cout << stmsg; } }
 
 #ifdef VL_DEBUG
 # define UDEBUGONLY(stmts) {stmts}
@@ -344,26 +351,5 @@ inline void v3errorEndFatal(std::ostringstream& sstr) {
     }
 
 //----------------------------------------------------------------------
-
-template <class T> std::string cvtToStr(const T& t) {
-    std::ostringstream os; os<<t; return os.str();
-}
-template <class T> std::string cvtToHex(const T* tp) {
-    std::ostringstream os; os<<static_cast<const void*>(tp); return os.str();
-}
-
-inline uint32_t cvtToHash(const void* vp) {
-    // We can shove a 64 bit pointer into a 32 bit bucket
-    // On 32-bit systems, lower is always 0, but who cares?
-    union { const void* up; struct {uint32_t upper; uint32_t lower;} l;} u;
-    u.l.upper = 0; u.l.lower = 0; u.up = vp;
-    return u.l.upper^u.l.lower;
-}
-
-inline string ucfirst(const string& text) {
-    string out = text;
-    out[0] = toupper(out[0]);
-    return out;
-}
 
 #endif  // Guard

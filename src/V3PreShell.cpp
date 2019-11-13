@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Preprocessing wrapper
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -41,8 +41,8 @@ protected:
     friend class V3PreShell;
 
     static V3PreShellImp s_preImp;
-    static V3PreProc*   s_preprocp;
-    static V3InFilter*  s_filterp;
+    static V3PreProc* s_preprocp;
+    static VInFilter* s_filterp;
 
     //---------------------------------------
     // METHODS
@@ -93,7 +93,7 @@ protected:
         }
     }
 
-    bool preproc(FileLine* fl, const string& modname, V3InFilter* filterp, V3ParseImp* parsep,
+    bool preproc(FileLine* fl, const string& modname, VInFilter* filterp, V3ParseImp* parsep,
                  const string& errmsg) {  // "" for no error
         debug(true);  // Recheck if debug on - first check was before command line passed
 
@@ -107,7 +107,7 @@ protected:
 
         // Set language standard up front
         if (!v3Global.opt.preprocOnly()) {
-            // Leting lex parse this saves us from having to specially en/decode
+            // Letting lex parse this saves us from having to specially en/decode
             // from the V3LangCode to the various Lex BEGIN states. The language
             // of this source file is updated here, in case there have been any
             // intervening +<lang>ext+ options since it was first encountered.
@@ -134,7 +134,7 @@ protected:
     }
 
 private:
-    string preprocOpen(FileLine* fl, V3InFilter* filterp,
+    string preprocOpen(FileLine* fl, VInFilter* filterp,
                        const string& modname, const string& lastpath,
                        const string& errmsg) {  // Error message or "" to suppress
         // Returns filename if successful
@@ -162,7 +162,7 @@ public:
 
 V3PreShellImp V3PreShellImp::s_preImp;
 V3PreProc* V3PreShellImp::s_preprocp = NULL;
-V3InFilter* V3PreShellImp::s_filterp = NULL;
+VInFilter* V3PreShellImp::s_filterp = NULL;
 
 //######################################################################
 // Perl class functions
@@ -170,7 +170,7 @@ V3InFilter* V3PreShellImp::s_filterp = NULL;
 void V3PreShell::boot(char** env) {
     V3PreShellImp::s_preImp.boot(env);
 }
-bool V3PreShell::preproc(FileLine* fl, const string& modname, V3InFilter* filterp,
+bool V3PreShell::preproc(FileLine* fl, const string& modname, VInFilter* filterp,
                          V3ParseImp* parsep, const string& errmsg) {
     return V3PreShellImp::s_preImp.preproc(fl, modname, filterp, parsep, errmsg);
 }

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Add temporaries, such as for premit nodes
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -23,11 +23,11 @@
 //      For each wide OP, make a a temporary variable with the wide value
 //      For each deep expression, assign expression to temporary.
 //
-// Each display (independant transformation; here as Premit is a good point)
+// Each display (independent transformation; here as Premit is a good point)
 //      If autoflush, insert a flush
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -403,7 +403,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit PremitVisitor(AstNetlist* nodep) {
         m_modp = NULL;
         m_funcp = NULL;

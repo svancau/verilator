@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Add temporaries, such as for inst nodes
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -24,7 +24,7 @@
 //          Create a wire assign to interconnect to submodule
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -134,7 +134,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit InstVisitor(AstNetlist* nodep) {
         m_cellp = NULL;
         //
@@ -188,7 +188,7 @@ public:
         }
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit InstDeModVarVisitor() {}
     void main(AstNodeModule* nodep) {
         UINFO(8,"  dmMODULE    "<<nodep<<endl);
@@ -270,7 +270,7 @@ private:
                 nodep->addNextHere(newp);
                 // Remove ranging and fix name
                 newp->rangep()->unlinkFrBack()->deleteTree();
-                // Somewhat illogically, we need to rename the orignal name of the cell too.
+                // Somewhat illogically, we need to rename the original name of the cell too.
                 // as that is the name users expect for dotting
                 // The spec says we add [x], but that won't work in C...
                 newp->name(newp->name()+"__BRA__"+cvtToStr(instNum)+"__KET__");
@@ -450,7 +450,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit InstDeVisitor(AstNetlist* nodep) {
         m_cellRangep = NULL;
         m_instSelNum = 0;

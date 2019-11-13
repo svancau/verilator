@@ -9,7 +9,7 @@
 //
 // See details below
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -24,7 +24,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3SCOREBOARD_H_
 #define _V3SCOREBOARD_H_
 

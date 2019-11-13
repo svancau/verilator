@@ -17,7 +17,7 @@ mkdir $child_dir;
 
 # Compile the child
 {
-    my @cmdargs = $Self->compile_vlt_flags
+    my @cmdargs = $Self->compile_vlt_cmd
         (VM_PREFIX => "$Self->{VM_PREFIX}_child",
          top_filename => "$Self->{name}_child.v",
          verilator_flags => ["-cc", "-Mdir", "${child_dir}", "--debug-check"],
@@ -31,7 +31,6 @@ mkdir $child_dir;
                 "make", "-f".getcwd()."/Makefile_obj",
                 "CPPFLAGS_DRIVER=-D".uc($self->{name}),
                 ($opt_verbose ? "CPPFLAGS_DRIVER2=-DTEST_VERBOSE=1":""),
-                "MAKE_MAIN=0",
                 "VM_PREFIX=$self->{VM_PREFIX}_child",
                 "V$self->{name}_child__ALL.a",  # bypass default rule, make archive
                 ($param{make_flags}||""),

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Emit Verilog code for module tree
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3EMITV_H_
 #define _V3EMITV_H_ 1
 
@@ -36,6 +36,7 @@ public:
     static void verilogPrefixedTree(AstNode* nodep, std::ostream& os,
                                     const string& prefix, int flWidth,
                                     AstSenTree* domainp, bool user3mark);
+    static void emitvFiles();
 };
 
 #endif  // Guard

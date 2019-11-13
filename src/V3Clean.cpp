@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Add temporaries, such as for clean nodes
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -26,7 +26,7 @@
 //      Copy all width() values to widthMin() so RANGE, etc can still see orig widths
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -72,7 +72,7 @@ private:
         int width = cppWidth(nodep);  // widthMin is unchanged
         if (old_dtypep->width() != width) {
             // Since any given dtype's cppWidth() is the same, we can just
-            // remember one convertion for each, and reuse it
+            // remember one conversion for each, and reuse it
             if (AstNodeDType* new_dtypep = VN_CAST(old_dtypep->user3p(), NodeDType)) {
                 nodep->dtypep(new_dtypep);
             } else {
@@ -285,7 +285,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit CleanVisitor(AstNetlist* nodep) {
         m_modp = NULL;
         iterate(nodep);

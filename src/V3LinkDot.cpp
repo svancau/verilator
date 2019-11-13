@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Resolve module/signal name references
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -62,7 +62,7 @@
 //      a__DOT__aa (VSymEnt->AstCellInline) -- points to a.aa's symbol table
 //      b          (VSymEnt->AstCell)
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -332,7 +332,7 @@ public:
     VSymEnt* insertInline(VSymEnt* abovep, VSymEnt* modSymp,
                           AstCellInline* nodep, const string& basename) {
         // A fake point in the hierarchy, corresponding to an inlined module
-        // This refrences to another Sym, and eventually resolves to a module with a prefix
+        // This references to another Sym, and eventually resolves to a module with a prefix
         UASSERT_OBJ(abovep, nodep, "Null symbol table inserting node");
         VSymEnt* symp = new VSymEnt(&m_syms, nodep);
         UINFO(9,"      INSERTinl se"<<cvtToHex(symp)
@@ -584,7 +584,7 @@ public:
                         cellp   = lookupSymp ? VN_CAST(lookupSymp->nodep(), Cell) : NULL;  // Replicated above
                         inlinep = lookupSymp ? VN_CAST(lookupSymp->nodep(), CellInline) : NULL;  // Replicated above
                         if (lookupSymp) {
-                            UINFO(9,"\t\tUp to "<<lookupSymp<<endl);
+                            UINFO(9,"    Up to "<<lookupSymp<<endl);
                             if (cellp || inlinep) {
                                 crossedCell = true;
                             }
@@ -596,7 +596,7 @@ public:
                                      = findWithAltFallback(lookupSymp, ident, altIdent)) {
                                 lookupSymp = findSymp;
                                 if (crossedCell && VN_IS(lookupSymp->nodep(), Var)) {
-                                    UINFO(9,"\t\tNot found but matches var name in parent "
+                                    UINFO(9,"    Not found but matches var name in parent "
                                           <<lookupSymp<<endl);
                                     return NULL;  // Not found (but happens to be var name in parent)
                                 }
@@ -633,7 +633,7 @@ public:
         // Find symbol in given point in hierarchy, allowing prefix (post-Inline)
         // For simplicity lookupSymp may be passed NULL result from findDotted
         if (!lookupSymp) return NULL;
-        UINFO(8,"\t\tfindSymPrefixed "<<dotname
+        UINFO(8,"    findSymPrefixed "<<dotname
               <<" under se"<<cvtToHex(lookupSymp)
               <<((lookupSymp->symPrefix()=="") ? "" : " as ")
               <<((lookupSymp->symPrefix()=="") ? "" : lookupSymp->symPrefix()+dotname)
@@ -849,8 +849,8 @@ class LinkDotFindVisitor : public AstNVisitor {
             VSymEnt* okSymp;
             aboveSymp = m_statep->findDotted(aboveSymp, scope, baddot, okSymp);
             UASSERT_OBJ(aboveSymp, nodep,
-                        "Can't find cell insertion point at '"
-                        <<baddot<<"' in: "<<nodep->prettyNameQ());
+                        "Can't find cell insertion point at "
+                        <<AstNode::prettyNameQ(baddot)<<" in: "<<nodep->prettyNameQ());
         }
         {
             m_scope = m_scope+"."+nodep->name();
@@ -880,8 +880,8 @@ class LinkDotFindVisitor : public AstNVisitor {
             VSymEnt* okSymp;
             aboveSymp = m_statep->findDotted(aboveSymp, dotted, baddot, okSymp);
             UASSERT_OBJ(aboveSymp, nodep,
-                        "Can't find cellinline insertion point at '"
-                        <<baddot<<"' in: "<<nodep->prettyNameQ());
+                        "Can't find cellinline insertion point at "
+                        <<AstNode::prettyNameQ(baddot)<<" in: "<<nodep->prettyNameQ());
             m_statep->insertInline(aboveSymp, m_modSymp, nodep, ident);
         } else {  // No __DOT__, just directly underneath
             m_statep->insertInline(aboveSymp, m_modSymp, nodep, nodep->name());
@@ -955,7 +955,7 @@ class LinkDotFindVisitor : public AstNVisitor {
             m_curSymp->fallbackp(oldCurSymp);
             // Convert the func's range to the output variable
             // This should probably be done in the Parser instead, as then we could
-            // just attact normal signal attributes to it.
+            // just attach normal signal attributes to it.
             if (nodep->fvarp()
                 && !VN_IS(nodep->fvarp(), Var)) {
                 AstNodeDType* dtypep = VN_CAST(nodep->fvarp(), NodeDType);
@@ -1007,9 +1007,11 @@ class LinkDotFindVisitor : public AstNVisitor {
                                      || (findvarp->isIO() && nodep->isIO()));  // e.g. !(output && output)
                     bool ansiBad = findvarp->isAnsi() || nodep->isAnsi();  // dup illegal with ANSI
                     if (ansiBad || nansiBad) {
-                        static int didAnsiWarn = false;
                         bool ansiWarn = ansiBad && !nansiBad;
-                        if (ansiWarn) { if (didAnsiWarn++) ansiWarn = false; }
+                        if (ansiWarn) {
+                            static int didAnsiWarn = false;
+                            if (didAnsiWarn++) ansiWarn = false;
+                        }
                         nodep->v3error("Duplicate declaration of signal: "
                                        <<nodep->prettyNameQ()<<endl
                                        <<(ansiWarn
@@ -1119,12 +1121,12 @@ class LinkDotFindVisitor : public AstNVisitor {
             ins = true;
         } else if (findvarp != nodep) {
             UINFO(4,"DupVar: "<<nodep<<" ;; "<<foundp<<endl);
-            if (foundp && foundp->parentp() == m_curSymp  // Only when on same level
+            if (foundp->parentp() == m_curSymp  // Only when on same level
                 && !foundp->imported()) {  // and not from package
                 nodep->v3error("Duplicate declaration of enum value: "<<nodep->prettyName()<<endl
                                <<nodep->warnContextPrimary()<<endl
-                               <<findvarp->warnOther()<<"... Location of original declaration\n"
-                               <<findvarp->warnContextSecondary());
+                               <<foundp->nodep()->warnOther()<<"... Location of original declaration\n"
+                               <<foundp->nodep()->warnContextSecondary());
             } else {
                 // User can disable the message at either point
                 if (!nodep->fileline()->warnIsOff(V3ErrorCode::VARHIDDEN)
@@ -1187,7 +1189,7 @@ class LinkDotFindVisitor : public AstNVisitor {
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     LinkDotFindVisitor(AstNetlist* rootp, LinkDotState* statep) {
         UINFO(4,__FUNCTION__<<": "<<endl);
         m_packagep = NULL;
@@ -1353,7 +1355,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     LinkDotParamVisitor(AstNetlist* rootp, LinkDotState* statep) {
         UINFO(4,__FUNCTION__<<": "<<endl);
         m_statep = statep;
@@ -1435,7 +1437,7 @@ class LinkDotScopeVisitor : public AstNVisitor {
     virtual void visit(AstAssignAlias* nodep) {
         // Track aliases created by V3Inline; if we get a VARXREF(aliased_from)
         // we'll need to replace it with a VARXREF(aliased_to)
-        if (debug()>=9) nodep->dumpTree(cout, "-\t\t\t\talias: ");
+        if (debug()>=9) nodep->dumpTree(cout, "-    alias: ");
         AstVarScope* fromVscp = VN_CAST(nodep->lhsp(), VarRef)->varScopep();
         AstVarScope* toVscp   = VN_CAST(nodep->rhsp(), VarRef)->varScopep();
         UASSERT_OBJ(fromVscp && toVscp, nodep, "Bad alias scopes");
@@ -1444,7 +1446,7 @@ class LinkDotScopeVisitor : public AstNVisitor {
     }
     virtual void visit(AstAssignVarScope* nodep) {
         UINFO(5,"ASSIGNVARSCOPE  "<<nodep<<endl);
-        if (debug()>=9) nodep->dumpTree(cout, "-\t\t\t\tavs: ");
+        if (debug()>=9) nodep->dumpTree(cout, "-    avs: ");
         VSymEnt* rhsSymp;
         {
             AstVarRef* refp = VN_CAST(nodep->rhsp(), VarRef);
@@ -1503,7 +1505,7 @@ class LinkDotScopeVisitor : public AstNVisitor {
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     LinkDotScopeVisitor(AstNetlist* rootp, LinkDotState* statep) {
         UINFO(4,__FUNCTION__<<": "<<endl);
         m_modSymp = NULL;
@@ -1591,7 +1593,7 @@ class LinkDotIfaceVisitor : public AstNVisitor {
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     LinkDotIfaceVisitor(AstIface* nodep, VSymEnt* curSymp, LinkDotState* statep) {
         UINFO(4,__FUNCTION__<<": "<<endl);
         m_curSymp = curSymp;
@@ -1793,7 +1795,7 @@ private:
     }
     virtual void visit(AstCellInline* nodep) {
         checkNoDot(nodep);
-        if (m_statep->forScopeCreation()) {
+        if (m_statep->forScopeCreation() && !v3Global.opt.vpi()) {
             nodep->unlinkFrBack(); pushDeletep(nodep); VL_DANGLING(nodep);
         }
     }
@@ -1984,7 +1986,7 @@ private:
                 allowVar = true;
             } else {
                 UINFO(1,"ds="<<m_ds.ascii()<<endl);
-                nodep->v3fatalSrc("Unhandled AstParseRefExp");
+                nodep->v3fatalSrc("Unhandled VParseRefExp");
             }
             // Lookup
             VSymEnt* foundp;
@@ -2141,11 +2143,14 @@ private:
                                        <<": "<<nodep->prettyNameQ()<<endl
                                        <<(suggest.empty() ? "" : nodep->warnMore()+suggest));
                     } else {
-                        nodep->v3error("Can't find definition of '"
-                                       <<(baddot!="" ? baddot : nodep->prettyName())
-                                       <<"' in dotted "<<expectWhat
+                        nodep->v3error("Can't find definition of "
+                                       <<(!baddot.empty() ? AstNode::prettyNameQ(baddot)
+                                          : nodep->prettyNameQ())
+                                       <<" in dotted "<<expectWhat
                                        <<": '"<<m_ds.m_dotText+"."+nodep->prettyName()<<"'");
-                        okSymp->cellErrorScopes(nodep, AstNode::prettyName(m_ds.m_dotText));
+                        if (okSymp) {
+                            okSymp->cellErrorScopes(nodep, AstNode::prettyName(m_ds.m_dotText));
+                        }
                     }
                     m_ds.m_dotErr = true;
                 }
@@ -2200,8 +2205,8 @@ private:
                 string inl = AstNode::dedotName(nodep->inlinedDots());
                 dotSymp = m_statep->findDotted(dotSymp, inl, baddot, okSymp);
                 UASSERT_OBJ(dotSymp, nodep,
-                            "Couldn't resolve inlined scope '"
-                            <<baddot<<"' in: "<<nodep->inlinedDots());
+                            "Couldn't resolve inlined scope "
+                            <<AstNode::prettyNameQ(baddot)<<" in: "<<nodep->inlinedDots());
             }
             dotSymp = m_statep->findDotted(dotSymp, nodep->dotted(), baddot, okSymp);  // Maybe NULL
             if (!m_statep->forScopeCreation()) {
@@ -2210,10 +2215,11 @@ private:
                 nodep->varp(varp);
                 UINFO(7,"         Resolved "<<nodep<<endl);  // Also prints varp
                 if (!nodep->varp()) {
-                    nodep->v3error("Can't find definition of '"
-                                   <<baddot<<"' in dotted signal: '"
+                    nodep->v3error("Can't find definition of "
+                                   <<AstNode::prettyNameQ(baddot)<<" in dotted signal: '"
                                    <<nodep->dotted()+"."+nodep->prettyName()<<"'");
                     okSymp->cellErrorScopes(nodep);
+                    return;
                 }
                 // V3Inst may have expanded arrays of interfaces to
                 // AstVarXRef's even though they are in the same module detect
@@ -2231,8 +2237,9 @@ private:
                 VSymEnt* foundp = m_statep->findSymPrefixed(dotSymp, nodep->name(), baddot);
                 AstVarScope* vscp = foundp ? VN_CAST(foundp->nodep(), VarScope) : NULL;
                 if (!vscp) {
-                    nodep->v3error("Can't find varpin scope of '"<<baddot
-                                   <<"' in dotted signal: '"
+                    nodep->v3error("Can't find varpin scope of "
+                                   <<AstNode::prettyNameQ(baddot)
+                                   <<" in dotted signal: '"
                                    <<nodep->dotted()+"."+nodep->prettyName()<<"'");
                     okSymp->cellErrorScopes(nodep);
                 } else {
@@ -2334,12 +2341,13 @@ private:
                 if (nodep->inlinedDots()!="") {  // Correct for current scope
                     dotSymp = m_modSymp;  // Dotted lookup is always relative to module, as maybe variable name lower down with same scope name we want to ignore (t_math_divw)
                     string inl = AstNode::dedotName(nodep->inlinedDots());
-                    UINFO(8,"\t\tInlined "<<inl<<endl);
+                    UINFO(8,"    Inlined "<<inl<<endl);
                     dotSymp = m_statep->findDotted(dotSymp, inl, baddot, okSymp);
                     if (!dotSymp) {
                         okSymp->cellErrorScopes(nodep);
-                        nodep->v3fatalSrc("Couldn't resolve inlined scope '"
-                                          <<baddot<<"' in: "<<nodep->inlinedDots());
+                        nodep->v3fatalSrc("Couldn't resolve inlined scope "
+                                          <<AstNode::prettyNameQ(baddot)
+                                          <<" in: "<<nodep->inlinedDots());
                     }
                 }
                 dotSymp = m_statep->findDotted(dotSymp, nodep->dotted(),
@@ -2370,8 +2378,9 @@ private:
                 } else {
                     string suggest = m_statep->suggestSymFallback(
                         dotSymp, nodep->name(), LinkNodeMatcherFTask());
-                    nodep->v3error("Can't find definition of '"<<baddot
-                                   <<"' in dotted task/function: '"
+                    nodep->v3error("Can't find definition of "
+                                   <<AstNode::prettyNameQ(baddot)
+                                   <<" in dotted task/function: '"
                                    <<nodep->dotted()+"."+nodep->prettyName()<<"'\n"
                                    <<(suggest.empty() ? "" : nodep->warnMore()+suggest));
                     okSymp->cellErrorScopes(nodep);
@@ -2544,7 +2553,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     LinkDotResolveVisitor(AstNetlist* rootp, LinkDotState* statep) {
         UINFO(4,__FUNCTION__<<": "<<endl);
         m_statep = statep;

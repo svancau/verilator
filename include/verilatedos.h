@@ -22,10 +22,10 @@
 ///     config_build.h.in, code needed by Verilated code only goes into
 ///     verilated.h, and code needed by both goes here (verilatedos.h).
 ///
-/// Code available from: http://www.veripool.org/verilator
+/// Code available from: https://verilator.org
 ///
 //*************************************************************************
-
+
 
 #ifndef _VERILATEDOS_H_
 #define _VERILATEDOS_H_ 1  ///< Header Guard
@@ -122,7 +122,9 @@
 #endif
 
 #ifdef VL_THREADED
-# ifdef __GNUC__
+# if defined(_MSC_VER) && _MSC_VER >= 1900
+#  define VL_THREAD_LOCAL thread_local
+# elif defined(__GNUC__)
 #  if (__cplusplus < 201103L) && !defined(VL_THREADED_NO_C11_WARNING)
 #    error "VL_THREADED/--threads support requires C++-11 or newer only; use newer compiler"
 #  endif
@@ -160,7 +162,7 @@
 //=========================================================================
 // C++-2011
 
-#if __cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)
+#if __cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__) || defined(VL_CPPCHECK)
 # define VL_EQ_DELETE = delete
 # define vl_unique_ptr std::unique_ptr
 // By default we use std:: types in C++11.
@@ -322,9 +324,9 @@ typedef unsigned long long      vluint64_t;     ///< 64-bit unsigned type
 #define VL_WORDSIZE_LOG2 5              ///< log2(VL_WORDSIZE)
 
 /// Bytes this number of bits needs (1 bit=1 byte)
-#define VL_BYTES_I(nbits) (((nbits)+(VL_BYTESIZE-1))/VL_BYTESIZE)
+#define VL_BYTES_I(nbits) (((nbits) + (VL_BYTESIZE - 1)) / VL_BYTESIZE)
 /// Words this number of bits needs (1 bit=1 word)
-#define VL_WORDS_I(nbits) (((nbits)+(VL_WORDSIZE-1))/VL_WORDSIZE)
+#define VL_WORDS_I(nbits) (((nbits) + (VL_WORDSIZE - 1)) / VL_WORDSIZE)
 
 //=========================================================================
 // Class definition helpers
@@ -343,8 +345,8 @@ typedef unsigned long long      vluint64_t;     ///< 64-bit unsigned type
 //=========================================================================
 // Base macros
 
-#define VL_SIZEBITS_I (VL_WORDSIZE-1)   ///< Bit mask for bits in a word
-#define VL_SIZEBITS_Q (VL_QUADSIZE-1)   ///< Bit mask for bits in a quad
+#define VL_SIZEBITS_I (VL_WORDSIZE - 1)  ///< Bit mask for bits in a word
+#define VL_SIZEBITS_Q (VL_QUADSIZE - 1)  ///< Bit mask for bits in a quad
 
 /// Mask for words with 1's where relevant bits are (0=all bits)
 #define VL_MASK_I(nbits)  (((nbits) & VL_SIZEBITS_I) \
@@ -390,7 +392,12 @@ typedef unsigned long long      vluint64_t;     ///< 64-bit unsigned type
 // Threading related OS-specific functions
 
 #if VL_THREADED
-# if defined(__i386__) || defined(__x86_64__)
+# ifdef _WIN32
+#  define WIN32_LEAN_AND_MEAN
+#  define NOMINMAX
+#  include "Windows.h"
+#  define VL_CPU_RELAX() YieldProcessor()
+# elif defined(__i386__) || defined(__x86_64__)
 /// For more efficient busy waiting on SMT CPUs, let the processor know
 /// we're just waiting so it can let another thread run
 #  define VL_CPU_RELAX() asm volatile("rep; nop" ::: "memory")

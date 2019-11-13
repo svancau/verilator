@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Common header between parser and lex
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3PARSESYM_H_
 #define _V3PARSESYM_H_ 1
 
@@ -123,7 +123,7 @@ public:
         UINFO(1,"ParseSym Stack:\n");
         for (SymStack::reverse_iterator it=m_sympStack.rbegin(); it!=m_sympStack.rend(); ++it) {
             VSymEnt* symp = *it;
-            UINFO(1,"\t"<<symp->nodep()<<endl);
+            UINFO(1,"    "<<symp->nodep()<<endl);
         }
         UINFO(1,"ParseSym Current: "<<symCurrentp()->nodep()<<endl);
     }

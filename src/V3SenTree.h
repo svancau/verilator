@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Break always into sensitivity block domains
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -29,7 +29,7 @@
 //      WIRE: Move into SBLOCK(combo)
 //
 //*************************************************************************
-
+
 #ifndef _V3SENTREE_H_
 #define _V3SENTREE_H_
 
@@ -151,7 +151,7 @@ public:
         return treep;
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     SenTreeFinder() {
         clear();
     }

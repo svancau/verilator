@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: verilator_coverage: top implementation
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "V3Error.h"
 #include "V3Os.h"
 #include "VlcOptions.h"

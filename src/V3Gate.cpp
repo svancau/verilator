@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Gate optimizations, such as wire elimination
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -24,7 +24,7 @@
 // Create VARSCOPEs for any variables we can rip out
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -217,7 +217,7 @@ private:
         } else {
             if (m_rhsVarRefs.size()>1) {
                 AstNodeVarRef* lastRefp = m_rhsVarRefs.back();
-                if (0) {  // Diable the multiple-input optimization
+                if (0) {  // Disable the multiple-input optimization
                     clearSimple(">1 rhs varRefs");
                 } else {
                     if (m_buffersOnly) clearSimple(">1 rhs varRefs");
@@ -269,7 +269,7 @@ private:
         else iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     GateOkVisitor(AstNode* nodep, bool buffersOnly, bool dedupe) {
         m_isSimple = true;
         m_substTreep = NULL;
@@ -290,7 +290,7 @@ public:
             }
         }
         if (debug()>=9 && !m_isSimple) {
-            nodep->dumpTree(cout, "\tgate!Ok: ");
+            nodep->dumpTree(cout, "    gate!Ok: ");
         }
     }
     virtual ~GateOkVisitor() {}
@@ -326,10 +326,10 @@ private:
     bool                m_activeReducible;      // Is activation block reducible?
     bool                m_inSenItem;    // Underneath AstSenItem; any varrefs are clocks
     bool                m_inSlow;       // Inside a slow structure
-    V3Double0           m_statSigs;     // Statistic tracking
-    V3Double0           m_statRefs;     // Statistic tracking
-    V3Double0           m_statDedupLogic;       // Statistic tracking
-    V3Double0           m_statAssignMerged;     // Statistic tracking
+    VDouble0            m_statSigs;     // Statistic tracking
+    VDouble0            m_statRefs;     // Statistic tracking
+    VDouble0            m_statDedupLogic;  // Statistic tracking
+    VDouble0            m_statAssignMerged;  // Statistic tracking
 
     // METHODS
     void iterateNewStmt(AstNode* nodep, const char* nonReducibleReason, const char* consumeReason) {
@@ -484,7 +484,7 @@ private:
     }
     virtual void visit(AstSenGate* nodep) {
         // First handle the clock part will be handled in a minute by visit AstSenItem
-        // The logic gating term is delt with as logic
+        // The logic gating term is dealt with as logic
         iterateNewStmt(nodep, "Clock gater", "Clock gater");
     }
     virtual void visit(AstInitial* nodep) {
@@ -523,7 +523,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit GateVisitor(AstNode* nodep) {
         AstNode::user1ClearTree();
         m_logicVertexp = NULL;
@@ -628,8 +628,8 @@ void GateVisitor::optimizeSignals(bool allowMultiIn) {
                     }
                     else {
                         AstNode* substp = okVisitor.substTree();
-                        if (debug()>=5) logicp->dumpTree(cout, "\telimVar:  ");
-                        if (debug()>=5) substp->dumpTree(cout, "\t  subst:  ");
+                        if (debug()>=5) logicp->dumpTree(cout, "    elimVar:  ");
+                        if (debug()>=5) substp->dumpTree(cout, "      subst:  ");
                         ++m_statSigs;
                         bool removedAllUsages = true;
                         for (V3GraphEdge* edgep = vvertexp->outBeginp();
@@ -881,7 +881,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     virtual ~GateElimVisitor() {}
     GateElimVisitor(AstNode* nodep, AstVarScope* varscp, AstNode* replaceTreep,
                     GateDedupeVarVisitor* varVisp) {
@@ -895,14 +895,14 @@ public:
 };
 
 void GateVisitor::optimizeElimVar(AstVarScope* varscp, AstNode* substp, AstNode* consumerp) {
-    if (debug()>=5) consumerp->dumpTree(cout, "\telimUsePre: ");
+    if (debug()>=5) consumerp->dumpTree(cout, "    elimUsePre: ");
     GateElimVisitor elimVisitor (consumerp, varscp, substp, NULL);
     if (elimVisitor.didReplace()) {
-        if (debug()>=9) consumerp->dumpTree(cout, "\telimUseCns: ");
+        if (debug()>=9) consumerp->dumpTree(cout, "    elimUseCns: ");
         //Caution: Can't let V3Const change our handle to consumerp, such as by
         // optimizing away this assignment, etc.
         consumerp = V3Const::constifyEdit(consumerp);
-        if (debug()>=5) consumerp->dumpTree(cout, "\telimUseDne: ");
+        if (debug()>=5) consumerp->dumpTree(cout, "    elimUseDne: ");
         // Some previous input edges may have disappeared, perhaps all of them.
         // If we remove the edges we can further optimize
         // See e.g t_var_overzero.v.
@@ -1097,7 +1097,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     GateDedupeVarVisitor() {
         m_assignp = NULL;
         m_ifCondp = NULL;
@@ -1147,7 +1147,7 @@ private:
     // NODE STATE
     // AstVarScope::user2p      -> bool: already visited
     // AstUser2InUse            m_inuser2;      (Allocated for use in GateVisitor)
-    V3Double0                   m_numDeduped;   // Statistic tracking
+    VDouble0                    m_numDeduped;   // Statistic tracking
     GateDedupeVarVisitor        m_varVisitor;   // Looks for a dupe of the logic
     int                         m_depth;        // Iteration depth
 
@@ -1228,7 +1228,7 @@ public:
     void dedupeTree(GateVarVertex* vvertexp) {
         vvertexp->accept(*this);
     }
-    V3Double0 numDeduped() { return m_numDeduped; }
+    VDouble0 numDeduped() { return m_numDeduped; }
 };
 
 //----------------------------------------------------------------------
@@ -1268,7 +1268,7 @@ private:
     AstActive*     m_activep;
     GateLogicVertex* m_logicvp;
     V3Graph*         m_graphp;
-    V3Double0        m_numMergedAssigns;        // Statistic tracking
+    VDouble0         m_numMergedAssigns;  // Statistic tracking
 
 
     // assemble two Sel into one if possible
@@ -1377,7 +1377,7 @@ public:
     void mergeAssignsTree(GateVarVertex* vvertexp) {
         vvertexp->accept(*this);
     }
-    V3Double0 numMergedAssigns() { return m_numMergedAssigns; }
+    VDouble0 numMergedAssigns() { return m_numMergedAssigns; }
 };
 
 
@@ -1429,7 +1429,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     GateConcatVisitor() {
         m_vscp = NULL;
         m_offset = 0;
@@ -1580,7 +1580,7 @@ void GateVisitor::decomposeClkVectors() {
     for (V3GraphVertex* itp = m_graph.verticesBeginp(); itp; itp=itp->verticesNextp()) {
         if (GateVarVertex* vertp = dynamic_cast<GateVarVertex*>(itp)) {
             AstVarScope* vsp = vertp->varScp();
-            if (vsp->varp()->attrClocker() == AstVarAttrClocker::CLOCKER_YES) {
+            if (vsp->varp()->attrClocker() == VVarAttrClocker::CLOCKER_YES) {
                 if (vsp->varp()->width() > 1) {
                     UINFO(9,"Clocker > 1 bit, not decomposing: "<<vsp<<endl);
                 } else {
@@ -1616,7 +1616,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit GateDeassignVisitor(AstNode* nodep) {
         iterate(nodep);
     }

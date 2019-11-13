@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Check for unused/undriven signals
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3UNDRIVEN_H_
 #define _V3UNDRIVEN_H_ 1
 

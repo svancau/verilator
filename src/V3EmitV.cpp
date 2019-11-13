@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Emit Verilog from tree
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -356,7 +356,18 @@ class EmitVBaseVisitor : public EmitCBaseVisitor {
         putfs(nodep, "$finish;\n");
     }
     virtual void visit(AstText* nodep) {
-        putsNoTracking(nodep->text());
+        if (nodep->tracking() || m_trackText) {
+            puts(nodep->text());
+        } else {
+            putsNoTracking(nodep->text());
+        }
+    }
+    virtual void visit(AstTextBlock* nodep) {
+        visit(VN_CAST(nodep, Text));
+        for (AstNode* childp = nodep->nodesp(); childp; childp = childp->nextp()) {
+            iterate(childp);
+            if (nodep->commas() && childp->nextp()) puts(", ");
+        }
     }
     virtual void visit(AstScopeName* nodep) {
     }
@@ -456,13 +467,15 @@ class EmitVBaseVisitor : public EmitCBaseVisitor {
     }
     virtual void visit(AstInitArray* nodep) {
         putfs(nodep, "`{");
-        int pos = 0;
-        for (AstNode* itemp = nodep->initsp(); itemp; ++pos, itemp=itemp->nextp()) {
-            int index = nodep->posIndex(pos);
-            puts(cvtToStr(index));
+        int comma = 0;
+        const AstInitArray::KeyItemMap& mapr = nodep->map();
+        for (AstInitArray::KeyItemMap::const_iterator it = mapr.begin();
+             it != mapr.end(); ++it) {
+            if (comma++) putbs(", ");
+            puts(cvtToStr(it->first));
             puts(":");
-            iterate(itemp);
-            if (itemp->nextp()) putbs(",");
+            AstNode* valuep = it->second->valuep();
+            iterate(valuep);
         }
         puts("}");
     }
@@ -583,7 +596,7 @@ class EmitVBaseVisitor : public EmitCBaseVisitor {
         puts(" ");
         iterate(nodep->dtypep()); puts(" ");
         puts(nodep->prettyName());
-        puts(";\n");
+        if (!m_suppressVarSemi) puts(";\n"); else puts("\n");
     }
     virtual void visit(AstActive* nodep) {
         m_sensesp = nodep->sensesp();
@@ -606,9 +619,11 @@ class EmitVBaseVisitor : public EmitCBaseVisitor {
     }
 
 public:
+    bool        m_suppressVarSemi;  // Suppress emitting semicolon for AstVars
     explicit EmitVBaseVisitor(AstSenTree* domainp=NULL) {
         // Domain for printing one a ALWAYS under a ACTIVE
         m_suppressSemi = false;
+        m_suppressVarSemi = false;
         m_sensesp = domainp;
     }
     virtual ~EmitVBaseVisitor() {}
@@ -628,8 +643,11 @@ class EmitVFileVisitor : public EmitVBaseVisitor {
     virtual void putqs(AstNode*, const string& str) { putbs(str); }
     virtual void putsNoTracking(const string& str) { ofp()->putsNoTracking(str); }
 public:
-    EmitVFileVisitor(AstNode* nodep, V3OutFile* ofp) {
+    EmitVFileVisitor(AstNode* nodep, V3OutFile* ofp, bool trackText=false,
+                     bool suppressVarSemi=false) {
         m_ofp = ofp;
+        m_trackText = trackText;
+        m_suppressVarSemi = suppressVarSemi;
         iterate(nodep);
     }
     virtual ~EmitVFileVisitor() {}
@@ -757,4 +775,17 @@ void V3EmitV::verilogPrefixedTree(AstNode* nodep, std::ostream& os,
                                   const string& prefix, int flWidth,
                                   AstSenTree* domainp, bool user3mark) {
     EmitVPrefixedVisitor(nodep, os, prefix, flWidth, domainp, user3mark);
+}
+
+void V3EmitV::emitvFiles() {
+    UINFO(2,__FUNCTION__<<": "<<endl);
+    for (AstFile* filep = v3Global.rootp()->filesp(); filep;
+         filep = VN_CAST(filep->nextp(), File)) {
+        AstVFile* vfilep = VN_CAST(filep, VFile);
+        if (vfilep && vfilep->tblockp()) {
+            V3OutVFile of(vfilep->name());
+            of.puts("// DESCR" "IPTION: Verilator generated Verilog\n");
+            EmitVFileVisitor visitor(vfilep->tblockp(), &of, true, true);
+        }
+    }
 }

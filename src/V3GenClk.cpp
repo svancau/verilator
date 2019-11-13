@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Generated Clock repairs
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -22,7 +22,7 @@
 //          ASSIGNDLY to variable later used as clock requires change detect
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 

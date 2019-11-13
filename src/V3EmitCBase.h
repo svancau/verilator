@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Emit C++ for tree
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3EMITCBASE_H_
 #define _V3EMITCBASE_H_ 1
 
@@ -38,6 +38,7 @@ class EmitCBaseVisitor : public AstNVisitor {
 public:
     // STATE
     V3OutCFile* m_ofp;
+    bool m_trackText;  // Always track AstText nodes
     // METHODS
     V3OutCFile* ofp() const { return m_ofp; }
     void puts(const string& str) { ofp()->puts(str); }
@@ -45,7 +46,13 @@ public:
     void putsDecoration(const string& str) { if (v3Global.opt.decoration()) puts(str); }
     void putsQuoted(const string& str) { ofp()->putsQuoted(str); }
     bool optSystemC() { return v3Global.opt.systemC(); }
-    static string symClassName() { return v3Global.opt.prefix()+"__Syms"; }
+    static string protect(const string& name) { return VIdProtect::protectIf(name, true); }
+    static string protectIf(const string& name, bool doIt) {
+        return VIdProtect::protectIf(name, doIt); }
+    static string protectWordsIf(const string& name, bool doIt) {
+        return VIdProtect::protectWordsIf(name, doIt); }
+    static string ifNoProtect(const string& in) { return v3Global.opt.protectIds() ? "" : in; }
+    static string symClassName() { return v3Global.opt.prefix()+"_"+protect("_Syms"); }
     static string symClassVar()  { return symClassName()+"* __restrict vlSymsp"; }
     static string symTopAssign() {
         return v3Global.opt.prefix()+"* __restrict vlTOPp VL_ATTR_UNUSED = vlSymsp->TOPp;"; }
@@ -53,7 +60,7 @@ public:
         if (modp->isTop()) {
             return v3Global.opt.prefix();
         } else {
-            return v3Global.opt.modPrefix() + "_" + modp->name();
+            return v3Global.opt.modPrefix()+"_"+protect(modp->name());
         }
     }
     static string topClassName() {  // Return name of top wrapper module
@@ -88,6 +95,7 @@ public:
     // CONSTRUCTORS
     EmitCBaseVisitor() {
         m_ofp = NULL;
+        m_trackText = false;
     }
     virtual ~EmitCBaseVisitor() {}
 };
@@ -105,7 +113,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit EmitCBaseCounterVisitor(AstNode* nodep) {
         m_count = 0;
         iterate(nodep);

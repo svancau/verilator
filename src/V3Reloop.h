@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Recreate loops to help pack caches
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3RELOOP_H_
 #define _V3RELOOP_H_ 1
 

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Removal of named begin blocks
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -28,7 +28,7 @@
 // Unnamed BEGINs change only variable, not $display("%m") scope.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -227,7 +227,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     BeginVisitor(AstNetlist* nodep, BeginState* statep) {
         m_statep = statep;
         m_modp = NULL;
@@ -276,7 +276,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     BeginRelinkVisitor(AstNetlist* nodep, BeginState*) {
         iterate(nodep);
     }

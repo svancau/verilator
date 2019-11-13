@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Parse module/signal name references
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -21,7 +21,7 @@
 //      Top-down traversal
 //          Move some attributes around
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -189,6 +189,17 @@ private:
             return;
         }
 
+        if (v3Global.opt.publicFlatRW()) {
+            switch (nodep->varType()) {
+            case AstVarType::VAR:
+            case AstVarType::PORT:
+            case AstVarType::WIRE:
+                nodep->sigUserRWPublic(true);
+                break;
+            default: break;
+            }
+        }
+
         // We used modTrace before leveling, and we may now
         // want to turn it off now that we know the levelizations
         if (v3Global.opt.traceDepth()
@@ -198,6 +209,7 @@ private:
             nodep->trace(false);
         }
         m_varp = nodep;
+
         iterateChildren(nodep);
         m_varp = NULL;
         // temporaries under an always aren't expected to be blocking
@@ -293,12 +305,12 @@ private:
         }
         else if (nodep->attrType() == AstAttrType::VAR_CLOCKER) {
             UASSERT_OBJ(m_varp, nodep, "Attribute not attached to variable");
-            m_varp->attrClocker(AstVarAttrClocker::CLOCKER_YES);
+            m_varp->attrClocker(VVarAttrClocker::CLOCKER_YES);
             nodep->unlinkFrBack()->deleteTree(); VL_DANGLING(nodep);
         }
         else if (nodep->attrType() == AstAttrType::VAR_NO_CLOCKER) {
             UASSERT_OBJ(m_varp, nodep, "Attribute not attached to variable");
-            m_varp->attrClocker(AstVarAttrClocker::CLOCKER_NO);
+            m_varp->attrClocker(VVarAttrClocker::CLOCKER_NO);
             nodep->unlinkFrBack()->deleteTree(); VL_DANGLING(nodep);
         }
     }
@@ -461,7 +473,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit LinkParseVisitor(AstNetlist* rootp) {
         m_varp = NULL;
         m_modp = NULL;

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Threading's logic to mtask partitioner
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -103,7 +103,7 @@ class MergeCandidate;
 // should cost almost nothing in terms of partitioner quality.
 //
 // If you want the most aggressive possible partition, set it "false" and
-// be prepared to be dissappointed when the improvement in the partition is
+// be prepared to be disappointed when the improvement in the partition is
 // negligible / in the noise.
 //
 // Q) Why retain the control, if there is really no downside?
@@ -1388,7 +1388,7 @@ private:
             donorp = fromp;
             recipientp = top;
         }
-        fromp = top = NULL;  // Use donorp and recipientp now instead
+        VL_DANGLING(fromp); VL_DANGLING(top);  // Use donorp and recipientp now instead
 
         // Recursively update forward and reverse CP numbers.
         //
@@ -1788,7 +1788,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit DpiImportCallVisitor(AstNode* nodep)
         : m_hasDpiHazard(false)
         , m_tracingCall(false) {
@@ -2204,7 +2204,7 @@ public:
         , m_ready(m_mtaskCmp) {}
     ~PartPackMTasks() {}
 
-    // METHOS
+    // METHODS
     uint32_t completionTime(const ExecMTask* mtaskp, uint32_t thread) {
         const MTaskState& state = m_mtaskState[mtaskp];
         UASSERT(mtaskp->thread() != 0xffffffff, "Mtask should have assigned thread");

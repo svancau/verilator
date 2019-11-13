@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Replicate modules for parameterization
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -47,7 +47,7 @@
 //   and must be relinked.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -464,7 +464,7 @@ private:
         }
     }
 
-    //! Parameter subsitution for generated for loops.
+    //! Parameter substitution for generated for loops.
     //! @todo Unlike generated IF, we don't have to worry about short-circuiting the conditional
     //!       expression, since this is currently restricted to simple comparisons. If we ever do
     //!       move to more generic constant expressions, such code will be needed here.
@@ -562,7 +562,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit ParamVisitor(AstNetlist* nodep) {
         m_longId = 0;
         m_modp = NULL;
@@ -585,7 +585,7 @@ void ParamVisitor::visitCell(AstCell* nodep, const string& hierName) {
     {
         UINFO(4,"De-parameterize: "<<nodep<<endl);
         // Create new module name with _'s between the constants
-        if (debug()>=10) nodep->dumpTree(cout, "-cell:\t");
+        if (debug()>=10) nodep->dumpTree(cout, "-cell: ");
         // Evaluate all module constants
         V3Const::constifyParamsEdit(nodep);
         AstNodeModule* srcModp = nodep->modp();
@@ -593,12 +593,12 @@ void ParamVisitor::visitCell(AstCell* nodep, const string& hierName) {
 
         // Make sure constification worked
         // Must be a separate loop, as constant conversion may have changed some pointers.
-        //if (debug()) nodep->dumpTree(cout, "-cel2:\t");
+        //if (debug()) nodep->dumpTree(cout, "-cel2: ");
         string longname = srcModp->name();
         bool any_overrides = false;
         if (nodep->recursive()) any_overrides = true;  // Must always clone __Vrcm (recursive modules)
         longname += "_";
-        if (debug()>8) nodep->paramsp()->dumpTreeAndNext(cout, "-cellparams:\t");
+        if (debug()>8) nodep->paramsp()->dumpTreeAndNext(cout, "-cellparams: ");
         for (AstPin* pinp = nodep->paramsp(); pinp; pinp=VN_CAST(pinp->nextp(), Pin)) {
             if (!pinp->exprp()) continue;  // No-connect
             if (AstVar* modvarp = pinp->modVarp()) {
@@ -648,7 +648,7 @@ void ParamVisitor::visitCell(AstCell* nodep, const string& hierName) {
                                   <<modvarp->prettyNameQ());
                 } else {
                     UINFO(9,"Parameter type assignment expr="<<exprp<<" to "<<origp<<endl);
-                    if (origp && exprp->sameTree(origp)) {
+                    if (exprp->sameTree(origp)) {
                         // Setting parameter to its default value.  Just ignore it.
                         // This prevents making additional modules, and makes coverage more
                         // obvious as it won't show up under a unique module page name.

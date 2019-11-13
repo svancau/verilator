@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilog::Preproc: Preprocess verilog code
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3PREPROC_H_
 #define _V3PREPROC_H_ 1
 
@@ -34,7 +34,7 @@
 // Compatibility with Verilog-Perl's preprocessor
 #define fatalSrc(msg) v3fatalSrc(msg)
 
-class V3InFilter;
+class VInFilter;
 class VSpellCheck;
 
 class V3PreProc {
@@ -49,6 +49,7 @@ public:
     // CONSTANTS
     enum MiscConsts {
         DEFINE_RECURSION_LEVEL_MAX = 1000,      // How many `def substitutions before an error
+        LINE_TOKEN_MAX = 20000,                 // How many tokens on a line before an error
         INCLUDE_DEPTH_MAX = 500,                // How many `includes deep before an error
         STREAM_DEPTH_LEVEL_MAX = 2000,          // How many streams deep (sometimes `def deep) before an error
         //                                      // Set more than DEFINE_RECURSION_LEVEL_MAX
@@ -58,7 +59,7 @@ public:
 
     // ACCESSORS
     // Insert given file into this point in input stream
-    virtual void openFile(FileLine* fileline, V3InFilter* filterp, const string& filename) = 0;
+    virtual void openFile(FileLine* fileline, VInFilter* filterp, const string& filename) = 0;
     virtual string getline() = 0;  // Return next line/lines. (Null if done.)
     virtual bool isEof() const = 0;  // Return true on EOF.
     virtual void insertUnreadback(const string& text) = 0;
@@ -99,7 +100,7 @@ public:
     virtual void candidateDefines(VSpellCheck* spellerp) = 0;  ///< Spell check candidate defines
 
 protected:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     V3PreProc() {
         m_debug=0;
     };

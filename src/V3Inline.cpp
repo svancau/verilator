@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Add temporaries, such as for inline nodes
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -27,7 +27,7 @@
 //          Insert cell's module statements into the upper module
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -70,7 +70,7 @@ private:
 
     // STATE
     AstNodeModule*      m_modp;         // Current module
-    V3Double0           m_statUnsup;    // Statistic tracking
+    VDouble0            m_statUnsup;    // Statistic tracking
 
     typedef std::vector<AstNodeModule*> ModVec;
     ModVec m_allMods;  // All modules, in top-down order.
@@ -212,7 +212,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit InlineMarkVisitor(AstNode* nodep) {
         m_modp = NULL;
         iterate(nodep);
@@ -251,7 +251,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit InlineCollectVisitor(AstNodeModule* nodep) {  // passed OLD module, not new one
         iterate(nodep);
     }
@@ -462,7 +462,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     InlineRelinkVisitor(AstNodeModule* cloneModp, AstNodeModule* oldModp, AstCell* cellp) {
         m_modp = oldModp;
         m_cellp = cellp;
@@ -495,7 +495,7 @@ private:
 
     // STATE
     AstNodeModule*      m_modp;         // Current module
-    V3Double0           m_statCells;    // Statistic tracking
+    VDouble0            m_statCells;    // Statistic tracking
 
     // METHODS
     VL_DEBUG_FUNC;  // Declare debug()
@@ -603,7 +603,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit InlineVisitor(AstNode* nodep) {
         m_modp = NULL;
         iterate(nodep);

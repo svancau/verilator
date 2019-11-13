@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Emit C++ code for module tree
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3EMITC_H_
 #define _V3EMITC_H_ 1
 
@@ -35,6 +35,7 @@ public:
     static void emitcInlines();
     static void emitcSyms(bool dpiHdrOnly = false);
     static void emitcTrace();
+    static void emitcFiles();
 };
 
 #endif  // Guard

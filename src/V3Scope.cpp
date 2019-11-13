@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Break always into sensitivity block domains
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -24,7 +24,7 @@
 //                      {all blocked statements}
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -65,7 +65,7 @@ private:
 
     PackageScopeMap     m_packageScopes;        // Scopes for each package
     VarScopeMap         m_varScopes;            // Varscopes created for each scope and var
-    VarRefScopeSet      m_varRefScopes;         // Varrefs-in-scopes needing fixup when donw
+    VarRefScopeSet      m_varRefScopes;         // Varrefs-in-scopes needing fixup when done
 
     // METHODS
     VL_DEBUG_FUNC;  // Declare debug()
@@ -150,6 +150,9 @@ private:
         iterateChildren(nodep);
 
         // ***Note m_scopep is passed back to the caller of the routine (above)
+    }
+    virtual void visit(AstCellInline* nodep) {
+        nodep->scopep(m_scopep);
     }
     virtual void visit(AstActive* nodep) {
         nodep->v3fatalSrc("Actives now made after scoping");
@@ -246,10 +249,10 @@ private:
             if (m_aboveCellp && !m_aboveCellp->isTrace()) varscp->trace(false);
             nodep->user1p(varscp);
             if (v3Global.opt.isClocker(varscp->prettyName())) {
-                nodep->attrClocker(AstVarAttrClocker::CLOCKER_YES);
+                nodep->attrClocker(VVarAttrClocker::CLOCKER_YES);
             }
             if (v3Global.opt.isNoClocker(varscp->prettyName())) {
-                nodep->attrClocker(AstVarAttrClocker::CLOCKER_NO);
+                nodep->attrClocker(VVarAttrClocker::CLOCKER_NO);
             }
             UASSERT_OBJ(m_scopep, nodep, "No scope for var");
             m_varScopes.insert(make_pair(make_pair(nodep, m_scopep), varscp));
@@ -295,7 +298,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit ScopeVisitor(AstNetlist* nodep) {
         m_aboveCellp = NULL;
         m_aboveScopep = NULL;
@@ -401,7 +404,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit ScopeCleanupVisitor(AstNetlist* nodep) {
         m_scopep = NULL;
         iterate(nodep);

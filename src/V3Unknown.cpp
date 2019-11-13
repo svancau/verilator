@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Add Unknown assigns
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -31,7 +31,7 @@
 //              OPTIMIZE: Must not collapse this initial back into the equation.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -59,7 +59,7 @@ private:
     // STATE
     AstNodeModule*      m_modp;         // Current module
     bool                m_constXCvt;    // Convert X's
-    V3Double0           m_statUnkVars;  // Statistic tracking
+    VDouble0            m_statUnkVars;  // Statistic tracking
     AstAssignW*         m_assignwp;     // Current assignment
     AstAssignDly*       m_assigndlyp;   // Current assignment
 
@@ -135,7 +135,7 @@ private:
                                      (new AstAssign(fl, prep,
                                                     new AstVarRef(fl, varp, false)))),
                                     NULL);
-            newp->branchPred(AstBranchPred::BP_LIKELY);
+            newp->branchPred(VBranchPred::BP_LIKELY);
             if (debug()>=9) newp->dumpTree(cout, "     _new: ");
             abovep->addNextStmt(newp, abovep);
             prep->user2p(newp);  // Save so we may LogAnd it next time
@@ -435,7 +435,6 @@ private:
                 // ARRAYSEL(...) -> ARRAYSEL(COND(LT(bit<maxbit), bit, 0))
                 AstNRelinker replaceHandle;
                 AstNode* bitp = nodep->bitp()->unlinkFrBack(&replaceHandle);
-                V3Number zeronum (nodep, bitp->width(), 0);
                 AstNode* newp = new AstCondBound(bitp->fileline(),
                                                  condp, bitp,
                                                  new AstConst(bitp->fileline(),
@@ -458,7 +457,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit UnknownVisitor(AstNetlist* nodep) {
         m_modp = NULL;
         m_assigndlyp = NULL;

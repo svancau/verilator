@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Find broken links in tree
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -24,7 +24,7 @@
 //      Check all links point to marked nodes
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -179,7 +179,7 @@ public:
         }
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     BrokenTable() {}
     virtual ~BrokenTable() {}
 };
@@ -213,7 +213,7 @@ private:
         processAndIterate(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit BrokenMarkVisitor(AstNetlist* nodep) {
         iterate(nodep);
     }
@@ -269,7 +269,7 @@ private:
         processAndIterate(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit BrokenCheckVisitor(AstNetlist* nodep) {
         iterate(nodep);
     }

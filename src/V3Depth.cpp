@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Prevent very deep expressions
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -26,7 +26,7 @@
 //      Any statements that need "this" are marked non-static
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -132,7 +132,7 @@ private:
 
     //--------------------
     // Marking of non-static functions (because they might need "this")
-    // (Here instead of new vistor after V3Descope just to avoid another visitor)
+    // (Here instead of new visitor after V3Descope just to avoid another visitor)
     void needNonStaticFunc(AstNode* nodep) {
         UASSERT_OBJ(m_funcp, nodep, "Non-static accessor not under a function");
         if (m_funcp->isStatic().trueU()) {
@@ -157,7 +157,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit DepthVisitor(AstNetlist* nodep) {
         m_modp = NULL;
         m_funcp = NULL;

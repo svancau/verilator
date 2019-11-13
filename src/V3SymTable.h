@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Symbol table
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3LINKSYMTABLE_H_
 #define _V3LINKSYMTABLE_H_ 1
 
@@ -259,7 +259,7 @@ public:
         if (scopes=="") scopes="<no cells found>";
         std::cerr<<V3Error::warnMore()<<"... Known scopes under '"<<prettyName<<"': "
                  <<scopes<<endl;
-        if (debug()) dump(std::cerr,"\t\t      KnownScope: ", 1);
+        if (debug()) dump(std::cerr, "       KnownScope: ", 1);
     }
 };
 

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Change names for __PVT__'s
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -22,13 +22,14 @@
 //      Cell/Var's
 //              Prepend __PVT__ to variable names
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
 #include "V3Global.h"
 #include "V3Name.h"
 #include "V3Ast.h"
+#include "V3File.h"
 #include "V3LanguageWords.h"
 
 #include <algorithm>
@@ -132,7 +133,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit NameVisitor(AstNetlist* nodep) {
         m_modp = NULL;
         iterate(nodep);

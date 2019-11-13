@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Emit Makefile
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,21 +17,18 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3EMITMK_H_
 #define _V3EMITMK_H_ 1
 
 #include "config_build.h"
 #include "verilatedos.h"
 
-#include "V3Error.h"
-#include "V3Ast.h"
-
 //============================================================================
 
 class V3EmitMk {
 public:
-    static void emitmk(AstNetlist* nodep);
+    static void emitmk();
 };
 
 #endif  // Guard

@@ -21,20 +21,23 @@
 ///
 ///     Use "verilator --vpi" to add this to the Makefile for the linker.
 ///
-/// Code available from: http://www.veripool.org/verilator
+/// Code available from: https://verilator.org
 ///
 //=========================================================================
-
+
+#define _VERILATED_VPI_CPP_
 
 #if VM_SC
 # include "verilated_sc.h"
 #endif
 #include "verilated.h"
 #include "verilated_vpi.h"
+#include "verilated_imp.h"
 
 #include <list>
 #include <map>
 #include <set>
+#include <sstream>
 
 //======================================================================
 // Internal constants
@@ -161,6 +164,7 @@ public:
 };
 
 class VerilatedVpioScope : public VerilatedVpio {
+protected:
     const VerilatedScope*       m_scopep;
 public:
     explicit VerilatedVpioScope(const VerilatedScope* scopep)
@@ -210,7 +214,6 @@ public:
     vluint32_t entSize() const { return m_entSize; }
     vluint32_t index() { return m_index; }
     virtual vluint32_t type() const {
-      if (varp()->vldir() != vpiNoDirection) return vpiPort;
       return (varp()->dims()>1) ? vpiMemory : vpiReg;  // but might be wire, logic
     }
     virtual vluint32_t size() const { return get_range().elements(); }
@@ -308,6 +311,43 @@ public:
     }
 };
 
+class VerilatedVpioModule : public VerilatedVpioScope {
+    const char* m_name;
+    const char* m_fullname;
+public:
+    explicit VerilatedVpioModule(const VerilatedScope* modulep)
+            : VerilatedVpioScope(modulep) {
+        m_fullname = m_scopep->name();
+        if (strncmp(m_fullname, "TOP.", 4) == 0) m_fullname += 4;
+        m_name = m_scopep->identifier();
+    }
+    static inline VerilatedVpioModule* castp(vpiHandle h) {
+        return dynamic_cast<VerilatedVpioModule*>((VerilatedVpio*)h); }
+    virtual vluint32_t type() const { return vpiModule; }
+    virtual const char* name() const { return m_name; }
+    virtual const char* fullname() const { return m_fullname; }
+};
+
+class VerilatedVpioModuleIter : public VerilatedVpio {
+    const std::vector<const VerilatedScope*> *m_vec;
+    std::vector<const VerilatedScope*>::const_iterator m_it;
+public:
+    explicit VerilatedVpioModuleIter(const std::vector<const VerilatedScope*>& vec) : m_vec(&vec) {
+        m_it = m_vec->begin();
+    }
+    virtual ~VerilatedVpioModuleIter() {}
+    static inline VerilatedVpioModuleIter* castp(vpiHandle h) {
+        return dynamic_cast<VerilatedVpioModuleIter*>((VerilatedVpio*) h); }
+    virtual vluint32_t type() const { return vpiIterator; }
+    virtual vpiHandle dovpi_scan() {
+        if (m_it == m_vec->end()) {
+            return 0;
+        }
+        const VerilatedScope* modp = *m_it++;
+        return (new VerilatedVpioModule(modp))->castVpiHandle();
+    }
+};
+
 //======================================================================
 
 struct VerilatedVpiTimedCbsCmp {
@@ -390,8 +430,9 @@ public:
         }
         return ~VL_ULL(0);  // maxquad
     }
-    static void callCbs(vluint32_t reason) {
+    static bool callCbs(vluint32_t reason) VL_MT_UNSAFE_ONE {
         VpioCbList& cbObjList = s_s.m_cbObjLists[reason];
+        bool called = false;
         for (VpioCbList::iterator it=cbObjList.begin(); it!=cbObjList.end();) {
             if (VL_UNLIKELY(!*it)) {  // Deleted earlier, cleanup
                 it = cbObjList.erase(it);
@@ -400,7 +441,9 @@ public:
             VerilatedVpioCb* vop = *it++;
             VL_DEBUG_IF_PLI(VL_DBG_MSGF("- vpi: reason_callback %d %p\n", reason, vop););
             (vop->cb_rtnp()) (vop->cb_datap());
+            called = true;
         }
+        return called;
     }
     static void callValueCbs() VL_MT_UNSAFE_ONE {
         assertOneCheck();
@@ -519,6 +562,10 @@ void VerilatedVpi::callTimedCbs() VL_MT_UNSAFE_ONE {
 
 void VerilatedVpi::callValueCbs() VL_MT_UNSAFE_ONE {
     VerilatedVpiImp::callValueCbs();
+}
+
+bool VerilatedVpi::callCbs(vluint32_t reason) VL_MT_UNSAFE_ONE {
+    return VerilatedVpiImp::callCbs(reason);
 }
 
 //======================================================================
@@ -992,9 +1039,9 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
     _VL_VPI_ERROR_RESET();
     if (VL_UNLIKELY(!namep)) return NULL;
     VL_DEBUG_IF_PLI(VL_DBG_MSGF("- vpi: vpi_handle_by_name %s %p\n", namep, scope););
-    VerilatedVpioScope* voScopep = VerilatedVpioScope::castp(scope);
-    const VerilatedVar* varp;
+    const VerilatedVar* varp = NULL;
     const VerilatedScope* scopep;
+    VerilatedVpioScope* voScopep = VerilatedVpioScope::castp(scope);
     std::string scopeAndName = namep;
     if (voScopep) {
         scopeAndName = std::string(voScopep->fullname()) + "." + namep;
@@ -1004,7 +1051,11 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
         // This doesn't yet follow the hierarchy in the proper way
         scopep = Verilated::scopeFind(namep);
         if (scopep) {  // Whole thing found as a scope
-            return (new VerilatedVpioScope(scopep))->castVpiHandle();
+            if (scopep->type() == VerilatedScope::SCOPE_MODULE) {
+                return (new VerilatedVpioModule(scopep))->castVpiHandle();
+            } else {
+                return (new VerilatedVpioScope(scopep))->castVpiHandle();
+            }
         }
         const char* baseNamep = scopeAndName.c_str();
         std::string scopename;
@@ -1013,9 +1064,19 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
             baseNamep = dotp+1;
             scopename = std::string(namep, dotp-namep);
         }
-        scopep = Verilated::scopeFind(scopename.c_str());
-        if (!scopep) return NULL;
-        varp = scopep->varFind(baseNamep);
+
+        if (scopename.find(".") == std::string::npos) {
+            // This is a toplevel, hence search in our TOP ports first.
+            scopep = Verilated::scopeFind("TOP");
+            if (scopep) {
+                varp = scopep->varFind(baseNamep);
+            }
+        }
+        if (!varp) {
+            scopep = Verilated::scopeFind(scopename.c_str());
+            if (!scopep) return NULL;
+            varp = scopep->varFind(baseNamep);
+        }
     }
     if (!varp) return NULL;
     return (new VerilatedVpioVar(varp, scopep))->castVpiHandle();
@@ -1127,6 +1188,14 @@ vpiHandle vpi_iterate(PLI_INT32 type, vpiHandle object) {
         return ((new VerilatedVpioVarIter(vop->scopep()))
                 ->castVpiHandle());
     }
+    case vpiModule: {
+        VerilatedVpioModule* vop = VerilatedVpioModule::castp(object);
+        const VerilatedHierarchyMap* map = VerilatedImp::hierarchyMap();
+        const VerilatedScope *mod = vop ? vop->scopep() : NULL;
+        VerilatedHierarchyMap::const_iterator it = map->find((VerilatedScope*) mod);
+        if (it == map->end()) return 0;
+        return  ((new VerilatedVpioModuleIter(it->second))->castVpiHandle());
+    }
     default:
         _VL_VPI_WARNING(__FILE__, __LINE__, "%s: Unsupported type %s, nothing will be returned",
                         VL_FUNC, VerilatedVpiError::strFromVpiObjType(type));
@@ -1154,7 +1223,7 @@ PLI_INT32 vpi_get(PLI_INT32 property, vpiHandle object) {
         return VL_TIME_PRECISION;
     }
     case vpiType: {
-        VerilatedVpio* vop = VerilatedVpioVar::castp(object);
+        VerilatedVpio* vop = VerilatedVpio::castp(object);
         if (VL_UNLIKELY(!vop)) return 0;
         return vop->type();
     }
@@ -1202,6 +1271,9 @@ PLI_BYTE8 *vpi_get_str(PLI_INT32 property, vpiHandle object) {
     }
     case vpiDefName: {
         return (PLI_BYTE8*)vop->defname();
+    }
+    case vpiType: {
+        return (PLI_BYTE8*) VerilatedVpiError::strFromVpiObjType(vop->type());
     }
     default:
         _VL_VPI_WARNING(__FILE__, __LINE__, "%s: Unsupported type %s, nothing will be returned",

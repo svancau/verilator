@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Rename scope references to module-local references
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -25,7 +25,7 @@
 //          This allows for better V3Combine'ing.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -136,7 +136,7 @@ private:
             m_needThis = true;
             return name+"->";
         } else {
-            // Reference to something elsewhere, or relative refences
+            // Reference to something elsewhere, or relative references
             // are disabled. Use global variable
             UINFO(8,"      Descope "<<scopep<<endl);
             UINFO(8,"           to "<<scopep->name()<<endl);

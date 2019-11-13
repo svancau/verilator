@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Lifelicate variable assignment elimination
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -26,7 +26,7 @@
 //          We don't do the opposite yet though (remove assigns in if followed by outside if)
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -50,8 +50,8 @@ class LifeState {
 
     // STATE
 public:
-    V3Double0   m_statAssnDel;  // Statistic tracking
-    V3Double0   m_statAssnCon;  // Statistic tracking
+    VDouble0 m_statAssnDel;  // Statistic tracking
+    VDouble0 m_statAssnCon;  // Statistic tracking
     std::vector<AstNode*> m_unlinkps;
 
 public:
@@ -346,13 +346,12 @@ private:
         {
             m_lifep = ifLifep;
             iterateAndNextNull(nodep->ifsp());
-            m_lifep = prevLifep;
         }
         {
             m_lifep = elseLifep;
             iterateAndNextNull(nodep->elsesp());
-            m_lifep = prevLifep;
         }
+        m_lifep = prevLifep;
         UINFO(4,"   join "<<endl);
         // Find sets on both flows
         m_lifep->dualBranch(ifLifep, elseLifep);
@@ -378,14 +377,13 @@ private:
             m_lifep = condLifep;
             iterateAndNextNull(nodep->precondsp());
             iterateAndNextNull(nodep->condp());
-            m_lifep = prevLifep;
         }
         {
             m_lifep = bodyLifep;
             iterateAndNextNull(nodep->bodysp());
             iterateAndNextNull(nodep->incsp());
-            m_lifep = prevLifep;
         }
+        m_lifep = prevLifep;
         UINFO(4,"   joinfor"<<endl);
         // For the next assignments, clear any variables that were read or written in the block
         condLifep->lifeToAbove();

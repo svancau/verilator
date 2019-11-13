@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Replace return/continue with jumps
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -25,7 +25,7 @@
 //      FOR -> WHILEs
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -77,7 +77,7 @@ private:
             nodep->v3fatalSrc("Unknown jump point for break/disable/continue");
             return NULL;
         }
-        // Skip over variables as we'll just move them in a momement
+        // Skip over variables as we'll just move them in a moment
         // Also this would otherwise prevent us from using a label twice
         // see t_func_return test.
         while (underp && VN_IS(underp, Var)) underp = underp->nextp();
@@ -248,7 +248,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit LinkJumpVisitor(AstNetlist* nodep) {
         m_modp = NULL;
         m_ftaskp = NULL;

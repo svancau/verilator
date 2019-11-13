@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Break always into sensitivity active domains
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -29,7 +29,7 @@
 //      WIRE: Move into SACTIVE(combo)
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -140,7 +140,7 @@ public:
         return activep;
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     ActiveNamer() {
         m_scopep = NULL;
         m_iActivep = NULL;
@@ -196,7 +196,7 @@ private:
         AstVar* varp = nodep->varp();
         if (m_check == CT_SEQ
             && m_assignp
-            && !varp->isUsedLoopIdx()  // Ignore loop indicies
+            && !varp->isUsedLoopIdx()  // Ignore loop indices
             && !varp->isTemp()) {
             // Allow turning off warnings on the always, or the variable also
             if (!m_alwaysp->fileline()->warnIsOff(V3ErrorCode::BLKSEQ)
@@ -214,7 +214,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     ActiveDlyVisitor(AstNode* nodep, CheckType check) {
         m_alwaysp = nodep;
         m_check = check;
@@ -301,7 +301,7 @@ private:
             m_namer.scopep()->addActivep(m_scopeFinalp);
         }
         nodep->unlinkFrBack();
-        m_scopeFinalp->addStmtsp(new AstComment(nodep->fileline(), nodep->typeName()));
+        m_scopeFinalp->addStmtsp(new AstComment(nodep->fileline(), nodep->typeName(), true));
         m_scopeFinalp->addStmtsp(nodep->bodysp()->unlinkFrBackWithNext());
         nodep->deleteTree(); VL_DANGLING(nodep);
     }
@@ -320,7 +320,7 @@ private:
             return;
         }
 
-        // Read sensitivitues
+        // Read sensitivities
         m_itemCombo = false;
         m_itemSequent = false;
         iterateAndNextNull(oldsensesp);
@@ -392,14 +392,14 @@ private:
     }
     virtual void visit(AstSenGate* nodep) {
         AstSenItem* subitemp = nodep->sensesp();
-        UASSERT_OBJ(subitemp->edgeType() == AstEdgeType::ET_ANYEDGE
-                    || subitemp->edgeType() == AstEdgeType::ET_POSEDGE
-                    || subitemp->edgeType() == AstEdgeType::ET_NEGEDGE,
+        UASSERT_OBJ(subitemp->edgeType() == VEdgeType::ET_ANYEDGE
+                    || subitemp->edgeType() == VEdgeType::ET_POSEDGE
+                    || subitemp->edgeType() == VEdgeType::ET_NEGEDGE,
                     nodep, "Strange activity type under SenGate");
         iterateChildren(nodep);
     }
     virtual void visit(AstSenItem* nodep) {
-        if (nodep->edgeType() == AstEdgeType::ET_ANYEDGE) {
+        if (nodep->edgeType() == VEdgeType::ET_ANYEDGE) {
             m_itemCombo = true;
             // Delete the sensitivity
             // We'll add it as a generic COMBO SenItem in a moment.
@@ -423,7 +423,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit ActiveVisitor(AstNetlist* nodep) {
         m_scopeFinalp = NULL;
         m_itemCombo = false;

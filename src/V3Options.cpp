@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Options parsing
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -528,12 +528,80 @@ string V3Options::getenvVERILATOR_ROOT() {
 }
 
 //######################################################################
+// V3 Options notification methods
+
+void V3Options::notify() {
+    // Notify that all arguments have been passed and final modification can be made.
+    if (!outFormatOk()
+        && !cdc()
+        && !dpiHdrOnly()
+        && !lintOnly()
+        && !preprocOnly()
+        && !xmlOnly()) {
+        v3fatal("verilator: Need --cc, --sc, --cdc, --dpi-hdr-only, --lint-only, --xml-only or --E option");
+    }
+
+    // Make sure at least one make system is enabled
+    if (!m_gmake && !m_cmake) {
+        m_gmake = true;
+    }
+
+    if (protectIds()) {
+        FileLine* cmdfl = new FileLine(FileLine::commandLineFilename());
+        if (allPublic()) {
+            // We always call protect() on names, we don't check if public or not
+            // Hence any external references wouldn't be able to find the refed public object.
+            cmdfl->v3error("Unsupported: Using --protect-ids with --public\n"
+                           +V3Error::warnMore()+"... Suggest remove --public.");
+        }
+        if (trace()) {
+            cmdfl->v3warn(INSECURE,
+                          "Using --protect-ids with --trace may expose private design details\n"
+                          +V3Error::warnMore()+"... Suggest remove --trace.");
+        }
+        if (vpi()) {
+            cmdfl->v3warn(INSECURE,
+                          "Using --protect-ids with --vpi may expose private design details\n"
+                          +V3Error::warnMore()+"... Suggest remove --vpi.");
+        }
+    }
+
+    // Default some options if not turned on or off
+    if (v3Global.opt.skipIdentical().isDefault()) {
+        v3Global.opt.m_skipIdentical.setTrueOrFalse(
+            !v3Global.opt.cdc()
+            && !v3Global.opt.dpiHdrOnly()
+            && !v3Global.opt.lintOnly()
+            && !v3Global.opt.preprocOnly()
+            && !v3Global.opt.xmlOnly());
+    }
+    if (v3Global.opt.makeDepend().isDefault()) {
+        v3Global.opt.m_makeDepend.setTrueOrFalse(
+            !v3Global.opt.cdc()
+            && !v3Global.opt.dpiHdrOnly()
+            && !v3Global.opt.lintOnly()
+            && !v3Global.opt.preprocOnly()
+            && !v3Global.opt.xmlOnly());
+    }
+}
+
+//######################################################################
 // V3 Options accessors
 
 string V3Options::version() {
     string ver = DTVERSION;
     ver += " rev "+cvtToStr(DTVERSION_rev);
     return ver;
+}
+
+string V3Options::protectKeyDefaulted() {
+    if (m_protectKey.empty()) {
+        // Create a key with a human-readable symbol-like name.
+        // This conversion drops ~2 bits of entropy out of 256, shouldn't matter.
+        VHashSha256 digest (V3Os::trueRandom(32));
+        m_protectKey = "VL-KEY-"+digest.digestSymbol();
+    }
+    return m_protectKey;
 }
 
 void V3Options::throwSigsegv() {
@@ -560,7 +628,7 @@ string V3Options::argString(int argc, char** argv) {
 
 void V3Options::parseOpts(FileLine* fl, int argc, char** argv) {
     // Parse all options
-    // Inital entry point from Verilator.cpp
+    // Initial entry point from Verilator.cpp
     parseOptsList(fl, ".", argc, argv);
 
     // Default certain options and error check
@@ -599,6 +667,15 @@ bool V3Options::onoff(const char* sw, const char* arg, bool& flag) {
     else if (0==strncmp(sw, "-no-", 4) && (0==strcmp(sw+4, arg+1))) { flag = false; return true; }
     return false;
 }
+bool V3Options::onoffb(const char* sw, const char* arg, VOptionBool& bflag) {
+    bool flag;
+    if (onoff(sw, arg, flag/*ref*/)) {
+        bflag.setTrueOrFalse(flag);
+        return true;
+    } else {
+        return false;
+    }
+}
 
 bool V3Options::suffixed(const string& sw, const char* arg) {
     if (strlen(arg) > sw.length()) return false;
@@ -616,7 +693,7 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
     for (int i=0; i<argc; )  {
         UINFO(9, " Option: "<<argv[i]<<endl);
         if (argv[i][0]=='+') {
-            char *sw = argv[i];
+            char* sw = argv[i];
             if (!strncmp (sw, "+define+", 8)) {
                 addDefine(string(sw+strlen("+define+")), true);
             }
@@ -655,14 +732,15 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
             shift;
         }  // + options
         else if (argv[i][0]=='-') {
-            const char *sw = argv[i];
+            const char* sw = argv[i];
             bool flag = true;
+            VOptionBool bflag;
             // Allow gnu -- switches
             if (sw[0]=='-' && sw[1]=='-') ++sw;
             if (0) {}
             // Single switches
             else if (!strcmp(sw, "-E"))                         { m_preprocOnly = true; }
-            else if ( onoff (sw, "-MMD", flag/*ref*/))          { m_makeDepend = flag; }
+            else if ( onoffb(sw, "-MMD", bflag/*ref*/))         { m_makeDepend = bflag; }
             else if ( onoff (sw, "-MP", flag/*ref*/))           { m_makePhony = flag; }
             else if (!strcmp(sw, "-P"))                         { m_preprocNoLine = true; }
             else if ( onoff (sw, "-assert", flag/*ref*/))       { m_assert = flag; }
@@ -683,6 +761,7 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
             else if ( onoff (sw, "-debug-leak", flag/*ref*/))   { m_debugLeak = flag; }
             else if ( onoff (sw, "-debug-nondeterminism", flag/*ref*/)){ m_debugNondeterminism = flag; }
             else if ( onoff (sw, "-debug-partition", flag/*ref*/)){ m_debugPartition = flag; }  // Undocumented
+            else if ( onoff (sw, "-debug-protect", flag/*ref*/)){ m_debugProtect = flag; }  // Undocumented
             else if ( onoff (sw, "-debug-self-test", flag/*ref*/)){ m_debugSelfTest = flag; }  // Undocumented
             else if (!strcmp(sw, "-debug-sigsegv"))             { throwSigsegv(); }  // Undocumented, see also --debug-abort
             else if (!strcmp(sw, "-debug-fatalsrc"))            { v3fatalSrc("--debug-fatal-src"); }  // Undocumented, see also --debug-abort
@@ -705,19 +784,22 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
             else if ( onoff (sw, "-prof-cfuncs", flag/*ref*/))       { m_profCFuncs = flag; }
             else if ( onoff (sw, "-profile-cfuncs", flag/*ref*/))    { m_profCFuncs = flag; }  // Undocumented, for backward compat
             else if ( onoff (sw, "-prof-threads", flag/*ref*/))      { m_profThreads = flag; }
+            else if ( onoff (sw, "-protect-ids", flag/*ref*/))       { m_protectIds = flag; }
             else if ( onoff (sw, "-public", flag/*ref*/))            { m_public = flag; }
-            else if (!strncmp(sw, "-pvalue+", strlen("-pvalue+")))     { addParameter(string(sw+strlen("-pvalue+")), false); }
+            else if ( onoff (sw, "-public-flat-rw", flag/*ref*/) )   { m_publicFlatRW = flag; v3Global.dpi(true); }
+            else if (!strncmp(sw, "-pvalue+", strlen("-pvalue+")))   { addParameter(string(sw+strlen("-pvalue+")), false); }
             else if ( onoff (sw, "-relative-cfuncs", flag/*ref*/))   { m_relativeCFuncs = flag; }
             else if ( onoff (sw, "-relative-includes", flag/*ref*/)) { m_relativeIncludes = flag; }
             else if ( onoff (sw, "-report-unoptflat", flag/*ref*/))  { m_reportUnoptflat = flag; }
             else if ( onoff (sw, "-savable", flag/*ref*/))           { m_savable = flag; }
             else if (!strcmp(sw, "-sc"))                             { m_outFormatOk = true; m_systemC = true; }
-            else if ( onoff (sw, "-skip-identical", flag/*ref*/))    { m_skipIdentical = flag; }
+            else if ( onoffb(sw, "-skip-identical", bflag/*ref*/))   { m_skipIdentical = bflag; }
             else if ( onoff (sw, "-stats", flag/*ref*/))             { m_stats = flag; }
             else if ( onoff (sw, "-stats-vars", flag/*ref*/))        { m_statsVars = flag; m_stats |= flag; }
             else if (!strcmp(sw, "-sv"))                             { m_defaultLanguage = V3LangCode::L1800_2005; }
             else if ( onoff (sw, "-threads-coarsen", flag/*ref*/))   { m_threadsCoarsen = flag; }  // Undocumented, debug
             else if ( onoff (sw, "-trace", flag/*ref*/))             { m_trace = flag; }
+            else if ( onoff (sw, "-trace-coverage", flag/*ref*/))    { m_traceCoverage = flag; }
             else if ( onoff (sw, "-trace-dups", flag/*ref*/))        { m_traceDups = flag; }
             else if ( onoff (sw, "-trace-params", flag/*ref*/))      { m_traceParams = flag; }
             else if ( onoff (sw, "-trace-structs", flag/*ref*/))     { m_traceStructs = flag; }
@@ -822,6 +904,10 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                 shift;
                 m_gateStmts = atoi(argv[i]);
             }
+            else if (!strcmp(sw, "-generate-key")) {
+                cout<<protectKeyDefaulted()<<endl;
+                exit(0);
+            }
             else if (!strcmp(sw, "-getenv") && (i+1)<argc) {
                 shift;
                 cout<<V3Options::getenvBuiltins(argv[i])<<endl;
@@ -848,6 +934,16 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
             }
             else if (!strcmp(sw, "-l2name")) {  // Historical and undocumented
                 m_l2Name = "v";
+            }
+            else if (!strcmp(sw, "-make")) {
+                shift;
+                if (!strcmp(argv[i], "cmake")) {
+                    m_cmake = true;
+                } else if (!strcmp(argv[i], "gmake")) {
+                    m_gmake = true;
+                } else {
+                    fl->v3fatal("Unknown --make system specified: '"<<argv[i]<<"'");
+                }
             }
             else if (!strcmp(sw, "-no-l2name")) {  // Historical and undocumented
                 m_l2Name = "";
@@ -884,6 +980,10 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
             else if (!strcmp(sw, "-output-split-ctrace")) {  // Undocumented optimization tweak
                 shift;
                 m_outputSplitCTrace = atoi(argv[i]);
+            }
+            else if (!strcmp(sw, "-protect-lib") && (i+1)<argc) {
+                shift; m_protectLib = argv[i];
+                m_protectIds = true;
             }
             else if (!strcmp(sw, "-trace-fst")) {
                 m_trace = true;
@@ -1051,6 +1151,9 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                 shift; m_prefix = argv[i];
                 if (m_modPrefix=="") m_modPrefix = m_prefix;
             }
+            else if (!strcmp(sw, "-protect-key") && (i+1)<argc) {
+                shift; m_protectKey = argv[i];
+            }
             else if (!strcmp(sw, "-no-threads")) { m_threads = 0; }  // Undocumented until functional
             else if (!strcmp(sw, "-threads") && (i+1)<argc) {  // Undocumented until functional
                 shift; m_threads = atoi(argv[i]);
@@ -1097,6 +1200,10 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                 else {
                     fl->v3fatal("Unknown setting for --x-initial: "<<argv[i]);
                 }
+            }
+            else if (!strcmp(sw, "-xml-output") && (i+1)<argc) {
+                shift; m_xmlOutput = argv[i];
+                m_xmlOnly = true;
             }
             else if (!strcmp(sw, "-y") && (i+1)<argc) {
                 shift; addIncDirUser(parseFileArg(optdir, string(argv[i])));
@@ -1177,25 +1284,85 @@ void V3Options::parseOptsFile(FileLine* fl, const string& filename, bool rel) {
     fl = new FileLine(filename);
 
     // Split into argument list and process
-    // Note we don't respect quotes.  It seems most simulators dont.
-    // Woez those that expect it; we'll at least complain.
-    if (whole_file.find('\"') != string::npos) {
-        fl->v3error("Double quotes in -f files cause unspecified behavior.");
-    }
+    // Note we try to respect escaped char, double/simple quoted strings
+    // Other simulators don't respect a common syntax...
 
     // Strip off arguments and parse into words
     std::vector<string> args;
-    string::size_type startpos = 0;
-    while (startpos < whole_file.length()) {
-        while (isspace(whole_file[startpos])) ++startpos;
-        string::size_type endpos = startpos;
-        while (endpos < whole_file.length() && !isspace(whole_file[endpos])) ++endpos;
-        if (startpos != endpos) {
-            string arg (whole_file, startpos, endpos-startpos);
-            args.reserve(args.size()+1);
-            args.push_back(arg);
+
+    // Parse file using a state machine, taking into account quoted strings and escaped chars
+    enum state {ST_IN_OPTION,
+                ST_ESCAPED_CHAR,
+                ST_IN_QUOTED_STR,
+                ST_IN_DOUBLE_QUOTED_STR};
+
+    state st = ST_IN_OPTION;
+    state last_st = ST_IN_OPTION;
+    string arg;
+    for (string::size_type pos = 0;
+         pos < whole_file.length(); ++pos) {
+        char curr_char = whole_file[pos];
+        switch (st) {
+        case ST_IN_OPTION:  // Get all chars up to a white space or a "="
+            if (isspace(curr_char)) {  // End of option
+                if (!arg.empty()) {  // End of word
+                    args.push_back(arg);
+                }
+                arg = "";
+                break;
+            }
+            if (curr_char == '\\') {  // Escape char, we wait for next char
+                last_st = st;  // Memorize current state
+                st = ST_ESCAPED_CHAR;
+                break;
+            }
+            if (curr_char == '\'') {  // Find begin of quoted string
+                // Examine next char in order to decide between
+                // a string or a base specifier for integer literal
+                ++pos;
+                if (pos < whole_file.length()) curr_char = whole_file[pos];
+                if (curr_char == '"') {  // String
+                    st = ST_IN_QUOTED_STR;
+                } else {  // Base specifier
+                    arg += '\'';
+                }
+                arg +=  curr_char;
+                break;
+            }
+            if (curr_char == '"') {  // Find begin of double quoted string
+                // Doesn't insert the quote
+                st = ST_IN_DOUBLE_QUOTED_STR;
+                break;
+            }
+            arg += curr_char;
+            break;
+        case ST_IN_QUOTED_STR:  // Just store all chars inside string
+            if (curr_char != '\'') {
+                arg += curr_char;
+            } else {  // End of quoted string
+                st = ST_IN_OPTION;
+            }
+            break;
+        case ST_IN_DOUBLE_QUOTED_STR:  // Take into account escaped chars
+            if (curr_char != '"') {
+                if (curr_char == '\\') {
+                    last_st = st;
+                    st = ST_ESCAPED_CHAR;
+                } else {
+                    arg += curr_char;
+                }
+            } else {  // End of double quoted string
+                st = ST_IN_OPTION;
+            }
+            break;
+        case ST_ESCAPED_CHAR:  // Just add the escaped char
+            arg += curr_char;
+            st = last_st;
+            break;
         }
-        startpos = endpos;
+    }
+    if (!arg.empty()) {  // Add last word
+        args.push_back(arg);
     }
 
     // Path
@@ -1248,7 +1415,7 @@ void V3Options::showVersion(bool verbose) {
     cout << "License Version 2.0.\n";
 
     cout <<endl;
-    cout << "See http://www.veripool.org/verilator for documentation\n";
+    cout << "See https://verilator.org for documentation\n";
 
     cout <<endl;
     cout << "Summary of configuration:\n";
@@ -1280,6 +1447,7 @@ V3Options::V3Options() {
     m_bboxSys = false;
     m_bboxUnsup = false;
     m_cdc = false;
+    m_cmake = false;
     m_coverageLine = false;
     m_coverageToggle = false;
     m_coverageUnderscore = false;
@@ -1289,6 +1457,7 @@ V3Options::V3Options() {
     m_debugLeak = true;
     m_debugNondeterminism = false;
     m_debugPartition = false;
+    m_debugProtect = false;
     m_debugSelfTest = false;
     m_decoration = true;
     m_dpiHdrOnly = false;
@@ -1297,7 +1466,7 @@ V3Options::V3Options() {
     m_ignc = false;
     m_inhibitSim = false;
     m_lintOnly = false;
-    m_makeDepend = true;
+    m_gmake = false;
     m_makePhony = false;
     m_orderClockDly = true;
     m_outFormatOk = false;
@@ -1308,14 +1477,15 @@ V3Options::V3Options() {
     m_ppComments = false;
     m_profCFuncs = false;
     m_profThreads = false;
+    m_protectIds = false;
     m_preprocOnly = false;
     m_preprocNoLine = false;
     m_public = false;
+    m_publicFlatRW = false;
     m_relativeCFuncs = true;
     m_relativeIncludes = false;
     m_reportUnoptflat = false;
     m_savable = false;
-    m_skipIdentical = true;
     m_stats = false;
     m_statsVars = false;
     m_systemC = false;
@@ -1325,8 +1495,9 @@ V3Options::V3Options() {
     m_threadsCoarsen = true;
     m_threadsMaxMTasks = 0;
     m_trace = false;
-    m_traceFormat = TraceFormat::VCD;
+    m_traceCoverage = false;
     m_traceDups = false;
+    m_traceFormat = TraceFormat::VCD;
     m_traceParams = true;
     m_traceStructs = false;
     m_traceUnderscore = false;

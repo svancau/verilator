@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Link modules/signals together
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3LINKCELLS_H_
 #define _V3LINKCELLS_H_ 1
 
@@ -27,14 +27,14 @@
 #include "V3Error.h"
 #include "V3Ast.h"
 
-class V3InFilter;
+class VInFilter;
 class V3ParseSym;
 
 //============================================================================
 
 class V3LinkCells {
 public:
-    static void link(AstNetlist* nodep, V3InFilter* filterp, V3ParseSym* parseSymp);
+    static void link(AstNetlist* nodep, VInFilter* filterp, V3ParseSym* parseSymp);
 };
 
 #endif  // Guard

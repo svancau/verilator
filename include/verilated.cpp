@@ -19,10 +19,10 @@
 ///     This file must be compiled and linked against all objects
 ///     created from Verilator.
 ///
-/// Code available from: http://www.veripool.org/verilator
+/// Code available from: https://verilator.org
 ///
 //=========================================================================
-
+
 #define _VERILATED_CPP_
 
 #include "verilatedos.h"
@@ -43,9 +43,13 @@
 // Static sanity checks (when get C++11 can use static_assert)
 
 typedef union {
+    // cppcheck-suppress unusedStructMember  // Unused as is assertion
     char vluint8_incorrect[(sizeof(vluint8_t) == 1) ? 1:-1];
+    // cppcheck-suppress unusedStructMember  // Unused as is assertion
     char vluint16_incorrect[(sizeof(vluint16_t) == 2) ? 1:-1];
+    // cppcheck-suppress unusedStructMember  // Unused as is assertion
     char vluint32_incorrect[(sizeof(vluint32_t) == 4) ? 1:-1];
+    // cppcheck-suppress unusedStructMember  // Unused as is assertion
     char vluint64_incorrect[(sizeof(vluint64_t) == 8) ? 1:-1];
 } vl_static_checks_t;
 
@@ -603,7 +607,7 @@ void _vl_vsformat(std::string& output, const char* formatp, va_list ap) VL_MT_SA
             width = 0;
         } else if (!inPct) {  // Normal text
             // Fast-forward to next escape and add to output
-            const char *ep = pos;
+            const char* ep = pos;
             while (ep[0] && ep[0]!='%') ep++;
             if (ep != pos) {
                 output.append(pos, ep-pos);
@@ -1374,6 +1378,7 @@ void VL_WRITEMEM_N(
     FILE* fp = fopen(filename.c_str(), "w");
     if (VL_UNLIKELY(!fp)) {
         VL_FATAL_MT(filename.c_str(), 0, "", "$writemem file not found");
+        // cppcheck-suppress resourceLeak  // fp is NULL - bug in cppcheck
         return;
     }
 
@@ -1511,6 +1516,7 @@ void VL_READMEM_N(
     if (VL_UNLIKELY(!fp)) {
         // We don't report the Verilog source filename as it slow to have to pass it down
         VL_FATAL_MT(filename.c_str(), 0, "", "$readmem file not found");
+        // cppcheck-suppress resourceLeak  // fp is NULL - bug in cppcheck
         return;
     }
     // Prep for reading
@@ -1779,7 +1785,8 @@ void Verilated::debug(int level) VL_MT_SAFE {
                                 " Message prefix indicates {<thread>,<sequence_number>}.\n"););
 #else
         VL_PRINTF_MT("- Verilated::debug attempted,"
-                     " but compiled without VL_DEBUG, so messages suppressed.\n");
+                     " but compiled without VL_DEBUG, so messages suppressed.\n"
+                     "- Suggest remake using 'make ... CPPFLAGS=-DVL_DEBUG'\n");
 #endif
     }
 }
@@ -2101,9 +2108,11 @@ void* VerilatedVarProps::datapAdjustIndex(void* datap, int dim, int indx) const 
 VerilatedScope::VerilatedScope() {
     m_callbacksp = NULL;
     m_namep = NULL;
+    m_identifierp = NULL;
     m_funcnumMax = 0;
     m_symsp = NULL;
     m_varsp = NULL;
+    m_type = SCOPE_OTHER;
 }
 
 VerilatedScope::~VerilatedScope() {
@@ -2116,15 +2125,18 @@ VerilatedScope::~VerilatedScope() {
 }
 
 void VerilatedScope::configure(VerilatedSyms* symsp, const char* prefixp,
-                               const char* suffixp) VL_MT_UNSAFE {
+                               const char* suffixp, const char* identifier,
+                               const Type type) VL_MT_UNSAFE {
     // Slowpath - called once/scope at construction
     // We don't want the space and reference-count access overhead of strings.
     m_symsp = symsp;
+    m_type = type;
     char* namep = new char[strlen(prefixp)+strlen(suffixp)+2];
     strcpy(namep, prefixp);
     if (*prefixp && *suffixp) strcat(namep, ".");
     strcat(namep, suffixp);
     m_namep = namep;
+    m_identifierp = identifier;
     VerilatedImp::scopeInsert(this);
 }
 
@@ -2227,6 +2239,10 @@ void VerilatedScope::scopeDump() const {
             VL_PRINTF_MT("       VAR %p: %s\n", &(it->second), it->first);
         }
     }
+}
+
+void VerilatedHierarchy::add(VerilatedScope* fromp, VerilatedScope* top) {
+    VerilatedImp::hierarchyAdd(fromp, top);
 }
 
 //===========================================================================

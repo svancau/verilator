@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Substitute constants and expressions in expr temp's
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -25,7 +25,7 @@
 //      the RHS hasn't changed value.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -211,7 +211,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     SubstUseVisitor(AstNode* nodep, int origStep) {
         UINFO(9, "        SubstUseVisitor "<<origStep<<" "<<nodep<<endl);
         m_ok = true;
@@ -239,7 +239,7 @@ private:
     std::vector<SubstVarEntry*> m_entryps;      // Nodes to delete when we are finished
     int                         m_ops;          // Number of operators on assign rhs
     int                         m_assignStep;   // Assignment number to determine var lifetime
-    V3Double0                   m_statSubsts;   // Statistic tracking
+    VDouble0                    m_statSubsts;   // Statistic tracking
 
     enum { SUBST_MAX_OPS_SUBST = 30,            // Maximum number of ops to substitute in
            SUBST_MAX_OPS_NA = 9999 };           // Not allowed to substitute
@@ -376,7 +376,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit SubstVisitor(AstNode* nodep) {
         AstNode::user1ClearTree();  // user1p() used on entire tree
         AstNode::user2ClearTree();  // user2p() used on entire tree

@@ -23,10 +23,9 @@
 ///     These classes are thread safe and read only. It is constructed only
 ///     when a model is built (from the main thread).
 ///
-/// Code available from: http://www.veripool.org/verilator
+/// Code available from: https://verilator.org
 ///
 //*************************************************************************
-
 
 #ifndef _VERILATED_SYMS_H_
 #define _VERILATED_SYMS_H_ 1  ///< Header Guard
@@ -36,13 +35,14 @@
 #include "verilated_sym_props.h"
 
 #include <map>
+#include <vector>
 
 //======================================================================
 /// Types
 
 /// Class to sort maps keyed by const char*'s
 struct VerilatedCStrCmp {
-    bool operator() (const char *a, const char *b) const {
+    bool operator() (const char* a, const char* b) const {
         return std::strcmp(a, b) < 0;
     }
 };
@@ -61,6 +61,15 @@ class VerilatedVarNameMap
 public:
     VerilatedVarNameMap() {}
     ~VerilatedVarNameMap() {}
+};
+
+typedef std::vector<const VerilatedScope*> VerilatedScopeVector;
+
+class VerilatedHierarchyMap
+    : public std::map<const VerilatedScope*, VerilatedScopeVector> {
+public:
+    VerilatedHierarchyMap() {}
+    ~VerilatedHierarchyMap() {}
 };
 
 #endif  // Guard

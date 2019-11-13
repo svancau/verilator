@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: File stream wrapper that understands indentation
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -65,17 +65,19 @@ class V3FileDependImp {
     class DependFile {
         // A single file
         bool            m_target;       // True if write, else read
+        bool            m_exists;
         string          m_filename;     // Filename
         struct stat     m_stat;         // Stat information
     public:
         DependFile(const string& filename, bool target)
-            : m_target(target), m_filename(filename) {
+            : m_target(target), m_exists(true), m_filename(filename) {
             m_stat.st_ctime = 0;
             m_stat.st_mtime = 0;
         }
         ~DependFile() {}
         const string& filename() const { return m_filename; }
         bool target() const { return m_target; }
+        bool exists() const { return m_exists; }
         off_t size() const { return m_stat.st_size; }
         ino_t ino() const { return m_stat.st_ino; }
         time_t cstime() const { return m_stat.st_ctime; }  // Seconds
@@ -89,6 +91,7 @@ class V3FileDependImp {
                 if (err!=0) {
                     memset(&m_stat, 0, sizeof(m_stat));
                     m_stat.st_mtime = 1;
+                    m_exists = false;
                     // Not an error... This can occur due to `line directives in the .vpp files
                     UINFO(1,"-Info: File not statable: "<<filename()<<endl);
                 }
@@ -125,6 +128,7 @@ public:
         }
     }
     void writeDepend(const string& filename);
+    std::vector<string> getAllDeps() const;
     void writeTimes(const string& filename, const string& cmdlineIn);
     bool checkTimes(const string& filename, const string& cmdlineIn);
 };
@@ -168,6 +172,17 @@ inline void V3FileDependImp::writeDepend(const string& filename) {
     }
 }
 
+inline std::vector<string> V3FileDependImp::getAllDeps() const {
+    std::vector<string> r;
+    for (std::set<DependFile>::const_iterator iter=m_filenameList.begin();
+         iter!=m_filenameList.end(); ++iter) {
+        if (!iter->target() && iter->exists()) {
+            r.push_back(iter->filename());
+        }
+    }
+    return r;
+}
+
 inline void V3FileDependImp::writeTimes(const string& filename, const string& cmdlineIn) {
     const vl_unique_ptr<std::ofstream> ofp (V3File::new_ofstream(filename));
     if (ofp->fail()) v3fatal("Can't write "<<filename);
@@ -179,7 +194,7 @@ inline void V3FileDependImp::writeTimes(const string& filename, const string& cm
     for (std::set<DependFile>::iterator iter=m_filenameList.begin();
          iter!=m_filenameList.end(); ++iter) {
         // Read stats of files we create after we're done making them
-        // (execpt for this file, of course)
+        // (except for this file, of course)
         DependFile* dfp = const_cast<DependFile*>(&(*iter));
         V3Options::fileNfsFlush(dfp->filename());
         dfp->loadStats();
@@ -208,7 +223,7 @@ inline bool V3FileDependImp::checkTimes(const string& filename, const string& cm
         return false;
     }
     {
-        string ignore = V3Os::getline(*ifp);
+        string ignore = V3Os::getline(*ifp);  if (ignore.empty()) { /*used*/ }
     }
     {
         char   chkDir;   *ifp>>chkDir;
@@ -283,13 +298,22 @@ void V3File::addTgtDepend(const string& filename) {
 void V3File::writeDepend(const string& filename) {
     dependImp.writeDepend(filename);
 }
+std::vector<string> V3File::getAllDeps() {
+    return dependImp.getAllDeps();
+}
 void V3File::writeTimes(const string& filename, const string& cmdlineIn) {
     dependImp.writeTimes(filename, cmdlineIn);
 }
 bool V3File::checkTimes(const string& filename, const string& cmdlineIn) {
     return dependImp.checkTimes(filename, cmdlineIn);
 }
-
+void V3File::createMakeDirFor(const string& filename) {
+    if (filename != VL_DEV_NULL
+        // If doesn't start with makeDir then some output file user requested
+        && filename.substr(0, v3Global.opt.makeDir().length()+1) == v3Global.opt.makeDir()+"/") {
+        createMakeDir();
+    }
+}
 void V3File::createMakeDir() {
     static bool created = false;
     if (!created) {
@@ -299,11 +323,11 @@ void V3File::createMakeDir() {
 }
 
 //######################################################################
-// V3InFilterImp
+// VInFilterImp
 
-class V3InFilterImp {
+class VInFilterImp {
     typedef std::map<string,string> FileContentsMap;
-    typedef V3InFilter::StrList StrList;
+    typedef VInFilter::StrList StrList;
 
     FileContentsMap     m_contentsMap;  // Cache of file contents
     bool                m_readEof;      // Received EOF on read
@@ -470,7 +494,7 @@ private:
             execl("/bin/sh", "sh", "-c", command.c_str(), static_cast<char*>(NULL));
             // Don't use v3fatal, we don't share the common structures any more
             fprintf(stderr, "--pipe-filter: exec failed: %s\n", strerror(errno));
-            _exit(10);
+            _exit(1);
         }
         else {  // Parent
             UINFO(6,"In parent, child pid "<<pid
@@ -518,7 +542,7 @@ private:
     }
 
 protected:
-    friend class V3InFilter;
+    friend class VInFilter;
     // Read file contents and return it
     bool readWholefile(const string& filename, StrList& outl) {
         FileContentsMap::iterator it = m_contentsMap.find(filename);
@@ -550,7 +574,7 @@ protected:
         return out;
     }
     // CONSTRUCTORS
-    explicit V3InFilterImp(const string& command) {
+    explicit VInFilterImp(const string& command) {
         m_readEof = false;
         m_pid = 0;
         m_pidExited = false;
@@ -559,17 +583,17 @@ protected:
         m_readFd = 0;
         start(command);
     }
-    ~V3InFilterImp() { stop(); }
+    ~VInFilterImp() { stop(); }
 };
 
 //######################################################################
-// V3InFilter
+// VInFilter
 // Just dispatch to the implementation
 
-V3InFilter::V3InFilter(const string& command) { m_impp = new V3InFilterImp(command); }
-V3InFilter::~V3InFilter() { if (m_impp) delete m_impp; m_impp = NULL; }
+VInFilter::VInFilter(const string& command) { m_impp = new VInFilterImp(command); }
+VInFilter::~VInFilter() { if (m_impp) delete m_impp; m_impp = NULL; }
 
-bool V3InFilter::readWholefile(const string& filename, V3InFilter::StrList& outl) {
+bool VInFilter::readWholefile(const string& filename, VInFilter::StrList& outl) {
     if (!m_impp) v3fatalSrc("readWholefile on invalid filter");
     return m_impp->readWholefile(filename, outl);
 }
@@ -587,25 +611,6 @@ V3OutFormatter::V3OutFormatter(const string& filename, V3OutFormatter::Language 
 
 //----------------------------------------------------------------------
 
-const char* V3OutFormatter::indentStr(int num) {
-    // Indent the specified number of spaces.  Use tabs as possible.
-    static char str[MAXSPACE+20];
-    char* cp = str;
-    if (num>MAXSPACE) num = MAXSPACE;
-    if (m_lang!=LA_VERILOG && m_lang!=LA_XML) {  // verilogPrefixedTree doesn't want tabs
-        while (num>=8) {
-            *cp++ = '\t';
-            num -= 8;
-        }
-    }
-    while (num>0) {
-        *cp++ = ' ';
-        num --;
-    }
-    *cp++ = '\0';
-    return (str);
-}
-
 const string V3OutFormatter::indentSpaces(int num) {
     // Indent the specified number of spaces.  Use spaces.
     static char str[MAXSPACE+20];
@@ -617,7 +622,7 @@ const string V3OutFormatter::indentSpaces(int num) {
     }
     *cp++ = '\0';
     string st (str);
-    return (st);
+    return st;
 }
 
 bool V3OutFormatter::tokenStart(const char* cp, const char* cmp) {
@@ -633,16 +638,16 @@ bool V3OutFormatter::tokenEnd(const char* cp) {
             || tokenStart(cp, "endmodule"));
 }
 
-int V3OutFormatter::endLevels(const char *strg) {
+int V3OutFormatter::endLevels(const char* strg) {
     int levels = m_indentLevel;
     {
         const char* cp = strg;
         while (isspace(*cp)) cp++;
         switch (*cp) {
         case '\n':  // Newlines.. No need for whitespace before it
-            return (0);
+            return 0;
         case '#':  // Preproc directive
-            return (0);
+            return 0;
         }
         {
             // label/public/private:  Deindent by 2 spaces
@@ -672,15 +677,15 @@ int V3OutFormatter::endLevels(const char *strg) {
         case ' ':
             break;  // Continue
         default:
-            return (levels);  // Letter
+            return levels;  // Letter
         }
     }
-    return (levels);
+    return levels;
 }
 
-void V3OutFormatter::puts(const char *strg) {
+void V3OutFormatter::puts(const char* strg) {
     if (m_prependIndent) {
-        putsNoTracking(indentStr(endLevels(strg)));
+        putsNoTracking(indentSpaces(endLevels(strg)));
         m_prependIndent = false;
     }
     bool wordstart = true;
@@ -695,7 +700,7 @@ void V3OutFormatter::puts(const char *strg) {
                 m_prependIndent = true;  // Add the indent later, may be a indentInc/indentDec called between now and then
             } else {
                 m_prependIndent = false;
-                putsNoTracking(indentStr(endLevels(cp+1)));
+                putsNoTracking(indentSpaces(endLevels(cp+1)));
             }
             break;
         case ' ':
@@ -703,6 +708,16 @@ void V3OutFormatter::puts(const char *strg) {
             break;
         case '\t':
             wordstart = true;
+            break;
+        case '/':
+            if (m_lang==LA_C || m_lang==LA_VERILOG) {
+                if (cp>strg && cp[-1]=='/') {
+                    // Output ignoring contents to EOL
+                    cp++;
+                    while (*cp && cp[1] && cp[1] != '\n') putcNoTracking(*cp++);
+                    if (*cp) putcNoTracking(*cp);
+                }
+            }
             break;
         case '{':
             if (m_lang==LA_C && (equalsForBracket || m_bracketLevel)) {
@@ -799,7 +814,7 @@ void V3OutFormatter::putBreak() {
         //char s[1000]; sprintf(s, "{%d,%d}", m_column, m_parenVec.top()); putsNoTracking(s);
         if (exceededWidth()) {
             putcNoTracking('\n');
-            if (!m_parenVec.empty()) putsNoTracking(indentStr(m_parenVec.top()));
+            if (!m_parenVec.empty()) putsNoTracking(indentSpaces(m_parenVec.top()));
         }
     }
 }
@@ -896,7 +911,7 @@ string V3OutFormatter::quoteNameControls(const string& namein, V3OutFormatter::L
 //----------------------------------------------------------------------
 // Simple wrappers
 
-void V3OutFormatter::printf(const char *fmt...) {
+void V3OutFormatter::printf(const char* fmt...) {
     char sbuff[5000];
     va_list ap;
     va_start(ap, fmt);
@@ -925,4 +940,125 @@ void V3OutFile::putsForceIncs() {
     for (V3StringList::const_iterator it = forceIncs.begin(); it != forceIncs.end(); ++it) {
         puts("#include \""+*it+"\"\n");
     }
+}
+
+//######################################################################
+// VIdProtect
+
+class VIdProtectImp {
+    // MEMBERS
+    typedef std::map<string,string> IdMap;
+    IdMap m_nameMap;  // Map of old name into new name
+    typedef vl_unordered_set<std::string> IdSet;
+    IdSet m_newIdSet;  // Which new names exist
+protected:
+    // CONSTRUCTORS
+    friend class VIdProtect;
+    static VIdProtectImp& singleton() { static VIdProtectImp s; return s; }
+public:
+    VIdProtectImp() {
+        passthru("this");
+        passthru("TOPp");
+        passthru("vlTOPp");
+        passthru("vlSymsp");
+    }
+    ~VIdProtectImp() {}
+    // METHODS
+    string passthru(const string& old) {
+        if (!v3Global.opt.protectIds()) return old;
+        IdMap::iterator it = m_nameMap.find(old);
+        if (it != m_nameMap.end()) {
+            // No way to go back and correct the older crypt name
+            UASSERT(old == it->second, "Passthru request for '"
+                    +old+"' after already --protect-ids of it.");
+        }
+        else {
+            m_nameMap.insert(make_pair(old, old));
+            m_newIdSet.insert(old);
+        }
+        return old;
+    }
+    string protectIf(const string& old, bool doIt) {
+        if (!v3Global.opt.protectIds() || old.empty() || !doIt) return old;
+        IdMap::iterator it = m_nameMap.find(old);
+        if (it != m_nameMap.end()) return it->second;
+        else {
+            string out;
+            if (v3Global.opt.debugProtect()) {
+                // This lets us see the symbol being protected to debug cases
+                // where e.g. the definition is protect() but reference is
+                // missing a protect()
+                out = "PS"+old;
+            } else {
+                VHashSha256 digest (v3Global.opt.protectKeyDefaulted());
+                digest.insert(old);
+                // Add "PS" prefix (Protect Symbols) as cannot start symbol with number
+                out = "PS"+digest.digestSymbol();
+                // See if we can shrink the digest symbol to something smaller
+                for (size_t len = 6; len < out.size() - 3; len += 3) {
+                    string tryout = out.substr(0, len);
+                    if (m_newIdSet.find(tryout) == m_newIdSet.end()) {
+                        out = tryout;
+                        break;
+                    }
+                }
+            }
+            m_nameMap.insert(make_pair(old, out));
+            m_newIdSet.insert(out);
+            return out;
+        }
+    }
+    string protectWordsIf(const string& old, bool doIt) {
+        // Split at " " (for traces), "." (for scopes), or "->" (for scopes)
+        if (!(doIt && v3Global.opt.protectIds())) return old;
+        string out;
+        string::size_type start = 0;
+        // space, ., ->
+        while (1) {
+            // When C++11, use find_if and lambda
+            string::size_type pos = string::npos;
+            string separator = "";
+            trySep(old, start, " ", pos/*ref*/, separator/*ref*/);
+            trySep(old, start, ".", pos/*ref*/, separator/*ref*/);
+            trySep(old, start, "->", pos/*ref*/, separator/*ref*/);
+            if (pos == string::npos) break;
+            out += protectIf(old.substr(start, pos-start), true) + separator;
+            start = pos + separator.length();
+        }
+        out += protectIf(old.substr(start), true);
+        return out;
+    }
+    void writeMapFile(const string& filename) const {
+        V3OutXmlFile of (filename);
+        of.putsHeader();
+        of.puts("<!-- DESCR" "IPTION: Verilator output: XML representation of netlist -->\n");
+        of.puts("<verilator_id_map>\n");
+        {
+            for (IdMap::const_iterator it = m_nameMap.begin(); it != m_nameMap.end(); ++it) {
+                of.puts("<map from=\""+it->second+"\" to=\""+it->first+"\"/>\n");
+            }
+        }
+        of.puts("</verilator_id_map>\n");
+    }
+private:
+    void trySep(const string& old, string::size_type start, const string& trySep,
+                string::size_type& posr, string& separatorr) {
+        string::size_type trypos = old.find(trySep, start);
+        if (trypos != string::npos) {
+            if (posr == string::npos || (posr > trypos)) {
+                posr = trypos;
+                separatorr = trySep;
+            }
+        }
+    }
+};
+
+string VIdProtect::protectIf(const string& old, bool doIt) {
+    return VIdProtectImp::singleton().protectIf(old, doIt);
+}
+string VIdProtect::protectWordsIf(const string& old, bool doIt) {
+    return VIdProtectImp::singleton().protectWordsIf(old, doIt);
+}
+void VIdProtect::writeMapFile(const string& filename) {
+    VIdProtectImp::singleton().writeMapFile(filename);
 }

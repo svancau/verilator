@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilog::Preproc: Internal header for lex interfacing
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -21,7 +21,7 @@
 // and the class implementation file V3Pre.cpp
 // It is not intended for user applications.
 //*************************************************************************
-
+
 #ifndef _VPREPROCLEX_H_  // Guard
 #define _VPREPROCLEX_H_ 1
 
@@ -38,7 +38,8 @@ class V3PreProcImp;
 
 // Token codes
 // If changing, see V3PreProc.cpp's V3PreProcImp::tokenName()
-#define VP_EOF          0
+#define VP_EOF          0     // Must be zero, a.k.a. YY_NULL, a.k.a. yy_terminate();
+#define VP_EOF_ERROR    400
 
 #define VP_INCLUDE      256
 #define VP_IFDEF        257

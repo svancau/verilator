@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Check for unused/undriven signals
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -26,7 +26,7 @@
 //      Report unused/undriven nets
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -238,7 +238,7 @@ private:
     std::vector<UndrivenVarEntry*> m_entryps[3];  // Nodes to delete when we are finished
     bool                m_inBBox;       // In black box; mark as driven+used
     bool                m_inContAssign;  // In continuous assignment
-    bool                m_inProcAssign;  // In procedual assignment
+    bool                m_inProcAssign;  // In procedural assignment
     AstNodeFTask*       m_taskp;        // Current task
     AstAlways*          m_alwaysCombp;  // Current always if combo, otherwise NULL
 
@@ -331,7 +331,9 @@ private:
         // Any variable
         if (nodep->lvalue()
             && !VN_IS(nodep, VarXRef)) {  // Ignore interface variables and similar ugly items
-            if (m_inProcAssign && !nodep->varp()->varType().isProcAssignable()) {
+            if (m_inProcAssign && !nodep->varp()->varType().isProcAssignable()
+                && !nodep->varp()->isDeclTyped()
+                && !nodep->varp()->isFuncLocal()) {
                 nodep->v3warn(PROCASSWIRE, "Procedural assignment to wire, perhaps intended var"
                               " (IEEE 2017 6.5): "
                               +nodep->prettyNameQ());
@@ -379,18 +381,16 @@ private:
         {
             m_inProcAssign = true;
             iterateChildren(nodep);
-            m_inProcAssign = false;
         }
         m_inProcAssign = prevProc;
     }
     virtual void visit(AstAssignW* nodep) {
-        bool prevCont = m_inProcAssign;
+        bool prevCont = m_inContAssign;
         {
             m_inContAssign = true;
             iterateChildren(nodep);
-            m_inContAssign = false;
         }
-        m_inProcAssign = prevCont;
+        m_inContAssign = prevCont;
     }
     virtual void visit(AstAlways* nodep) {
         AstAlways* prevAlwp = m_alwaysCombp;
@@ -428,7 +428,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit UndrivenVisitor(AstNetlist* nodep) {
         m_inBBox = false;
         m_inContAssign = false;

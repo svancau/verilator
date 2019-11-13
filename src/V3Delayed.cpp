@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Add temporaries, such as for delayed nodes
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -51,7 +51,7 @@
 //      ASSIGNW (BITSEL(ARRAYSEL(VARREF(x), __Vdlyvdim_x), __Vdlyvlsb_x), __Vdlyvval_x)
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -99,10 +99,10 @@ private:
     AstAssignDly*       m_nextDlyp;     // Next delayed assignment in a list of assignments
     bool                m_inDly;        // True in delayed assignments
     bool                m_inLoop;       // True in for loops
-    bool                m_inInitial;    // True in intial blocks
+    bool                m_inInitial;    // True in initial blocks
     typedef std::map<std::pair<AstNodeModule*,string>,AstVar*> VarMap;
     VarMap              m_modVarMap;    // Table of new var names created under module
-    V3Double0           m_statSharedSet;// Statistic tracking
+    VDouble0            m_statSharedSet;  // Statistic tracking
     typedef std::map<AstVarScope*,int> ScopeVecMap;
     ScopeVecMap m_scopeVecMap;  // Next var number for each scope
 
@@ -461,7 +461,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit DelayedVisitor(AstNetlist* nodep) {
         m_inDly = false;
         m_activep = NULL;

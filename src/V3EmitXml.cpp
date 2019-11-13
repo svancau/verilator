@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Emit Verilog from tree
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -253,7 +253,7 @@ public:
         // Xml output
         m_os<<"<module_files>\n";
         for (std::deque<FileLine*>::iterator it = m_nodeModules.begin();
-                it != m_nodeModules.end(); it++) {
+                it != m_nodeModules.end(); ++it) {
             m_os<<"<file id=\""<<(*it)->filenameLetters()
                 <<"\" filename=\""<<(*it)->filename()
                 <<"\" language=\""<<(*it)->language().ascii()<<"\"/>\n";
@@ -338,7 +338,10 @@ public:
 void V3EmitXml::emitxml() {
     UINFO(2,__FUNCTION__<<": "<<endl);
     // All-in-one file
-    V3OutXmlFile of (v3Global.opt.makeDir()+"/"+v3Global.opt.prefix()+".xml");
+    string filename = (v3Global.opt.xmlOutput().empty()
+                       ? v3Global.opt.makeDir()+"/"+v3Global.opt.prefix()+".xml"
+                       : v3Global.opt.xmlOutput());
+    V3OutXmlFile of(filename);
     of.putsHeader();
     of.puts("<!-- DESCR" "IPTION: Verilator output: XML representation of netlist -->\n");
     of.puts("<verilator_xml>\n");

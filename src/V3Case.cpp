@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Break case statements up and add Unknown assigns
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -37,7 +37,7 @@
 //              <000000001_000000000 at midpoint.)
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -49,7 +49,7 @@
 #include <algorithm>
 #include <cstdarg>
 
-#define CASE_OVERLAP_WIDTH 12           // Maximum width we can check for overlaps in
+#define CASE_OVERLAP_WIDTH 16           // Maximum width we can check for overlaps in
 #define CASE_BARF          999999       // Magic width when non-constant
 #define CASE_ENCODER_GROUP_DEPTH 8      // Levels of priority to be ORed together in top IF tree
 
@@ -110,7 +110,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit CaseLintVisitor(AstNodeCase* nodep) {
         m_caseExprp = NULL;
         iterate(nodep);
@@ -129,8 +129,8 @@ private:
     AstUser3InUse       m_inuser3;
 
     // STATE
-    V3Double0   m_statCaseFast; // Statistic tracking
-    V3Double0   m_statCaseSlow; // Statistic tracking
+    VDouble0 m_statCaseFast;  // Statistic tracking
+    VDouble0 m_statCaseSlow;  // Statistic tracking
 
     // Per-CASE
     int         m_caseWidth;    // Width of valueItems
@@ -210,7 +210,7 @@ private:
                 return false;
             }
         }
-        if (m_caseItems <= 3) return false;  // Not worth simplifing
+        if (m_caseItems <= 3) return false;  // Not worth simplifying
         // Convert valueItem from AstCaseItem* to the expression
         // Not done earlier, as we may now have a NULL because it's just a ";" NOP branch
         for (uint32_t i=0; i<(1UL<<m_caseWidth); ++i) {
@@ -223,7 +223,7 @@ private:
         if (msb<0) {
             // There's no space for a IF.  We know upperValue is thus down to a specific
             // exact value, so just return the tree value
-            // Note can't clone here, as we're going to check for equivelence above
+            // Note can't clone here, as we're going to check for equivalence above
             return m_valueItem[upperValue];
         }
         else {
@@ -338,6 +338,8 @@ private:
                         AstNode* bp = AstLte::newTyped(itemp->fileline(),
                                                        cexprp->cloneTree(false),
                                                        irangep->rhsp()->unlinkFrBack());
+                        ap->fileline()->modifyWarnOff(V3ErrorCode::UNSIGNED, true);
+                        bp->fileline()->modifyWarnOff(V3ErrorCode::CMPCONST, true);
                         condp = new AstAnd(itemp->fileline(), ap, bp);
                     } else if (iconstp && iconstp->num().isFourState()
                                && (nodep->casex() || nodep->casez() || nodep->caseInside())) {
@@ -474,7 +476,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit CaseVisitor(AstNetlist* nodep) {
         m_caseWidth = 0;
         m_caseItems = 0;

@@ -3,7 +3,7 @@
 // DESCRIPTION: Verilator: Dependency graph iterator. Iterates over nodes
 //                         in any DAG, following dependency order.
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -18,7 +18,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3GRAPHSTREAM_H_
 #define _V3GRAPHSTREAM_H_
 
@@ -88,8 +88,8 @@ private:
 
     // MEMBERS
     VxHolderCmp m_vxHolderCmp;  // Vertext comparison functor
-    ReadyVertices m_readyVertices;  // List of ready verticies
-    WaitingVertices m_waitingVertices;  // List of wiating verticies
+    ReadyVertices m_readyVertices;  // List of ready vertices
+    WaitingVertices m_waitingVertices;  // List of waiting vertices
     typename ReadyVertices::iterator m_last;  // Previously returned element
     GraphWay m_way;  // FORWARD or REVERSE order of traversal
 

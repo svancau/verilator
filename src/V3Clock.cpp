@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Clocking POS/NEGEDGE insertion
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -30,7 +30,7 @@
 //   Create global calling function for any per-scope functions.  (For FINALs).
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -110,14 +110,14 @@ private:
         // HIGHEDGE:  var
         // LOWEDGE:  ~var
         AstNode* newp = NULL;
-        if (nodep->edgeType()==AstEdgeType::ET_ILLEGAL) {
+        if (nodep->edgeType()==VEdgeType::ET_ILLEGAL) {
             if (!v3Global.opt.bboxUnsup()) {
                 nodep->v3error("Unsupported: Complicated event expression in sensitive activity list");
             }
             return NULL;
         }
         AstVarScope* clkvscp = nodep->varrefp()->varScopep();
-        if (nodep->edgeType()==AstEdgeType::ET_POSEDGE) {
+        if (nodep->edgeType() == VEdgeType::ET_POSEDGE) {
             AstVarScope* lastVscp = getCreateLastClk(clkvscp);
             newp = new AstAnd(nodep->fileline(),
                               new AstVarRef(nodep->fileline(),
@@ -125,23 +125,23 @@ private:
                               new AstNot(nodep->fileline(),
                                          new AstVarRef(nodep->fileline(),
                                                        lastVscp, false)));
-        } else if (nodep->edgeType()==AstEdgeType::ET_NEGEDGE) {
+        } else if (nodep->edgeType() == VEdgeType::ET_NEGEDGE) {
             AstVarScope* lastVscp = getCreateLastClk(clkvscp);
             newp = new AstAnd(nodep->fileline(),
                               new AstNot(nodep->fileline(),
                                          new AstVarRef(nodep->fileline(),
                                                        nodep->varrefp()->varScopep(), false)),
                               new AstVarRef(nodep->fileline(), lastVscp, false));
-        } else if (nodep->edgeType()==AstEdgeType::ET_BOTHEDGE) {
+        } else if (nodep->edgeType() == VEdgeType::ET_BOTHEDGE) {
             AstVarScope* lastVscp = getCreateLastClk(clkvscp);
             newp = new AstXor(nodep->fileline(),
                               new AstVarRef(nodep->fileline(),
                                             nodep->varrefp()->varScopep(), false),
                               new AstVarRef(nodep->fileline(), lastVscp, false));
-        } else if (nodep->edgeType()==AstEdgeType::ET_HIGHEDGE) {
+        } else if (nodep->edgeType() == VEdgeType::ET_HIGHEDGE) {
             newp = new AstVarRef(nodep->fileline(),
                                  clkvscp, false);
-        } else if (nodep->edgeType()==AstEdgeType::ET_LOWEDGE) {
+        } else if (nodep->edgeType() == VEdgeType::ET_LOWEDGE) {
             newp = new AstNot(nodep->fileline(),
                               new AstVarRef(nodep->fileline(),
                                             clkvscp, false));
@@ -181,7 +181,7 @@ private:
         AstNode* senEqnp = createSenseEquation(sensesp->sensesp());
         UASSERT_OBJ(senEqnp, sensesp, "No sense equation, shouldn't be in sequent activation.");
         AstIf* newifp = new AstIf(sensesp->fileline(), senEqnp, NULL, NULL);
-        return (newifp);
+        return newifp;
     }
     void clearLastSen() {
         m_lastSenp = NULL;
@@ -226,6 +226,7 @@ private:
             funcp->slow(true);
             funcp->isStatic(false);
             funcp->entryPoint(true);
+            funcp->protect(false);
             funcp->addInitsp(new AstCStmt
                              (nodep->fileline(),
                               EmitCBaseVisitor::symClassVar()+" = this->__VlSymsp;\n"));
@@ -271,7 +272,7 @@ private:
         m_scopep = NULL;
     }
     virtual void visit(AstAlways* nodep) {
-        AstNode* cmtp = new AstComment(nodep->fileline(), nodep->typeName());
+        AstNode* cmtp = new AstComment(nodep->fileline(), nodep->typeName(), true);
         nodep->replaceWith(cmtp);
         if (AstNode* stmtsp = nodep->bodysp()) {
             stmtsp->unlinkFrBackWithNext();
@@ -280,7 +281,7 @@ private:
         nodep->deleteTree(); VL_DANGLING(nodep);
     }
     virtual void visit(AstAlwaysPost* nodep) {
-        AstNode* cmtp = new AstComment(nodep->fileline(), nodep->typeName());
+        AstNode* cmtp = new AstComment(nodep->fileline(), nodep->typeName(), true);
         nodep->replaceWith(cmtp);
         if (AstNode* stmtsp = nodep->bodysp()) {
             stmtsp->unlinkFrBackWithNext();
@@ -301,7 +302,7 @@ private:
                                            changep),
                                 incp, NULL);
         // We could add another IF to detect posedges, and only increment if so.
-        // It's another whole branch though verus a potential memory miss.
+        // It's another whole branch though versus a potential memory miss.
         // We'll go with the miss.
         newp->addIfsp(new AstAssign(nodep->fileline(),
                                     changep->cloneTree(false),
@@ -309,7 +310,7 @@ private:
         nodep->replaceWith(newp); nodep->deleteTree(); VL_DANGLING(nodep);
     }
     virtual void visit(AstInitial* nodep) {
-        AstNode* cmtp = new AstComment(nodep->fileline(), nodep->typeName());
+        AstNode* cmtp = new AstComment(nodep->fileline(), nodep->typeName(), true);
         nodep->replaceWith(cmtp);
         if (AstNode* stmtsp = nodep->bodysp()) {
             stmtsp->unlinkFrBackWithNext();
@@ -431,7 +432,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit ClockVisitor(AstNetlist* nodep) {
         m_modp = NULL;
         m_evalFuncp = NULL;

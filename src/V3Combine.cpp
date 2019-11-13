@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Combine common code into functions
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -68,7 +68,7 @@ protected:
     // Note this is disabled, it still needed work
     // Also repair it for DPI functions; when make __common need to insure proper
     // flags get inherited from the old to new AstCFunc, and that AstText doesn't
-    // get split between functions causing the text to have a danginling reference.
+    // get split between functions causing the text to have a dangling reference.
     bool statementCombine() { return false; }  // duplicateFunctionCombine();
 };
 
@@ -189,7 +189,7 @@ private:
 
     // STATE
     typedef enum {STATE_IDLE, STATE_HASH, STATE_DUP} CombineState;
-    V3Double0           m_statCombs;    // Statistic tracking
+    VDouble0            m_statCombs;    // Statistic tracking
     CombineState        m_state;        // Major state
     AstNodeModule*      m_modp;         // Current module
     AstCFunc*           m_funcp;        // Current function
@@ -461,7 +461,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit CombineVisitor(AstNetlist* nodep) {
         m_state = STATE_IDLE;
         m_modp = NULL;

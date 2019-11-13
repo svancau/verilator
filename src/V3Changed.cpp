@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Add temporaries, such as for changed nodes
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -29,7 +29,7 @@
 //          we need to indicate a new clock has been created.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -193,7 +193,7 @@ private:
                        <<m_vscp->varp()->prettyNameQ());
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     ChangedInsertVisitor(AstVarScope* vscp, ChangedState* statep) {
         m_statep = statep;
         m_vscp = vscp;
@@ -222,6 +222,7 @@ public:
         m_newRvEqnp->deleteTree();
     }
     virtual ~ChangedInsertVisitor() {}
+    VL_UNCOPYABLE(ChangedInsertVisitor);
 };
 
 //######################################################################
@@ -296,7 +297,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     ChangedVisitor(AstNetlist* nodep, ChangedState* statep) {
         m_statep = statep;
         iterate(nodep);

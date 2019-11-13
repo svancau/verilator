@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Deals with tristate logic
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -57,7 +57,7 @@
 // long term this code should be scoped-based and resolve all nodes at once
 // rather than hierarchically.
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -133,7 +133,7 @@ private:
     V3Graph m_graph;  // Logic graph
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     TristateGraph() { clear(); }
     virtual ~TristateGraph() { clear(); }
 
@@ -312,7 +312,7 @@ class TristatePinVisitor : public TristateBaseVisitor {
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     TristatePinVisitor(AstNode* nodep, TristateGraph& tgraph, bool lvalue)
         : m_tgraph(tgraph), m_lvalue(lvalue) {
         iterate(nodep);
@@ -356,7 +356,7 @@ class TristateVisitor : public TristateBaseVisitor {
     TristateGraph       m_tgraph;       // Logic graph
 
     // STATS
-    V3Double0 m_statTriSigs;  // stat tracking
+    VDouble0 m_statTriSigs;  // stat tracking
 
     // METHODS
     string dbgState() {
@@ -925,7 +925,7 @@ class TristateVisitor : public TristateBaseVisitor {
             UINFO(9,dbgState()<<nodep<<endl);
             if (debug()>=9) nodep->dumpTree(cout, "-assign: ");
             // if the rhsp of this assign statement has an output enable driver,
-            // then propage the corresponding output enable assign statement.
+            // then propagate the corresponding output enable assign statement.
             // down the lvalue tree by recursion for eventual attachment to
             // the appropriate output signal's VarRef.
             if (nodep->rhsp()->user1p()) {
@@ -1031,7 +1031,7 @@ class TristateVisitor : public TristateBaseVisitor {
                 // the complexity of merging tristate drivers at any level, the
                 // current limitation of this implementation is that a pullup/down
                 // gets applied to all bits of a bus and a bus cannot have drivers
-                // in opposite directions on indvidual pins.
+                // in opposite directions on individual pins.
                 varrefp->lvalue(true);
                 m_tgraph.didProcess(nodep);
                 m_tgraph.didProcess(varrefp->varp());
@@ -1261,7 +1261,7 @@ class TristateVisitor : public TristateBaseVisitor {
                      && m_tgraph.isTristate(nodep->varp())
                      // and in a position where it feeds upstream to another tristate
                      && m_tgraph.feedsTri(nodep)) {
-                // Then propage the enable from the original variable
+                // Then propagate the enable from the original variable
                 UINFO(9,"     Ref-to-tri "<<nodep<<endl);
                 AstVar* enVarp = getCreateEnVarp(nodep->varp());
                 nodep->user1p(new AstVarRef(nodep->fileline(), enVarp, false));
@@ -1355,7 +1355,7 @@ class TristateVisitor : public TristateBaseVisitor {
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit TristateVisitor(AstNode* nodep) {
         m_graphing = false;
         m_modp  = NULL;

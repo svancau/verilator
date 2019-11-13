@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: main()
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "V3Global.h"
 #include "V3Ast.h"
 
@@ -43,6 +43,7 @@
 #include "V3DepthBlock.h"
 #include "V3Descope.h"
 #include "V3EmitC.h"
+#include "V3EmitCMake.h"
 #include "V3EmitMk.h"
 #include "V3EmitV.h"
 #include "V3EmitXml.h"
@@ -73,6 +74,7 @@
 #include "V3Partition.h"
 #include "V3PreShell.h"
 #include "V3Premit.h"
+#include "V3ProtectLib.h"
 #include "V3Reloop.h"
 #include "V3Scope.h"
 #include "V3Scoreboard.h"
@@ -120,7 +122,7 @@ void V3Global::readFiles() {
     //   AstNode::user4p()      // VSymEnt*    Package and typedef symbol names
     AstUser4InUse       inuser4;
 
-    V3InFilter filter (v3Global.opt.pipeFilter());
+    VInFilter filter (v3Global.opt.pipeFilter());
     V3ParseSym parseSyms (v3Global.rootp());  // Symbol table must be common across all parsing
 
     V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
@@ -559,6 +561,13 @@ void process() {
         V3EmitXml::emitxml();
     }
 
+    // Output DPI protected library files
+    if (!v3Global.opt.protectLib().empty()) {
+        V3ProtectLib::protect();
+        V3EmitV::emitvFiles();
+        V3EmitC::emitcFiles();
+    }
+
     // Statistics
     if (v3Global.opt.stats()) {
         V3Stats::statsFinalAll(v3Global.rootp());
@@ -569,7 +578,12 @@ void process() {
         && !v3Global.opt.xmlOnly()
         && !v3Global.opt.dpiHdrOnly()) {
         // Makefile must be after all other emitters
-        V3EmitMk::emitmk(v3Global.rootp());
+        if (v3Global.opt.cmake()) {
+            V3EmitCMake::emit();
+        }
+        if (v3Global.opt.gmake()) {
+            V3EmitMk::emitmk();
+        }
     }
 
     // Note early return above when opt.cdc()
@@ -597,22 +611,15 @@ int main(int argc, char** argv, char** env) {
     string argString = V3Options::argString(argc-1, argv+1);
     v3Global.opt.parseOpts(new FileLine(FileLine::commandLineFilename()),
                            argc-1, argv+1);
-    if (!v3Global.opt.outFormatOk()
-        && !v3Global.opt.preprocOnly()
-        && !v3Global.opt.lintOnly()
-        && !v3Global.opt.xmlOnly()
-        && !v3Global.opt.cdc()) {
-        v3fatal("verilator: Need --cc, --sc, --cdc, --lint-only, --xml_only or --E option");
-    }
+
+    // Validate settings (aka Boost.Program_options)
+    v3Global.opt.notify();
 
     V3Error::abortIfErrors();
 
     // Can we skip doing everything if times are ok?
     V3File::addSrcDepend(v3Global.opt.bin());
-    if (v3Global.opt.skipIdentical()
-        && !v3Global.opt.preprocOnly()
-        && !v3Global.opt.lintOnly()
-        && !v3Global.opt.cdc()
+    if (v3Global.opt.skipIdentical().isTrue()
         && V3File::checkTimes(v3Global.opt.makeDir()+"/"+v3Global.opt.prefix()
                               +"__verFiles.dat", argString)) {
         UINFO(1,"--skip-identical: No change to any source files, exiting\n");
@@ -630,7 +637,7 @@ int main(int argc, char** argv, char** env) {
     // and after removing files as may make debug output)
     AstBasicDTypeKwd::selfTest();
     if (v3Global.opt.debugSelfTest()) {
-        VHashSha1::selfTest();
+        VHashSha256::selfTest();
         VSpellCheck::selfTest();
         V3Graph::selfTest();
         V3TSP::selfTest();
@@ -650,15 +657,15 @@ int main(int argc, char** argv, char** env) {
     V3Global::dumpCheckGlobalTree("final", 990, v3Global.opt.dumpTreeLevel(__FILE__) >= 3);
     V3Error::abortIfWarnings();
 
-    if (!v3Global.opt.lintOnly() && !v3Global.opt.cdc()
-        && !v3Global.opt.dpiHdrOnly() && v3Global.opt.makeDepend()) {
+    if (v3Global.opt.makeDepend().isTrue()) {
         V3File::writeDepend(v3Global.opt.makeDir()+"/"+v3Global.opt.prefix()+"__ver.d");
     }
-    if (!v3Global.opt.lintOnly() && !v3Global.opt.cdc()
-        && !v3Global.opt.dpiHdrOnly()
-        && (v3Global.opt.skipIdentical() || v3Global.opt.makeDepend())) {
+    if (v3Global.opt.skipIdentical().isTrue() || v3Global.opt.makeDepend().isTrue()) {
         V3File::writeTimes(v3Global.opt.makeDir()+"/"+v3Global.opt.prefix()
                            +"__verFiles.dat", argString);
+    }
+    if (v3Global.opt.protectIds()) {
+        VIdProtect::writeMapFile(v3Global.opt.makeDir()+"/"+v3Global.opt.prefix()+"__idmap.xml");
     }
 
     // Final writing shouldn't throw warnings, but...

@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Ast node structures
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -81,6 +81,7 @@ void AstNode::init() {
     // Attributes
     m_didWidth = false;
     m_doingWidth = false;
+    m_protect = true;
     m_user1u = VNUser(0);
     m_user1Cnt = 0;
     m_user2u = VNUser(0);
@@ -113,7 +114,8 @@ string AstNode::encodeName(const string& namein) {
             // a user identifier nor a temp we create in Verilator.
             // We also do *NOT* use __DOT__ etc, as we search for those
             // in some replacements, and don't want to mangle the user's names.
-            char hex[10]; sprintf(hex, "__0%02X", pos[0]);
+            unsigned val = pos[0] & 0xff;  // Mask to avoid sign extension
+            char hex[10]; sprintf(hex, "__0%02X", val);
             out += hex;
         }
     }
@@ -130,6 +132,10 @@ string AstNode::encodeNumber(vlsint64_t num) {
     } else {
         return cvtToStr(num);
     }
+}
+
+string AstNode::nameProtect() const {
+    return VIdProtect::protectIf(name(), protect());
 }
 
 string AstNode::shortName() const {
@@ -252,7 +258,7 @@ AstNode* AstNode::addNext(AstNode* nodep, AstNode* newp) {
     nodep->debugTreeChange("-addNextThs: ", __LINE__, false);
     newp->debugTreeChange("-addNextNew: ", __LINE__, true);
     if (!nodep) {  // verilog.y and lots of other places assume this
-        return (newp);
+        return newp;
     } else {
         // Find end of old list
         AstNode* oldtailp = nodep;
@@ -262,7 +268,7 @@ AstNode* AstNode::addNext(AstNode* nodep, AstNode* newp) {
                 UDEBUGONLY(UASSERT_OBJ(!oldtailp->m_nextp, nodep,
                                        "Node had next, but headtail says it shouldn't"););
             } else {
-                // Though inefficent, we are occasionally passed a addNext in the middle of a list.
+                // Though inefficient, we are occasionally passed a addNext in the middle of a list.
                 while (oldtailp->m_nextp != NULL) oldtailp = oldtailp->m_nextp;
             }
         }
@@ -976,23 +982,28 @@ void AstNode::checkTree() {
     }
 }
 
+// cppcheck-suppress unusedFunction  // Debug only
 void AstNode::dumpGdb() {  // For GDB only  // LCOV_EXCL_LINE
     dumpGdbHeader();  // LCOV_EXCL_LINE
     cout<<"  "; dump(cout); cout<<endl;  // LCOV_EXCL_LINE
 }
+// cppcheck-suppress unusedFunction  // Debug only
 void AstNode::dumpGdbHeader() const {  // For GDB only  // LCOV_EXCL_LINE
     dumpPtrs(cout);  // LCOV_EXCL_LINE
     cout<<"  Fileline = "<<fileline()<<endl;  // LCOV_EXCL_LINE
 }
+// cppcheck-suppress unusedFunction  // Debug only
 void AstNode::dumpTreeGdb() {  // For GDB only  // LCOV_EXCL_LINE
     dumpGdbHeader();  // LCOV_EXCL_LINE
     dumpTree(cout);  // LCOV_EXCL_LINE
 }
+// cppcheck-suppress unusedFunction  // Debug only
 void AstNode::dumpTreeFileGdb(const char* filenamep) {  // For GDB only  // LCOV_EXCL_LINE
     string filename = filenamep ? filenamep : v3Global.debugFilename("debug.tree", 98);  // LCOV_EXCL_LINE
     v3Global.rootp()->dumpTreeFile(filename);  // LCOV_EXCL_LINE
 }
 
+// cppcheck-suppress unusedFunction  // Debug only
 void AstNode::checkIter() const {
     if (m_iterpp) {
         dumpPtrs(cout);
@@ -1023,7 +1034,7 @@ void AstNode::dumpPtrs(std::ostream& os) const {
     os<<endl;
 }
 
-void AstNode::dumpTree(std::ostream& os, const string& indent, int maxDepth) {
+void AstNode::dumpTree(std::ostream& os, const string& indent, int maxDepth) const {
     static int s_debugFileline = v3Global.opt.debugSrcLevel("fileline");  // --debugi-fileline 9
     os<<indent<<" "<<this<<endl;
     if (debug()>8) { os<<indent<<"     "; dumpPtrs(os); }
@@ -1033,25 +1044,26 @@ void AstNode::dumpTree(std::ostream& os, const string& indent, int maxDepth) {
     if (maxDepth==1) {
         if (op1p()||op2p()||op3p()||op4p()) { os<<indent<<"1: ...(maxDepth)"<<endl; }
     } else {
-        for (AstNode* nodep=op1p(); nodep; nodep=nodep->nextp()) {
+        for (const AstNode* nodep=op1p(); nodep; nodep=nodep->nextp()) {
             nodep->dumpTree(os, indent+"1:", maxDepth-1); }
-        for (AstNode* nodep=op2p(); nodep; nodep=nodep->nextp()) {
+        for (const AstNode* nodep=op2p(); nodep; nodep=nodep->nextp()) {
             nodep->dumpTree(os, indent+"2:", maxDepth-1); }
-        for (AstNode* nodep=op3p(); nodep; nodep=nodep->nextp()) {
+        for (const AstNode* nodep=op3p(); nodep; nodep=nodep->nextp()) {
             nodep->dumpTree(os, indent+"3:", maxDepth-1); }
-        for (AstNode* nodep=op4p(); nodep; nodep=nodep->nextp()) {
+        for (const AstNode* nodep=op4p(); nodep; nodep=nodep->nextp()) {
             nodep->dumpTree(os, indent+"4:", maxDepth-1); }
     }
 }
 
-void AstNode::dumpTreeAndNext(std::ostream& os, const string& indent, int maxDepth) {
+void AstNode::dumpTreeAndNext(std::ostream& os, const string& indent, int maxDepth) const {
     // Audited to make sure this is never NULL
-    for (AstNode* nodep=this; nodep; nodep=nodep->nextp()) {
+    for (const AstNode* nodep = this; nodep; nodep = nodep->nextp()) {
         nodep->dumpTree(os, indent, maxDepth);
     }
 }
 
 void AstNode::dumpTreeFile(const string& filename, bool append, bool doDump) {
+    // Not const function as calls checkTree
     if (doDump) {
         {   // Write log & close
             UINFO(2,"Dumping "<<filename<<endl);
@@ -1090,7 +1102,7 @@ string AstNode::locationStr() const {
         const AstScope* scopep;
         if ((scopep = VN_CAST_CONST(backp, Scope))) {
             // The design is flattened and there are no useful scopes
-            // This is probably because of inilining
+            // This is probably because of inlining
             if (scopep->isTop()) break;
 
             str += scopep->prettyName();

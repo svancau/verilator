@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Netlist (top level) functions
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -25,7 +25,7 @@
 //         V3ParseLex           Wrapper that includes lex output
 //           V3Lexer.yy.cpp     Flex output
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -191,7 +191,7 @@ size_t V3ParseImp::ppInputToLex(char* buf, size_t max_size) {
             m_ppBuffers.push_front(remainder);  // Put back remainder for next time
             len = (max_size-got);
         }
-        strncpy(buf+got, front.c_str(), len);
+        memcpy(buf+got, front.c_str(), len);
         got += len;
     }
     if (debug()>=9) {
@@ -225,7 +225,6 @@ void V3ParseImp::parseFile(FileLine* fileline, const string& modfilename, bool i
     string modname = V3Os::filenameNonExt(modfilename);
 
     UINFO(2,__FUNCTION__<<": "<<modname<<(inLibrary?" [LIB]":"")<<endl);
-    VFileContent* contentp = new VFileContent;
     m_fileline = new FileLine(fileline);
     m_fileline->newContent();
     m_inLibrary = inLibrary;
@@ -285,7 +284,7 @@ void V3ParseImp::lexFile(const string& modname) {
 //======================================================================
 // V3Parse functions
 
-V3Parse::V3Parse(AstNetlist* rootp, V3InFilter* filterp, V3ParseSym* symp) {
+V3Parse::V3Parse(AstNetlist* rootp, VInFilter* filterp, V3ParseSym* symp) {
     m_impp = new V3ParseImp(rootp, filterp, symp);
 }
 V3Parse::~V3Parse() {

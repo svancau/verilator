@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Cleanup stage in V3Width
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3WIDTHCOMMIT_H_
 #define _V3WIDTHCOMMIT_H_ 1
 
@@ -161,7 +161,7 @@ private:
         editDType(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit WidthCommitVisitor(AstNetlist* nodep) {
         // Were changing widthMin's, so the table is now somewhat trashed
         nodep->typeTablep()->clearCache();

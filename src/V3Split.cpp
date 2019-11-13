@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Break always into separate statements to reduce temps
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -80,7 +80,7 @@
 //  Also vars must not be "public" and we also scoreboard nodep->isPure()
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -263,9 +263,9 @@ protected:
     SplitPliVertex*     m_pliVertexp;   // Element specifying PLI ordering
     V3Graph             m_graph;        // Scoreboard of var usages/dependencies
     bool                m_inDly;        // Inside ASSIGNDLY
-    V3Double0           m_statSplits;   // Statistic tracking
+    VDouble0            m_statSplits;   // Statistic tracking
 
-    // CONSTUCTORS
+    // CONSTRUCTORS
 public:
     SplitReorderBaseVisitor() {
         scoreboardClear();

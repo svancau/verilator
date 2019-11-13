@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Os-specific function wrapper
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,13 +17,14 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #ifndef _V3OS_H_
 #define _V3OS_H_ 1
 
 #include "config_build.h"
 #include "verilatedos.h"
 
+// Limited V3 headers here - this is a base class for Vlc etc
 #include "V3Error.h"
 
 //============================================================================
@@ -55,6 +56,7 @@ public:
 
     // METHODS (random)
     static vluint64_t rand64(vluint64_t* statep);
+    static string trueRandom(size_t size);
 
     // METHODS (performance)
     static uint64_t timeUsecs();  ///< Return wall time since epoch in microseconds, or 0 if not implemented

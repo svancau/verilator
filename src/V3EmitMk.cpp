@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Emit Makefile
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -26,16 +26,10 @@
 #include "V3EmitMk.h"
 #include "V3EmitCBase.h"
 
-#include <algorithm>
-#include <cmath>
-#include <cstdarg>
-#include <map>
-#include <vector>
-
 //######################################################################
 // Emit statements and math operators
 
-class EmitMkVisitor : public EmitCBaseVisitor {
+class EmitMk {
 public:
 
     // METHODS
@@ -107,11 +101,13 @@ public:
                 else if (support==2 && slow) {
                 }
                 else {
-                    for (AstCFile* nodep = v3Global.rootp()->filesp();
-                         nodep; nodep = VN_CAST(nodep->nextp(), CFile)) {
-                        if (nodep->source() && nodep->slow()==(slow!=0)
-                            && nodep->support()==(support!=0)) {
-                            putMakeClassEntry(of, nodep->name());
+                    for (AstFile* nodep = v3Global.rootp()->filesp();
+                         nodep; nodep = VN_CAST(nodep->nextp(), File)) {
+                        AstCFile* cfilep = VN_CAST(nodep, CFile);
+                        if (cfilep && cfilep->source()
+                            && cfilep->slow()==(slow!=0)
+                            && cfilep->support()==(support!=0)) {
+                            putMakeClassEntry(of, cfilep->name());
                         }
                     }
                 }
@@ -135,6 +131,8 @@ public:
 
         if (v3Global.opt.exe()) {
             of.puts("default: "+v3Global.opt.exeName()+"\n");
+        } else if (!v3Global.opt.protectLib().empty()) {
+            of.puts("default: lib"+v3Global.opt.protectLib()+"\n");
         } else {
             of.puts("default: "+v3Global.opt.prefix()+"__ALL.a\n");
         }
@@ -166,6 +164,9 @@ public:
 
         of.puts("# User CFLAGS (from -CFLAGS on Verilator command line)\n");
         of.puts("VM_USER_CFLAGS = \\\n");
+        if (!v3Global.opt.protectLib().empty()) {
+            of.puts("\t-fPIC \\\n");
+        }
         const V3StringList& cFlags = v3Global.opt.cFlags();
         for (V3StringList::const_iterator it = cFlags.begin(); it != cFlags.end(); ++it) {
             of.puts("\t"+*it+" \\\n");
@@ -223,27 +224,40 @@ public:
             of.puts("\n");
         }
 
+        if (!v3Global.opt.protectLib().empty()) {
+            of.puts("\n### Library rules... (from --protect-lib)\n");
+            of.puts("# Using -fPIC objects for both static and dynamic libraries "
+                    "(which appears to work)\n");
+            of.puts(v3Global.opt.protectLibName(false)+": $(VK_OBJS) $(VK_GLOBAL_OBJS)\n");
+            of.puts("\t$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o "+
+                    v3Global.opt.protectLib()+".o "+v3Global.opt.protectLib()+".cpp\n");
+            of.puts("\tar rc $@ $^ "+v3Global.opt.protectLib()+".o\n");
+            of.puts("\n");
+
+            of.puts(v3Global.opt.protectLibName(true)+": $(VM_PREFIX)__ALL.a $(VK_GLOBAL_OBJS)\n");
+            of.puts("\t$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -shared -o $@ "+v3Global.opt.protectLib()+".cpp $^\n");
+            of.puts("\n");
+
+            of.puts("lib"+v3Global.opt.protectLib()+": "+v3Global.opt.protectLibName(false)+
+                    " "+v3Global.opt.protectLibName(true)+"\n");
+        }
+
         of.puts("\n");
         of.putsHeader();
     }
 
-    //--------------------
-    virtual void visit(AstNode* nodep) {  // LCOV_EXCL_LINE
-        nodep->v3fatalSrc("No visitors implemented.");
-    }
-
 public:
-    explicit EmitMkVisitor(AstNetlist*) {
+    explicit EmitMk() {
         emitClassMake();
         emitOverallMake();
     }
-    virtual ~EmitMkVisitor() {}
+    virtual ~EmitMk() {}
 };
 
 //######################################################################
 // Gate class functions
 
-void V3EmitMk::emitmk(AstNetlist* nodep) {
+void V3EmitMk::emitmk() {
     UINFO(2,__FUNCTION__<<": "<<endl);
-    EmitMkVisitor visitor (nodep);
+    EmitMk emitter;
 }

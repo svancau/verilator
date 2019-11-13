@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Hashed common code into functions
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -96,7 +96,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit HashedVisitor(AstNode* nodep) {
         m_cacheInUser4 = true;
         nodeHashIterate(nodep);
@@ -196,7 +196,7 @@ void V3Hashed::dumpFile(const string& filename, bool tree) {
         *logp <<"\t"<<it->second<<endl;
         // Dumping the entire tree may make nearly N^2 sized dumps,
         // because the nodes under this one may also be in the hash table!
-        if (tree) it->second->dumpTree(*logp, "\t\t");
+        if (tree) it->second->dumpTree(*logp, "    ");
     }
 }
 

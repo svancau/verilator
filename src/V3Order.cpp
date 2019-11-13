@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Block code ordering
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -75,7 +75,7 @@
 //      and make a new block.  Add that new activation block to the list of calls to make.
 //
 //*************************************************************************
-
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -279,7 +279,7 @@ private:
         if (AstVarRef* varrefp = VN_CAST(nodep->rhsp(), VarRef)) {
             this->visit(varrefp);
             m_rightClkWidth = varrefp->width();
-            if (varrefp->varp()->attrClocker() == AstVarAttrClocker::CLOCKER_YES) {
+            if (varrefp->varp()->attrClocker() == VVarAttrClocker::CLOCKER_YES) {
                 if (m_inClocked) {
                     varrefp->v3warn(CLKDATA, "Clock used as data (on rhs of assignment) in sequential block "
                                     <<varrefp->prettyNameQ()<<endl);
@@ -307,8 +307,8 @@ private:
             }
 
             const AstVarRef* lhsp = VN_CAST(nodep->lhsp(), VarRef);
-            if (lhsp && (lhsp->varp()->attrClocker() == AstVarAttrClocker::CLOCKER_UNKNOWN)) {
-                lhsp->varp()->attrClocker(AstVarAttrClocker::CLOCKER_YES);  // mark as clocker
+            if (lhsp && (lhsp->varp()->attrClocker() == VVarAttrClocker::CLOCKER_UNKNOWN)) {
+                lhsp->varp()->attrClocker(VVarAttrClocker::CLOCKER_YES);  // mark as clocker
                 m_newClkMarked = true;  // enable a further run since new clocker is marked
                 UINFO(5, "node is newly marked as clocker by assignment "<<lhsp<<endl);
             }
@@ -316,7 +316,7 @@ private:
     }
 
     virtual void visit(AstVarRef* nodep) {
-        if (m_inAss && nodep->varp()->attrClocker() == AstVarAttrClocker::CLOCKER_YES) {
+        if (m_inAss && nodep->varp()->attrClocker() == VVarAttrClocker::CLOCKER_YES) {
             if (m_inClocked) {
                 nodep->v3warn(CLKDATA,
                               "Clock used as data (on rhs of assignment) in sequential block "
@@ -370,7 +370,7 @@ private:
     }
 
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit OrderClkMarkVisitor(AstNode* nodep) {
         m_hasClk    = false;
         m_inClocked = false;
@@ -395,7 +395,7 @@ private:
     VL_DEBUG_FUNC;  // Declare debug()
     virtual void visit(AstNodeAssign* nodep) {
         if (const AstVarRef* varrefp = VN_CAST(nodep->lhsp(), VarRef)) {
-            if (varrefp->varp()->attrClocker() == AstVarAttrClocker::CLOCKER_YES) {
+            if (varrefp->varp()->attrClocker() == VVarAttrClocker::CLOCKER_YES) {
                 m_clkAss = true;
                 UINFO(6, "node was marked as clocker "<<varrefp<<endl);
             }
@@ -412,7 +412,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     explicit OrderClkAssVisitor(AstNode* nodep) {
         m_clkAss = false;
         iterate(nodep);
@@ -722,7 +722,7 @@ protected:
 
 private:
     // STATS
-    V3Double0           m_statCut[OrderVEdgeType::_ENUM_END];   // Count of each edge type cut
+    VDouble0 m_statCut[OrderVEdgeType::_ENUM_END];  // Count of each edge type cut
 
     // TYPES
     enum VarUsage { VU_NONE=0, VU_CON=1, VU_GEN=2 };
@@ -1071,11 +1071,11 @@ private:
                         con = false;
                     }
                     if (varscp->varp()->attrClockEn() && !m_inPre && !m_inPost && !m_inClocked) {
-                        // clock_enable attribute: user's worring about it for us
+                        // clock_enable attribute: user's worrying about it for us
                         con = false;
                     }
                     if (m_inClkAss && (varscp->varp()->attrClocker()
-                                       != AstVarAttrClocker::CLOCKER_YES)) {
+                                       != VVarAttrClocker::CLOCKER_YES)) {
                         con = false;
                         UINFO(4, "nodep used as clock_enable "<<varscp
                               <<" in "<<m_logicVxp->nodep()<<endl);
@@ -1105,7 +1105,7 @@ private:
                                 // If the lhs is a clocker, avoid marking that as circular by
                                 // putting a hard edge instead of normal cuttable
                                 if (varscp->varp()->attrClocker()
-                                    == AstVarAttrClocker::CLOCKER_YES) {
+                                    == VVarAttrClocker::CLOCKER_YES) {
                                     new OrderEdge(&m_graph, m_logicVxp, varVxp, WEIGHT_NORMAL);
                                 } else {
                                     new OrderComboCutEdge(&m_graph, m_logicVxp, varVxp);
@@ -1238,7 +1238,7 @@ private:
         iterateChildren(nodep);
     }
 public:
-    // CONSTUCTORS
+    // CONSTRUCTORS
     OrderVisitor() {
         m_topScopep = NULL;
         m_scopetopp = NULL;
@@ -1411,7 +1411,7 @@ void OrderVisitor::processInputsOutIterate(OrderEitherVertex* vertexp, VertexVec
     vertexp->user(3);  // out-edges processed
 
     {
-        // Propagate PrimaryIn through simple assignments, followint target of vertex
+        // Propagate PrimaryIn through simple assignments, following target of vertex
         for (V3GraphEdge* edgep = vertexp->outBeginp(); edgep; edgep=edgep->outNextp()) {
             OrderEitherVertex* toVertexp = static_cast<OrderEitherVertex*>(edgep->top());
             if (OrderVarStdVertex* vvertexp = dynamic_cast<OrderVarStdVertex*>(toVertexp)) {

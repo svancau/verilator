@@ -2,7 +2,7 @@
 //*************************************************************************
 // DESCRIPTION: Verilator: Netlist (top level) functions
 //
-// Code available from: http://www.veripool.org/verilator
+// Code available from: https://verilator.org
 //
 //*************************************************************************
 //
@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 //*************************************************************************
-
+
 // CHEAT!
 #define V3NUMBER_ASCII_BINARY
 #define _V3ERROR_NO_GLOBAL_ 1
