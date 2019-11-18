@@ -208,6 +208,9 @@ PATH.
 
 =item 5.
 
+Ensure that the header-only libraries are present in the repository
+    git submodule update --init --recursive --remote
+
 If you plan to use VHDL support, you will need to install nvc simulator.
 Nvc is used as a VHDL frontend for Verilator.
 
