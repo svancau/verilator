@@ -33,3 +33,4 @@ verilator.pc
 verilator-config.cmake
 verilator-config-version.cmake
 **/obj_dir/*
+examples/pwm_vhdl/work
