@@ -40,7 +40,7 @@ private:
     AstNodeDType *translateType(FileLine *fl, Value::ConstObject item);
     AstNode *translateObject(Value::ConstObject item);
     AstNode *translateFcall(Value::ConstObject item);
-    map<string, AstEdgeType> m_sig_edges;
+    map<string, VEdgeType> m_sig_edges;
     AstAlways *current_process;
     V3ParseSym &symt;
     string indentString();

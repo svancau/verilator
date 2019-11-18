@@ -300,12 +300,12 @@ AstNode *V4VhdlTranslate::translateFcall(Value::ConstObject item) {
         RET_NODE_NODBG(new AstModDiv(fl(), params[0], params[1]));
     }
     else if (fname == "IEEE.STD_LOGIC_1164.RISING_EDGE") {
-        m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_POSEDGE));
+        m_sig_edges.insert(pair<string, VEdgeType>(((AstVarRef*)params[0])->name(), VEdgeType::ET_POSEDGE));
         // Return True, if removed by constify pass
         RET_NODE_NODBG(new AstConst(fl(), AstConst::LogicTrue()));
     }
     else if (fname == "IEEE.STD_LOGIC_1164.FALLING_EDGE") {
-        m_sig_edges.insert(pair<string, AstEdgeType>(((AstVarRef*)params[0])->name(), AstEdgeType::ET_NEGEDGE));
+        m_sig_edges.insert(pair<string, VEdgeType>(((AstVarRef*)params[0])->name(), VEdgeType::ET_NEGEDGE));
         // Return True, if removed by constify pass
         RET_NODE_NODBG(new AstConst(fl(), AstConst::LogicTrue()));
     }
@@ -497,7 +497,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             AstNode *ref = translateObject(m->GetObject());
             updateFL(obj);
             string item_name = m->GetObject()["name"].GetString();
-            AstEdgeType edge_type = AstEdgeType::ET_ANYEDGE;
+            VEdgeType edge_type = VEdgeType::ET_ANYEDGE;
             if (m_sig_edges[item_name])
                 edge_type = m_sig_edges[item_name];
 
