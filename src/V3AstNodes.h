@@ -1181,6 +1181,7 @@ private:
     bool        m_noReset:1;    // Do not do automated reset/randomization
     bool        m_noSubst:1;    // Do not substitute out references
     bool        m_trace:1;      // Trace this variable
+    bool        m_isVerilog:1; // This variable follows Verilog rules
     VVarAttrClocker m_attrClocker;
     MTaskIdSet  m_mtaskIds;  // MTaskID's that read or write this var
 
@@ -1198,6 +1199,7 @@ private:
         m_isStatic = false; m_isPulldown = false; m_isPullup = false;
         m_isIfaceParent = false; m_isDpiOpenArray = false;
         m_noReset = false; m_noSubst = false; m_trace = false;
+        m_isVerilog = true;
         m_attrClocker = VVarAttrClocker::CLOCKER_UNKNOWN;
     }
 public:
@@ -1319,6 +1321,7 @@ public:
     void noSubst(bool flag) { m_noSubst = flag; }
     bool noSubst() const { return m_noSubst; }
     void trace(bool flag) { m_trace = flag; }
+    void isVerilog(bool flag) { m_isVerilog = flag; }
     // METHODS
     virtual void name(const string& name) { m_name = name; }
     virtual void tag(const string& text) { m_tag = text;}
@@ -1362,6 +1365,7 @@ public:
     bool isSigUserRdPublic() const { return m_sigUserRdPublic; }
     bool isSigUserRWPublic() const { return m_sigUserRWPublic; }
     bool isTrace() const { return m_trace; }
+    bool isVerilog() const { return m_isVerilog; }
     bool isConst() const { return m_isConst; }
     bool isStatic() const { return m_isStatic; }
     bool isFuncLocal() const { return m_funcLocal; }

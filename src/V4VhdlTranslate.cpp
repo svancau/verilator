@@ -84,6 +84,7 @@ AstVar* V4VhdlTranslate::createVariable(FileLine* fileline, string name, AstNode
     AstNodeDType* arrayDTypep = createArray(dtypep, arrayp, false);
 
     AstVar* nodep = new AstVar(fileline, type, name, VFlagChildDType(), arrayDTypep);
+    nodep->isVerilog(false);
     nodep->addAttrsp(attrsp);
     if (m_varDecl != AstVarType::UNKNOWN) nodep->combineType(m_varDecl);
     if (m_varIO != VDirection::NONE) {
@@ -390,6 +391,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             VARDECL(GPARAM);
             VARDTYPE(translateType(fl(), gen_obj["type"].GetObject()));
             AstVar *generic_var = createVariable(fl(), gen_obj["name"].GetString(), NULL, NULL);
+            generic_var->isVerilog(false);
             symt.reinsert(generic_var);
             if (gen_obj.HasMember("val"))
                 generic_var->valuep(translateObject(gen_obj["val"].GetObject()));
@@ -415,6 +417,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             VARDTYPE(translateType(fl(), port_obj["type"].GetObject()));
             mod->addStmtp(port);
             AstVar *port_var = createVariable(fl(), port->name(), NULL, NULL);
+            port_var->isVerilog(false);
             symt.reinsert(port_var);
             if (port_obj.HasMember("val"))
                 port_var->valuep(translateObject(port_obj["val"].GetObject()));
@@ -583,6 +586,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         VARDTYPE(translateType(fl(), obj["type"].GetObject()));
         string varName = convertName(obj["name"].GetString());
         AstVar *var = createVariable(fl(), varName, NULL, NULL);
+        var->isVerilog(false);
         symt.reinsert(var);
         if (obj.HasMember("val"))
             var->valuep(translateObject(obj["val"].GetObject()));
@@ -595,6 +599,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         VARDTYPE(translateType(fl(), obj["type"].GetObject()));
         string varName = convertName(obj["name"].GetString());
         AstVar *var = createVariable(fl(), varName, NULL, NULL);
+        var->isVerilog(false);
         symt.reinsert(var);
         if (obj.HasMember("val"))
             var->valuep(translateObject(obj["val"].GetObject()));
@@ -849,6 +854,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             updateFL(port_obj);
             VARDTYPE(translateType(fl(), port_obj["type"].GetObject()));
             AstVar *port_var = createVariable(fl(), port_obj["name"].GetString(), NULL, NULL);
+            port_var->isVerilog(false);
             symt.reinsert(port_var);
             if (port_obj.HasMember("val"))
                 port_var->valuep(translateObject(obj["val"].GetObject()));
@@ -903,6 +909,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
             updateFL(port_obj);
             VARDTYPE(translateType(fl(), port_obj["type"].GetObject()));
             AstVar *port_var = createVariable(fl(), port_obj["name"].GetString(), NULL, NULL);
+            port_var->isVerilog(false);
             symt.reinsert(port_var);
             if (port_obj.HasMember("val"))
                 port_var->valuep(translateObject(obj["val"].GetObject()));
@@ -946,6 +953,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         VARRESET_NONLIST(VAR);
         VARDTYPE(new AstBasicDType(fl(), AstBasicDTypeKwd::INT));
         AstVar *iterateVar = createVariable(fl(), convertName(obj["name"].GetString()), NULL, NULL);
+        iterateVar->isVerilog(false);
         begin->addStmtsp(iterateVar);
         symt.reinsert(iterateVar);
         AstVHDLFor *forp = new AstVHDLFor(fl(), varref,
@@ -964,6 +972,7 @@ AstNode *V4VhdlTranslate::translateObject(Value::ConstObject item) {
         VARRESET_NONLIST(GENVAR);
         VARDTYPE(new AstBasicDType(fl(), AstBasicDTypeKwd::INT));
         AstVar *iterateVar = createVariable(fl(), convertName(varname), NULL, NULL);
+        iterateVar->isVerilog(false);
         symt.reinsert(iterateVar);
 
         AstGenerate *genp = new AstGenerate(fl(), NULL);
